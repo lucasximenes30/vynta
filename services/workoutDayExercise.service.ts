@@ -1,5 +1,3 @@
-'use server'
-
 import { prisma } from '@/lib/prisma'
 import { cache } from 'react'
 import { ensureExerciseAccess, type ExerciseDTO } from '@/services/exercise.service'

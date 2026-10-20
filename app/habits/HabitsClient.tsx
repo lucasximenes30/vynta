@@ -1,9 +1,12 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import * as Lucide from 'lucide-react'
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts'
+import { getIconByName } from '@/lib/icons'
+
+const HabitsRadarChart = dynamic(() => import('./HabitsRadarChart'), { ssr: false })
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -66,8 +69,7 @@ function getColorHex(id: string) {
 
 /** Renders a Lucide icon by string name — safe fallback to Target */
 function HabitIcon({ name, className }: { name: string; className?: string }) {
-  const Icon = (Lucide as unknown as Record<string, React.ElementType>)[name]
-  if (!Icon) return <Lucide.Target className={className} />
+  const Icon = getIconByName(name)
   return <Icon className={className} />
 }
 
@@ -731,37 +733,7 @@ export default function HabitsClient({
                 </div>
                 
                 <div className="w-full sm:w-2/3 h-64 sm:h-72 -ml-2 sm:ml-0 relative">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
-                      <PolarGrid stroke="#e5e7eb" className="dark:stroke-surface-700/50" />
-                      <PolarAngleAxis 
-                        dataKey="subject" 
-                        tick={{ fill: '#9ca3af', fontSize: 10, fontWeight: 600 }} 
-                      />
-                      <RechartsTooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'rgba(17, 24, 39, 0.95)', 
-                          border: '1px solid rgba(55, 65, 81, 0.5)',
-                          borderRadius: '8px',
-                          color: '#fff',
-                          fontSize: '12px'
-                        }}
-                        itemStyle={{ color: '#a855f7' }}
-                        formatter={(value) => [`${value}%`, 'Score']}
-                      />
-                      <Radar 
-                        name="Performance" 
-                        dataKey="A" 
-                        stroke="#a855f7" 
-                        strokeWidth={2}
-                        fill="#a855f7" 
-                        fillOpacity={0.35} 
-                        isAnimationActive={true}
-                        animationDuration={1500}
-                        animationEasing="ease-out"
-                      />
-                    </RadarChart>
-                  </ResponsiveContainer>
+                  <HabitsRadarChart data={radarData} />
                 </div>
               </div>
             </div>

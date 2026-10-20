@@ -1,22 +1,21 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import * as Lucide from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import NoteModal from './NoteModal'
 
-export default function NotesClient() {
+export default function NotesClient({ initialNotes }: { initialNotes: any[] }) {
   const router = useRouter()
-  const [notes, setNotes] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [notes, setNotes] = useState<any[]>(initialNotes)
+  const [loading, setLoading] = useState(false)
   
   const [isNoteModalOpen, setNoteModalOpen] = useState(false)
   const [selectedNote, setSelectedNote] = useState<any | null>(null)
 
   const fetchNotes = async () => {
     try {
-      setLoading(true)
       const res = await fetch('/api/notes')
       if (res.ok) {
         const data = await res.json()
@@ -28,10 +27,6 @@ export default function NotesClient() {
       setLoading(false)
     }
   }
-
-  useEffect(() => {
-    fetchNotes()
-  }, [])
 
   const handleEdit = (note: any) => {
     setSelectedNote(note)

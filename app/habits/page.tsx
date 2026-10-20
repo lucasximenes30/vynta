@@ -47,12 +47,12 @@ export default async function HabitsPage() {
 
   const weekDates = getWeekDates()
   const prevWeekDates = getPrevWeekDates()
-  const habits = await getHabitsByUser(session.userId)
-  
-  const [checkins, prevCheckins, historicalScore, ranking] = await Promise.all([
+
+  const [habits, checkins, prevCheckins, historicalScore, ranking] = await Promise.all([
+    getHabitsByUser(session.userId),
     getCheckinsForWeek(session.userId, weekDates),
     getCheckinsForWeek(session.userId, prevWeekDates),
-    getHistoricalScore(session.userId, weekDates, habits.length),
+    getHistoricalScore(session.userId, weekDates),
     getUserRanking(10),
   ])
 

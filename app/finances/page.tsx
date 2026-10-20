@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
 import { getTransactionsByUser, getUserBalance, getMonthlySummary } from '@/services/transaction.service'
 import { getCardsByUser } from '@/services/card.service'
+import { prisma } from '@/lib/prisma'
 import FinancesClient from './FinancesClient'
 
 export const metadata: Metadata = {
@@ -49,16 +50,21 @@ export default async function FinancesPage() {
   const session = await getSession()
   if (!session) redirect('/login')
 
-  // Check subscription status and expiration
-  const prisma = require('@/lib/prisma').prisma || new (require('@prisma/client').PrismaClient)()
-  const user = await prisma.user.findUnique({
-    where: { id: session.userId },
-    select: {
-      subscriptionStatus: true,
-      subscriptionEndDate: true,
-      role: true,
-    },
-  })
+  // Subscription check and page data are fetched in parallel
+  const [user, transactions, balance, monthly, cards] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.userId },
+      select: {
+        subscriptionStatus: true,
+        subscriptionEndDate: true,
+        role: true,
+      },
+    }),
+    getTransactionsByUser(session.userId),
+    getUserBalance(session.userId),
+    getMonthlySummary(session.userId),
+    getCardsByUser(session.userId),
+  ])
 
   if (!user) redirect('/login')
 
@@ -70,16 +76,9 @@ export default async function FinancesPage() {
   // Redirect if inactive or if VIP access expired
   if (!isPaidActive || (user.subscriptionStatus === 'ACTIVE' && isExpired)) {
     if (!isPrivileged) {
-      redirect('/login?error=inactive')
+      redirect('/unlock?state=expired')
     }
   }
-
-  const [transactions, balance, monthly, cards] = await Promise.all([
-    getTransactionsByUser(session.userId),
-    getUserBalance(session.userId),
-    getMonthlySummary(session.userId),
-    getCardsByUser(session.userId),
-  ])
 
   const data = serializeData(transactions, balance, monthly)
 

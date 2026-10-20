@@ -1,5 +1,3 @@
-'use server'
-
 import { prisma } from '@/lib/prisma'
 import { cache } from 'react'
 import { unstable_cache } from 'next/cache'
@@ -139,7 +137,7 @@ export async function updateHabit(
 ): Promise<HabitDTO> {
   const existing = await prisma.habit.findUnique({
     where: { id },
-    include: { checkins: true },
+    select: { userId: true, checkins: { select: { date: true, completed: true } } },
   })
 
   if (!existing || existing.userId !== userId) {
@@ -181,9 +179,9 @@ export async function toggleCheckin(
   date: string,
   completed: boolean
 ): Promise<{ checkin: CheckinDTO, currentStreak: number, bestStreak: number }> {
-  const habit = await prisma.habit.findUnique({ 
+  const habit = await prisma.habit.findUnique({
     where: { id: habitId },
-    include: { checkins: true }
+    select: { userId: true, checkins: { select: { date: true, completed: true } } },
   })
   if (!habit || habit.userId !== userId) throw new Error('Habit not found or unauthorized')
 
@@ -208,14 +206,9 @@ export const getCheckinsForWeek = cache(async (
   userId: string,
   dates: string[]
 ): Promise<CheckinDTO[]> => {
-  const habits = await prisma.habit.findMany({
-    where: { userId, isActive: true },
-    select: { id: true },
-  })
-  const habitIds = habits.map((h) => h.id)
-
   const checkins = await prisma.habitCheckin.findMany({
-    where: { habitId: { in: habitIds }, date: { in: dates } },
+    where: { habit: { userId, isActive: true }, date: { in: dates } },
+    select: { habitId: true, date: true, completed: true },
   })
 
   return checkins.map((c) => ({
@@ -225,11 +218,15 @@ export const getCheckinsForWeek = cache(async (
   }))
 })
 
-export const getHistoricalScore = cache(async (userId: string, weekDates: string[], totalVisibleHabits: number): Promise<number> => {
-  const allCheckins = await prisma.habitCheckin.findMany({
-    where: { habit: { userId }, completed: true }
-  })
-  
+export const getHistoricalScore = cache(async (userId: string, weekDates: string[]): Promise<number> => {
+  const [allCheckins, totalVisibleHabits] = await Promise.all([
+    prisma.habitCheckin.findMany({
+      where: { habit: { userId }, completed: true },
+      select: { date: true },
+    }),
+    prisma.habit.count({ where: { userId, isActive: true } }),
+  ])
+
   const weekSet = new Set(weekDates)
   const historicalCheckins = allCheckins.filter(c => !weekSet.has(c.date))
   
@@ -259,79 +256,81 @@ export interface UserRankingEntry {
 
 export const getUserRanking = unstable_cache(
   async (limit: number = 10): Promise<UserRankingEntry[]> => {
-    const users = await prisma.user.findMany({
-    where: {
-      habits: {
-        some: {
-          isActive: true
-        }
-      }
-    },
-    include: {
-      habits: {
+    const [activeHabits, completedCheckins] = await Promise.all([
+      prisma.habit.findMany({
         where: { isActive: true },
-        include: {
+        select: {
+          userId: true,
+          user: { select: { name: true } },
           checkins: {
             orderBy: { date: 'desc' },
             take: 365,
-          }
+            select: { date: true, completed: true },
+          },
+        },
+      }),
+      prisma.habitCheckin.findMany({
+        where: { completed: true, habit: { user: { habits: { some: { isActive: true } } } } },
+        select: { date: true, habit: { select: { userId: true } } },
+      }),
+    ])
+
+    const habitsByUser = new Map<string, { name: string; habits: typeof activeHabits }>()
+    for (const habit of activeHabits) {
+      const entry = habitsByUser.get(habit.userId) ?? { name: habit.user.name, habits: [] }
+      entry.habits.push(habit)
+      habitsByUser.set(habit.userId, entry)
+    }
+
+    const checkinsByUserDate = new Map<string, Record<string, number>>()
+    for (const c of completedCheckins) {
+      const byDate = checkinsByUserDate.get(c.habit.userId) ?? {}
+      byDate[c.date] = (byDate[c.date] || 0) + 1
+      checkinsByUserDate.set(c.habit.userId, byDate)
+    }
+
+    const ranking: UserRankingEntry[] = []
+
+    for (const [userId, { name, habits }] of habitsByUser) {
+      const byDate = checkinsByUserDate.get(userId) ?? {}
+
+      let totalScore = 0
+      for (const d in byDate) {
+        totalScore += byDate[d] * 10
+        if (byDate[d] === habits.length && habits.length > 0) {
+          totalScore += 20
         }
       }
-    }
-  })
 
-  const ranking: UserRankingEntry[] = []
+      // Calculate current streak (best across all habits)
+      let maxCurrentStreak = 0
+      let maxBestStreak = 0
 
-  for (const user of users) {
-    if (user.habits.length === 0) continue
-
-    // Calculate total score
-    const allCheckins = await prisma.habitCheckin.findMany({
-      where: { habit: { userId: user.id }, completed: true }
-    })
-
-    const byDate: Record<string, number> = {}
-    for (const c of allCheckins) {
-      byDate[c.date] = (byDate[c.date] || 0) + 1
-    }
-
-    let totalScore = 0
-    for (const d in byDate) {
-      totalScore += byDate[d] * 10
-      if (byDate[d] === user.habits.length && user.habits.length > 0) {
-        totalScore += 20
+      for (const habit of habits) {
+        const { currentStreak, bestStreak } = calculateStreaks(habit.checkins)
+        maxCurrentStreak = Math.max(maxCurrentStreak, currentStreak)
+        maxBestStreak = Math.max(maxBestStreak, bestStreak)
       }
+
+      const rankingPoints = totalScore + (maxCurrentStreak * 5)
+
+      ranking.push({
+        userId,
+        userName: name,
+        totalScore,
+        currentStreak: maxCurrentStreak,
+        bestStreak: maxBestStreak,
+        rankingPoints
+      })
     }
 
-    // Calculate current streak (best across all habits)
-    let maxCurrentStreak = 0
-    let maxBestStreak = 0
-
-    for (const habit of user.habits) {
-      const { currentStreak, bestStreak } = calculateStreaks(habit.checkins)
-      maxCurrentStreak = Math.max(maxCurrentStreak, currentStreak)
-      maxBestStreak = Math.max(maxBestStreak, bestStreak)
-    }
-
-    const rankingPoints = totalScore + (maxCurrentStreak * 5)
-
-    ranking.push({
-      userId: user.id,
-      userName: user.name,
-      totalScore,
-      currentStreak: maxCurrentStreak,
-      bestStreak: maxBestStreak,
-      rankingPoints
+    // Sort by rankingPoints descending, then by totalScore
+    ranking.sort((a, b) => {
+      if (b.rankingPoints !== a.rankingPoints) {
+        return b.rankingPoints - a.rankingPoints
+      }
+      return b.totalScore - a.totalScore
     })
-  }
 
-  // Sort by rankingPoints descending, then by totalScore
-  ranking.sort((a, b) => {
-    if (b.rankingPoints !== a.rankingPoints) {
-      return b.rankingPoints - a.rankingPoints
-    }
-    return b.totalScore - a.totalScore
-  })
-
-  return ranking.slice(0, limit)
-}, ['global-user-ranking'], { revalidate: 60 })
+    return ranking.slice(0, limit)
+  }, ['global-user-ranking'], { revalidate: 300 })

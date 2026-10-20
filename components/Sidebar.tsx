@@ -1,6 +1,7 @@
 'use client'
 
-import { useRouter, usePathname } from 'next/navigation'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import * as Lucide from 'lucide-react'
 import BrandLogo from './BrandLogo'
 
@@ -62,7 +63,6 @@ export const NAV_ITEMS = [
 ]
 
 export default function Sidebar() {
-  const router = useRouter()
   const pathname = usePathname()
 
   return (
@@ -83,8 +83,8 @@ export default function Sidebar() {
                 <div className="absolute left-0 w-1 h-8 rounded-r-full bg-brand-500 shadow-[0_0_8px_rgba(139,92,246,0.5)]" />
               )}
               
-              <button
-                onClick={() => router.push(href)}
+              <Link
+                href={href}
                 className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all duration-200 active:scale-95 ${
                   isActive
                     ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20 dark:bg-brand-600 dark:shadow-brand-500/20'
@@ -93,7 +93,7 @@ export default function Sidebar() {
                 title={label}
               >
                 <Icon className="h-5 w-5" />
-              </button>
+              </Link>
 
               {/* Collapsed Tooltip (Desktop) */}
               <div className="pointer-events-none absolute left-full ml-3 px-3 py-1.5 rounded-xl bg-surface-900/90 dark:bg-surface-800/95 text-white text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-150 shadow-xl z-50 border border-white/10 backdrop-blur-md translate-x-1 group-hover:translate-x-0">

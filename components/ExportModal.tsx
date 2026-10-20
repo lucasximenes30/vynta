@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import * as Lucide from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { exportToCSV, exportToPDF, exportToXLSX } from '@/lib/export.service'
 
 interface ExportModalProps {
   isOpen: boolean
@@ -24,7 +23,11 @@ export default function ExportModal({ isOpen, onClose, selectedMonth }: ExportMo
       const res = await fetch(`/api/export?type=${period}&year=${year}&month=${month}&includeExtract=${includeExtract}`)
       if (!res.ok) throw new Error('Falha ao buscar dados para exportação')
       
-      const data = await res.json()
+      // Heavy libs (exceljs, jspdf) are only downloaded when the user actually exports
+      const [data, { exportToCSV, exportToPDF, exportToXLSX }] = await Promise.all([
+        res.json(),
+        import('@/lib/export.service'),
+      ])
       
       const fileName = `Relatorio_Vynta_${period === 'monthly' ? selectedMonth : year}`
 

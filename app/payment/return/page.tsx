@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import * as Lucide from 'lucide-react'
+import { Loader2, CheckCircle2, Clock, AlertCircle, ShieldCheck } from 'lucide-react'
 import BrandLogo from '@/components/BrandLogo'
 
 export default function PaymentReturnPage() {
@@ -24,7 +24,7 @@ export default function PaymentReturnPage() {
 
         if (data.status === 'approved' || data.status === 'already_active' || data.canAccess) {
           setStatus('active')
-          setMessage('Tudo certo! Seu acesso VIP está liberado. Preparando seu painel...')
+          setMessage('Tudo certo! Seu acesso completo está liberado. Preparando seu painel...')
           setTimeout(() => {
             router.push('/dashboard')
             router.refresh()
@@ -75,20 +75,20 @@ export default function PaymentReturnPage() {
             <div className="relative flex items-center justify-center w-20 h-20 rounded-full bg-surface-800/80 shadow-[inset_0_2px_10px_rgba(255,255,255,0.05)] border border-surface-700">
               {status === 'loading' ? (
                 <>
-                  <Lucide.Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
+                  <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
                   <div className="absolute inset-0 rounded-full border border-brand-500/20 animate-ping opacity-20" />
                 </>
               ) : status === 'active' ? (
                 <div className="animate-fade-in flex items-center justify-center w-full h-full bg-emerald-500/10 rounded-full border border-emerald-500/20">
-                  <Lucide.CheckCircle2 className="w-8 h-8 text-emerald-400" />
+                  <CheckCircle2 className="w-8 h-8 text-emerald-400" />
                 </div>
               ) : status === 'pending' ? (
                 <div className="animate-fade-in flex items-center justify-center w-full h-full bg-amber-500/10 rounded-full border border-amber-500/20">
-                  <Lucide.Clock className="w-8 h-8 text-amber-400" />
+                  <Clock className="w-8 h-8 text-amber-400" />
                 </div>
               ) : (
                 <div className="animate-fade-in flex items-center justify-center w-full h-full bg-rose-500/10 rounded-full border border-rose-500/20">
-                  <Lucide.AlertCircle className="w-8 h-8 text-rose-400" />
+                  <AlertCircle className="w-8 h-8 text-rose-400" />
                 </div>
               )}
             </div>
@@ -107,7 +107,7 @@ export default function PaymentReturnPage() {
 
             {/* Secure Payment Note */}
             <div className="flex items-center justify-center gap-1.5 mt-2 opacity-60">
-              <Lucide.ShieldCheck className="w-4 h-4 text-brand-400" />
+              <ShieldCheck className="w-4 h-4 text-brand-400" />
               <span className="text-[10px] uppercase tracking-wider font-semibold text-surface-300">Ambiente Seguro</span>
             </div>
 

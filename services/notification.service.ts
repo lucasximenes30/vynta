@@ -1,5 +1,3 @@
-'use server'
-
 import { createHash } from 'crypto'
 import { generateNotifications, Notification, NotificationActionType } from '@/lib/notifications'
 import { prisma } from '@/lib/prisma'

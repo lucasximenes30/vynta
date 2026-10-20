@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import Sidebar from './Sidebar'
 import * as Lucide from 'lucide-react'
@@ -8,15 +9,29 @@ import * as Lucide from 'lucide-react'
 // Routes where the sidebar/bottom nav should NOT appear
 const NO_SIDEBAR_ROUTES = ['/', '/login', '/register', '/admin']
 
+// Main app routes prefetched once the shell is mounted so screen switches are instant
+const PREFETCH_ROUTES = ['/dashboard', '/finances', '/habits', '/workout', '/calendar', '/goals', '/notes', '/reports', '/settings', '/cards']
+
 export default function SidebarLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const router = useRouter()
 
+  const router = useRouter()
   const [showQuickActions, setShowQuickActions] = useState(false)
 
   const showSidebar = !NO_SIDEBAR_ROUTES.some(
     (r) => pathname === r || pathname.startsWith(`${r}/`)
   )
+
+  useEffect(() => {
+    if (!showSidebar) return
+    const prefetchAll = () => PREFETCH_ROUTES.forEach((route) => router.prefetch(route))
+    if ('requestIdleCallback' in window) {
+      const id = window.requestIdleCallback(prefetchAll)
+      return () => window.cancelIdleCallback(id)
+    }
+    const timeout = setTimeout(prefetchAll, 1500)
+    return () => clearTimeout(timeout)
+  }, [showSidebar, router])
 
   if (!showSidebar) return <>{children}</>
 
@@ -27,11 +42,6 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
     { Icon: Lucide.BarChart3, label: 'Relatórios', href: '/reports' },
     { Icon: Lucide.Settings, label: 'Ajustes', href: '/settings' },
   ]
-
-  const handleQuickActionClick = (href: string) => {
-    setShowQuickActions(false)
-    router.push(href)
-  }
 
   return (
     <div className="flex min-h-screen relative pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0 bg-surface-50 dark:bg-surface-950 transition-colors duration-300">
@@ -74,16 +84,17 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
                 { label: 'Agenda', icon: Lucide.CalendarDays, color: 'text-pink-500', bg: 'bg-pink-50 dark:bg-pink-500/10', href: '/calendar' },
                 { label: 'Nota', icon: Lucide.StickyNote, color: 'text-yellow-500', bg: 'bg-yellow-50 dark:bg-yellow-500/10', href: '/notes' },
               ].map((action, i) => (
-                <button
-                  key={i} 
-                  onClick={() => handleQuickActionClick(action.href)}
+                <Link
+                  key={i}
+                  href={action.href}
+                  onClick={() => setShowQuickActions(false)}
                   className="flex flex-col items-center gap-2 group transition-all"
                 >
                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${action.bg} transition-all active:scale-95 group-hover:scale-105 shadow-sm`}>
                     <action.icon className={`w-6 h-6 ${action.color}`} />
                   </div>
                   <span className="text-xs font-semibold text-surface-700 dark:text-surface-300">{action.label}</span>
-                </button>
+                </Link>
               ))}
             </div>
           </div>
@@ -111,16 +122,16 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
             const Icon = item.Icon!
 
             return (
-              <button
+              <Link
                 key={item.href}
-                onClick={() => router.push(item.href as string)}
+                href={item.href as string}
                 className="flex flex-col items-center justify-center w-16 h-full gap-0.5 transition-colors group"
               >
                 <Icon className={`w-5 h-5 transition-transform group-active:scale-90 ${isActive ? 'text-brand-600 dark:text-brand-400' : 'text-surface-400 dark:text-surface-500'}`} />
                 <span className={`text-[9px] font-semibold transition-colors uppercase tracking-wider ${isActive ? 'text-brand-600 dark:text-brand-400 font-bold' : 'text-surface-400 dark:text-surface-500'}`}>
                   {item.label}
                 </span>
-              </button>
+              </Link>
             )
           })}
         </div>

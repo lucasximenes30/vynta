@@ -25,6 +25,7 @@ model User {
   billingApprovedAt     DateTime?
   billingEmail          String?
   billingProvider       String?                @default("cakto")
+  billingCustomerId     String?
   caktoOrderId          String?
   caktoSubscriptionId   String?
   subscriptionStartDate DateTime?
@@ -58,6 +59,7 @@ model User {
   notes                 Note[]
   adminActionsGiven     AdminActionLog[]       @relation("AdminActions")
   adminActionsReceived  AdminActionLog[]       @relation("TargetUserActions")
+  lifeEvents            LifeEvent[]
 
   @@map("users")
 }
@@ -141,6 +143,10 @@ model Transaction {
   notes             Note[]
   goalTransactions  GoalTransaction[]
 
+  @@index([userId, date])
+  @@index([userId, isInstallment])
+  @@index([userId, isRecurring])
+  @@index([cardId])
   @@map("transactions")
 }
 
@@ -222,6 +228,7 @@ model Habit {
   user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([userId, isActive])
   @@map("habits")
 }
 
@@ -587,4 +594,32 @@ model FunnelEvent {
   @@index([sessionId])
   @@index([eventName])
   @@map("funnel_events")
+}
+
+// Legacy table present in the database (not used by the app). Kept in the schema so that
+// `prisma db push` / migrations never drop it.
+model LifeEvent {
+  id          String        @id
+  userId      String
+  type        LifeEventType
+  title       String
+  description String?
+  metadata    Json?
+  sourceId    String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([type])
+  @@index([userId, createdAt])
+  @@map("life_events")
+}
+
+enum LifeEventType {
+  WORKOUT
+  TRANSACTION
+  HABIT
+  GOAL
+  NOTE
+  SYSTEM
 }

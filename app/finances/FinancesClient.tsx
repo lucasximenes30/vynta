@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
 import MonthlyReport from '@/components/MonthlyReport'
@@ -80,9 +80,18 @@ async function getExchangeRate(): Promise<number> {
 }
 
 export default function FinancesClient({
-  session, transactions, balance, monthly, cards = [],
+  session, transactions: serverTransactions, balance, monthly, cards = [],
 }: Props) {
   const router = useRouter()
+  const [, startTransition] = useTransition()
+  const refresh = useCallback(() => startTransition(() => router.refresh()), [router])
+
+  // Optimistically hidden while the delete request and refresh are in flight
+  const [removedIds, setRemovedIds] = useState<Set<string>>(() => new Set())
+  const transactions = useMemo(
+    () => (removedIds.size ? serverTransactions.filter((t) => !removedIds.has(t.id)) : serverTransactions),
+    [serverTransactions, removedIds],
+  )
 
   // Exchange rate
   const [rate, setRate] = useState<number>(5.5)
@@ -123,7 +132,7 @@ export default function FinancesClient({
   }
 
   // Delete transaction
-  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deletingId] = useState<string | null>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 
   const handleDeleteClick = (id: string) => {
@@ -131,15 +140,23 @@ export default function FinancesClient({
   }
 
   const handleDelete = async (id: string) => {
-    setDeletingId(id)
+    const restore = () => setRemovedIds((prev) => {
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
+    setRemovedIds((prev) => new Set(prev).add(id))
+    setDeleteConfirmId(null)
     try {
       const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE' })
       if (res.ok) {
-        router.refresh()
+        refresh()
+      } else {
+        restore()
       }
-    } catch { /* ignore */ }
-    setDeletingId(null)
-    setDeleteConfirmId(null)
+    } catch {
+      restore()
+    }
   }
 
   // Edit transaction
@@ -148,7 +165,7 @@ export default function FinancesClient({
 
   const handleEditSave = () => {
     setEditSuccess(true)
-    router.refresh()
+    refresh()
     setTimeout(() => setEditSuccess(false), 2000)
   }
 
@@ -169,11 +186,15 @@ export default function FinancesClient({
   const [goalId, setGoalId] = useState('')
   const [goalAmount, setGoalAmount] = useState('')
 
+  // Goals are only needed by the add form: load them the first time it opens
+  const goalsRequested = useRef(false)
   useEffect(() => {
+    if (!showForm || goalsRequested.current) return
+    goalsRequested.current = true
     fetch('/api/goals').then(r => r.json()).then(data => {
       if (Array.isArray(data)) setGoals(data)
     }).catch(() => {})
-  }, [])
+  }, [showForm])
 
 
   // Installment fields
@@ -251,7 +272,7 @@ export default function FinancesClient({
       setPaymentMethod('none'); setSelectedCardId('')
       setAllocateToGoal(false); setGoalId(''); setGoalAmount('')
       setShowForm(false)
-      router.refresh()
+      refresh()
     } catch {
       setFormError("Erro de rede")
     } finally {

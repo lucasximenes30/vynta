@@ -91,6 +91,10 @@
     border-radius: var(--radius-control);
   }
 
+  .auth-input {
+    @apply h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-[15px] text-white placeholder:text-surface-500 transition focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-500/20;
+  }
+
   .modal-overlay {
     @apply fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 opacity-0 pointer-events-none transition-opacity duration-200;
   }

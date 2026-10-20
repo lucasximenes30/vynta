@@ -1,5 +1,3 @@
-'use server'
-
 import { prisma } from '@/lib/prisma'
 import { generateAIText } from '@/services/ai.service'
 import {
@@ -9,6 +7,8 @@ import {
   localizeCategoryName,
 } from '@/lib/categories'
 import { cache as reactCache } from 'react'
+import { unstable_cache } from 'next/cache'
+import { createHash } from 'crypto'
 
 export interface AIInsight {
   text: string
@@ -31,6 +31,7 @@ export interface InsightsInput {
 const cache = new Map<string, { data: AIInsight[]; timestamp: number }>()
 const CACHE_TTL = 24 * 60 * 60 * 1000 // 24h
 const MAX_AI_INSIGHTS = 4
+const AI_INSIGHTS_REVALIDATE_SECONDS = 6 * 60 * 60
 const MAX_INSIGHT_CHARS = 180
 
 function normalizeLanguage(language: string): SupportedLocale {
@@ -228,31 +229,14 @@ ${categoryDetails}
 ${trendText}`
 
   try {
-    const aiResult = await generateAIText({
-      purpose: 'reports',
-      prompt,
-      temperature: 0.45,
-    })
-
-    let text = aiResult.text.trim()
-
-    // Extrair JSON se tiver markdown wrapping
-    const jsonMatch = text.match(/\[[\s\S]*\]/)
-    if (jsonMatch) {
-      text = jsonMatch[0]
-    }
-
-    let insights: AIInsight[] = JSON.parse(text)
-
-    if (!Array.isArray(insights) || insights.length === 0) {
-      return getStaticInsights(input)
-    }
-
-    insights = normalizeAndPrioritizeInsights(insights, language)
-
-    if (insights.length === 0) {
-      return getStaticInsights(input)
-    }
+    // Persistent cache (Vercel Data Cache) keyed by the prompt, which encodes all input data:
+    // insights are regenerated automatically whenever the user's numbers change.
+    const promptHash = createHash('sha256').update(prompt).digest('hex')
+    const insights = await unstable_cache(
+      () => requestAIInsights(prompt, language),
+      ['ai-insights', promptHash],
+      { revalidate: AI_INSIGHTS_REVALIDATE_SECONDS },
+    )()
 
     // Save to cache
     cache.set(key, { data: insights, timestamp: Date.now() })
@@ -272,6 +256,32 @@ ${trendText}`
     })
     return getStaticInsights(input)
   }
+}
+
+// Throws when the AI response is unusable so that failures are never cached.
+async function requestAIInsights(prompt: string, language: SupportedLocale): Promise<AIInsight[]> {
+  const aiResult = await generateAIText({
+    purpose: 'reports',
+    prompt,
+    temperature: 0.45,
+  })
+
+  let text = aiResult.text.trim()
+
+  // Extrair JSON se tiver markdown wrapping
+  const jsonMatch = text.match(/\[[\s\S]*\]/)
+  if (jsonMatch) {
+    text = jsonMatch[0]
+  }
+
+  const parsed: AIInsight[] = JSON.parse(text)
+  const insights = Array.isArray(parsed) ? normalizeAndPrioritizeInsights(parsed, language) : []
+
+  if (insights.length === 0) {
+    throw new Error('Empty AI insights response')
+  }
+
+  return insights
 }
 
 function getStaticInsights(input: InsightsInput): AIInsight[] {

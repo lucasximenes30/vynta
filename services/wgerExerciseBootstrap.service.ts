@@ -1,5 +1,3 @@
-'use server'
-
 import { type ExerciseMuscleGroupValue } from '@/lib/exerciseCatalog'
 import { type ExerciseDTO } from '@/services/exercise.service'
 import { enrichExternalExerciseForDisplay } from '@/services/exerciseNameEnrichment.service'

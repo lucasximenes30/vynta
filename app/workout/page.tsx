@@ -17,17 +17,17 @@ export default async function WorkoutPage() {
   if (!session) redirect('/login')
 
   const activePlan = await getActiveWorkoutPlanByUser(session.userId)
-  const initialDays = activePlan ? await getWorkoutDaysByPlan(session.userId, activePlan.id) : []
-  const initialDayExercises = activePlan
-    ? await getWorkoutDayExercisesByPlan(session.userId, activePlan.id)
-    : []
   const todayDateKey = getLocalToday()
-  const initialTodayAssignment = activePlan
-    ? await getWorkoutDayAssignmentByDate(session.userId, {
-        planId: activePlan.id,
-        date: todayDateKey,
-      })
-    : null
+  const [initialDays, initialDayExercises, initialTodayAssignment] = activePlan
+    ? await Promise.all([
+        getWorkoutDaysByPlan(session.userId, activePlan.id),
+        getWorkoutDayExercisesByPlan(session.userId, activePlan.id),
+        getWorkoutDayAssignmentByDate(session.userId, {
+          planId: activePlan.id,
+          date: todayDateKey,
+        }),
+      ])
+    : [[], [], null]
 
   return (
     <WorkoutClient

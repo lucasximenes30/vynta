@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import * as Lucide from 'lucide-react'
+import { getIconByName } from '@/lib/icons'
 
 interface MonthlyGoalsReportProps {
   selectedMonth: string
@@ -96,7 +97,7 @@ export default function MonthlyGoalsReport({ selectedMonth, formatCurrency }: Mo
         ) : (
           <div className="space-y-3">
             {activeGoals.map((goal: any) => {
-              const Icon = (Lucide as any)[goal.icon || 'Target'] || Lucide.Target
+              const Icon = getIconByName(goal.icon)
 
               return (
                 <div key={goal.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-surface-200 dark:border-surface-700/60 bg-surface-50/50 dark:bg-surface-800/30">

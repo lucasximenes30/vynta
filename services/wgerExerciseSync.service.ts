@@ -1,5 +1,3 @@
-'use server'
-
 import { prisma } from '@/lib/prisma'
 import { type ExerciseMuscleGroupValue } from '@/lib/exerciseCatalog'
 import { ensureSystemExercisesSeeded } from '@/services/exercise.service'

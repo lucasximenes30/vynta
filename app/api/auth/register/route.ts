@@ -1,8 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { z } from 'zod'
 import { registerUser } from '@/services/user.service'
 import { setSession } from '@/lib/auth'
-import { createTransaction } from '@/services/abacatepay.service'
 import { FacebookService } from '@/services/facebook.service'
 
 const registerSchema = z.object({
@@ -16,22 +15,25 @@ const registerSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, email, password, document, planTier } = registerSchema.parse(body)
+    const { name, email, password, document } = registerSchema.parse(body)
 
-    const result = await registerUser({ name, email, password, document, planTier })
+    // Every new account starts on the free trial; plan choice/payment happens inside the app.
+    const result = await registerUser({ name, email, password, document, planTier: 'trial' })
     
-    // Dispara o evento de CompleteRegistration no CAPI (não bloqueia o fluxo em caso de falha)
-    try {
-      const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? request.headers.get('x-real-ip') ?? undefined
-      const userAgent = request.headers.get('user-agent') ?? undefined
-      await FacebookService.sendEvent('CompleteRegistration', {
-        email: result.user.email,
-        clientIpAddress: ip,
-        clientUserAgent: userAgent,
-      }, request.url)
-    } catch (e) {
-      console.error('[Auth/Register] Falha ao enviar evento pro Meta CAPI:', e)
-    }
+    // Dispara o evento de CompleteRegistration no CAPI após a resposta (não bloqueia o fluxo)
+    const capiIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? request.headers.get('x-real-ip') ?? undefined
+    const userAgent = request.headers.get('user-agent') ?? undefined
+    after(async () => {
+      try {
+        await FacebookService.sendEvent('CompleteRegistration', {
+          email: result.user.email,
+          clientIpAddress: capiIp,
+          clientUserAgent: userAgent,
+        }, request.url)
+      } catch (e) {
+        console.error('[Auth/Register] Falha ao enviar evento pro Meta CAPI:', e)
+      }
+    })
     
     // ── Check if user can access (same logic as login) ──────────────────
     const isPaidActive = result.user.subscriptionStatus === 'ACTIVE'
@@ -51,68 +53,7 @@ export async function POST(request: NextRequest) {
     // The middleware will block dashboard access based on subscriptionStatus
     // The frontend will redirect inactive users to the unlock screen
     console.log(`[Auth/Register] Setting session for new user ${result.user.email}`)
-    await setSession({
-      userId: result.user.id,
-      email: result.user.email,
-      name: result.user.name,
-      subscriptionStatus: result.user.subscriptionStatus,
-      hasWorkoutModule: result.user.hasWorkoutModule,
-      role: result.user.role,
-      plan: result.user.plan,
-      createdAt: result.user.createdAt ? new Date(result.user.createdAt).toISOString() : undefined,
-      forcePasswordChange: result.user.forcePasswordChange,
-      canUseFinance: result.user.canUseFinance,
-      canUseHabits: result.user.canUseHabits,
-      canUseWorkout: result.user.canUseWorkout,
-      canUseGoals: result.user.canUseGoals,
-      canUseNotes: result.user.canUseNotes,
-      canUseAgenda: result.user.canUseAgenda,
-      subscriptionExpiresAt: result.user.subscriptionExpiresAt ? new Date(result.user.subscriptionExpiresAt).toISOString() : undefined,
-    })
-
-    // If user is inactive and not privileged, return inactive status
-    // Frontend will redirect them to unlock screen instead of dashboard
-    if (!isPaidActive && !isPrivileged) {
-      if (planTier === 'vip' || planTier === 'pro' || planTier === 'pro_yearly') {
-        try {
-          const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? request.headers.get('x-real-ip') ?? null
-          const appUrl = request.nextUrl.origin
-          const paymentData = await createTransaction({
-            id: result.user.id,
-            email: result.user.email,
-            name: result.user.name,
-            document: document || null,
-            ip,
-            planTier,
-            appUrl,
-          })
-          console.log(`[Auth/Register] Redirecting new user ${result.user.email} to AbacatePay`)
-          return NextResponse.json({ success: true, redirectUrl: paymentData.url })
-        } catch (e: any) {
-          console.error('[Auth/Register] Failed to create transaction:', e)
-          return NextResponse.json(
-            {
-              success: false,
-              error: e.code === 'MISSING_DOCUMENT' ? e.message : 'Não foi possível gerar o pagamento. Faça login para tentar novamente.',
-              status: 'inactive',
-              user: result.user,
-            },
-            { status: 200 }
-          )
-        }
-      }
-
-      console.log(`[Auth/Register] New user ${result.user.email} is INACTIVE - frontend will show unlock screen`)
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Sua conta foi criada! Agora você precisa fazer um pagamento para desbloquear o acesso.',
-          status: 'inactive',
-          user: result.user,
-        },
-        { status: 200 },
-      )
-    }
+    await setSession(result.session)
 
     // User has access (ACTIVE or privileged) - safe to redirect to dashboard
     return NextResponse.json({ success: true, user: result.user })

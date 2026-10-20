@@ -1,5 +1,3 @@
-'use server'
-
 import { prisma } from '@/lib/prisma'
 import { registerWorkoutCompletion } from '@/services/userStats.service'
 import { cache } from 'react'

@@ -1,16 +1,16 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import * as Lucide from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import GoalModal from './GoalModal'
 import TransactionModal from './TransactionModal'
 
-export default function GoalsClient() {
+export default function GoalsClient({ initialGoals }: { initialGoals: any[] }) {
   const router = useRouter()
-  const [goals, setGoals] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [goals, setGoals] = useState<any[]>(initialGoals)
+  const [loading, setLoading] = useState(false)
   
   const [isGoalModalOpen, setGoalModalOpen] = useState(false)
   const [selectedGoal, setSelectedGoal] = useState<any | null>(null)
@@ -20,7 +20,6 @@ export default function GoalsClient() {
 
   const fetchGoals = async () => {
     try {
-      setLoading(true)
       const res = await fetch('/api/goals')
       if (res.ok) {
         const data = await res.json()
@@ -32,10 +31,6 @@ export default function GoalsClient() {
       setLoading(false)
     }
   }
-
-  useEffect(() => {
-    fetchGoals()
-  }, [])
 
   const handleEdit = (goal: any) => {
     setSelectedGoal(goal)

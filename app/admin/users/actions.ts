@@ -10,7 +10,7 @@ import { createAdminLog } from '@/services/admin/admin.log.service'
 async function ensureAdmin() {
   const session = await requireAuth()
   const role = session.role as string
-  const id = session.id as string
+  const id = session.userId
   if (role !== 'ADMIN') {
     throw new Error('Unauthorized access')
   }

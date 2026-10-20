@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server'
-import { getSession } from '@/lib/auth'
+import { getSession, setSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { activateVipAccess } from '@/services/subscription.service'
+import { activateRecurringSubscription } from '@/services/subscription.service'
+import { getSubscriptionCheckout, findSubscriptionByCheckout } from '@/services/abacatepay.service'
+import { sessionPayloadFromUser } from '@/services/user.service'
+import { userHasAccess } from '@/lib/access'
+import { tierFromAmount, normalizeTier } from '@/lib/plans'
 
 /**
  * GET /api/subscription/status
  * Check current subscription status for the logged-in user.
- * Returns: { status, subscriptionStatus, canAccess, pendingTransactionId }
  */
 export async function GET() {
   try {
@@ -15,42 +18,34 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.userId },
-      select: {
-        id: true,
-        email: true,
-        subscriptionStatus: true,
-        role: true,
-        plan: true,
-        billingApprovedAt: true,
-        subscriptionEndDate: true,
-        caktoOrderId: true,
-      },
-    })
+    const [user, latestTx] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: session.userId },
+        select: {
+          id: true,
+          email: true,
+          subscriptionStatus: true,
+          role: true,
+          plan: true,
+          billingApprovedAt: true,
+          subscriptionEndDate: true,
+          subscriptionExpiresAt: true,
+          subscriptionId: true,
+        },
+      }),
+      prisma.paymentTransaction.findFirst({
+        where: { userId: session.userId },
+        orderBy: { createdAt: 'desc' },
+        select: { providerTransactionId: true, status: true },
+      }),
+    ])
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Check if subscription has expired (if subscriptionEndDate is set)
-    let isExpired = false
-    if (user.subscriptionEndDate && new Date() > new Date(user.subscriptionEndDate)) {
-      isExpired = true
-    }
-
-    // Check if user has access based on subscription status and role
-    const isPaidActive = user.subscriptionStatus === 'ACTIVE'
-    const isPrivileged = user.role === 'ADMIN' || user.role === 'COURTESY'
-    const canAccess = (isPaidActive && !isExpired) || isPrivileged
-
-    console.log('[Subscription/Status] User check:', {
-      email: user.email,
-      subscriptionStatus: user.subscriptionStatus,
-      role: user.role,
-      isExpired,
-      canAccess,
-    })
+    const canAccess = userHasAccess(user)
+    const isExpired = !canAccess && user.subscriptionStatus === 'ACTIVE'
 
     return NextResponse.json({
       ok: true,
@@ -61,7 +56,7 @@ export async function GET() {
       isExpired,
       billingApprovedAt: user.billingApprovedAt,
       subscriptionEndDate: user.subscriptionEndDate,
-      pendingTransactionId: user.caktoOrderId,
+      pendingTransactionId: latestTx?.providerTransactionId || null,
     })
   } catch (err: any) {
     console.error('[Subscription/Status] Error:', err.message)
@@ -71,8 +66,8 @@ export async function GET() {
 
 /**
  * POST /api/subscription/status
- * Check status of pending payment with BlackPayments.
- * If payment is approved, activate user.
+ * Check status of pending payment with AbacatePay.
+ * If approved or activated, updates the session and returns approved.
  */
 export async function POST() {
   try {
@@ -83,85 +78,44 @@ export async function POST() {
 
     const user = await prisma.user.findUnique({
       where: { id: session.userId },
-      select: {
-        id: true,
-        email: true,
-        subscriptionStatus: true,
-        subscriptionEndDate: true,
-        caktoOrderId: true,
-      },
     })
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const isExpired = user.subscriptionEndDate && new Date() > new Date(user.subscriptionEndDate)
-
-    // If user already ACTIVE and NOT expired, no need to check BlackPayments/AbacatePay
-    if (user.subscriptionStatus === 'ACTIVE' && !isExpired) {
-      console.log(`[Subscription/Check] User ${user.email} is already ACTIVE and not expired`)
-      
-      // Fix session if it's out of sync
-      if (session.subscriptionStatus !== 'ACTIVE') {
-        const { setSession } = await import('@/lib/auth')
-        session.subscriptionStatus = 'ACTIVE'
-        await setSession(session)
+    // If user is already active and not expired, sync session if needed
+    if (userHasAccess(user)) {
+      if (session.subscriptionStatus !== user.subscriptionStatus || session.plan !== user.plan) {
+        await setSession(sessionPayloadFromUser(user))
       }
-      
-      return NextResponse.json({ ok: true, status: 'already_active', canAccess: true })
+      return NextResponse.json({ ok: true, status: 'approved', canAccess: true })
     }
 
-    // Check transaction status from our DB using the latest transaction for the user
-    console.log(`[Subscription/Check] Checking latest transaction status in DB for user: ${user.email}`)
-
+    // Check latest transaction in DB
     const tx = await prisma.paymentTransaction.findFirst({
       where: { userId: user.id },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     })
 
-    if (!tx) {
+    if (!tx || !tx.providerTransactionId) {
       return NextResponse.json({
         ok: false,
         error: 'Nenhuma transação pendente encontrada',
-        status: 'no_pending_transaction',
-      })
-    }
-
-    const isOldTx = tx.createdAt < new Date(Date.now() - 24 * 60 * 60 * 1000)
-
-    if (isOldTx && isExpired) {
-      // The user is expired and their last transaction is over 24h old.
-      // Do not activate based on an old transaction.
-      return NextResponse.json({
-        ok: false,
-        error: 'Nenhuma transação recente encontrada',
         status: 'no_pending_transaction',
         canAccess: false,
       })
     }
 
-    const transactionStatus = tx.status.toLowerCase()
+    const checkoutId = tx.providerTransactionId
+    const amountCents = Math.round(Number(tx.amount || 0) * 100)
 
-    console.log(`[Subscription/Check] Transaction status: ${transactionStatus}`)
-
-    // If payment is approved, activate user
-    if (['approved', 'paid', 'payment_confirmed', 'completed', 'active'].includes(transactionStatus)) {
-      await activateVipAccess({
-        userId: user.id,
-        transactionId: tx.providerTransactionId || tx.id,
-      })
-
-      // Update session cookie!
-      const { setSession } = await import('@/lib/auth')
-      session.subscriptionStatus = 'ACTIVE'
-      if (user.subscriptionEndDate) {
-        session.subscriptionEndDate = new Date(user.subscriptionEndDate).toISOString()
+    // If the database transaction was already promoted to ACTIVE by the webhook
+    if (tx.status === 'ACTIVE') {
+      const refreshedUser = await prisma.user.findUnique({ where: { id: user.id } })
+      if (refreshedUser) {
+        await setSession(sessionPayloadFromUser(refreshedUser))
       }
-      await setSession(session)
-
-      console.log(`[Subscription/Check] User ${user.email} ACTIVATED`)
-
       return NextResponse.json({
         ok: true,
         status: 'approved',
@@ -170,22 +124,78 @@ export async function POST() {
       })
     }
 
-    // If still waiting/pending, keep user blocked
-    if (['waiting_payment', 'pending'].includes(transactionStatus)) {
-      console.log(`[Subscription/Check] Transaction still ${transactionStatus} for user ${user.email}`)
-      return NextResponse.json({
-        ok: true,
-        status: 'pending',
-        message: 'Pagamento ainda não confirmado. Verifique novamente em alguns instantes.',
-        canAccess: false,
-      })
+    // Otherwise, actively check with AbacatePay API
+    try {
+      // 1. Try to find the active subscription by checkout
+      const sub = await findSubscriptionByCheckout(checkoutId).catch(() => null)
+      if (sub && sub.status === 'ACTIVE') {
+        const tier = normalizeTier(tierFromAmount(sub.amount || amountCents))
+        const activated = await activateRecurringSubscription({
+          userId: user.id,
+          tier,
+          subscriptionId: sub.id,
+          customerId: sub.customerId,
+          chargeId: checkoutId,
+          checkoutId,
+          amountCents: sub.amount || amountCents,
+        })
+
+        const finalUser = activated || (await prisma.user.findUnique({ where: { id: user.id } }))
+        if (finalUser) {
+          await setSession(sessionPayloadFromUser(finalUser))
+        }
+
+        return NextResponse.json({
+          ok: true,
+          status: 'approved',
+          message: 'Assinatura confirmada! Acesso liberado.',
+          canAccess: true,
+        })
+      }
+
+      // 2. Check the checkout itself
+      const checkout = await getSubscriptionCheckout(checkoutId).catch(() => null)
+      if (checkout && (checkout.status === 'PAID' || checkout.status === 'ACTIVE')) {
+        const tier = normalizeTier(tierFromAmount(checkout.amount || amountCents))
+        const activated = await activateRecurringSubscription({
+          userId: user.id,
+          tier,
+          subscriptionId: `sub_pending_${checkout.id}`,
+          customerId: checkout.customerId,
+          chargeId: checkout.id,
+          checkoutId: checkout.id,
+          amountCents: checkout.amount || amountCents,
+        })
+
+        const finalUser = activated || (await prisma.user.findUnique({ where: { id: user.id } }))
+        if (finalUser) {
+          await setSession(sessionPayloadFromUser(finalUser))
+        }
+
+        return NextResponse.json({
+          ok: true,
+          status: 'approved',
+          message: 'Pagamento confirmado! Acesso liberado.',
+          canAccess: true,
+        })
+      }
+
+      if (checkout && (checkout.status === 'PENDING' || tx.status === 'PENDING')) {
+        return NextResponse.json({
+          ok: true,
+          status: 'pending',
+          message: 'Pagamento ainda não confirmado. Aguarde alguns instantes.',
+          canAccess: false,
+        })
+      }
+    } catch (checkErr: any) {
+      console.warn('[Subscription/Check] AbacatePay direct status check failed:', checkErr.message)
     }
 
-    // Payment failed or expired
     return NextResponse.json({
-      ok: false,
-      status: transactionStatus,
-      message: `O status do pagamento é: ${transactionStatus}.`,
+      ok: true,
+      status: 'pending',
+      message: 'Aguardando confirmação do pagamento.',
       canAccess: false,
     })
   } catch (err: any) {

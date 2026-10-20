@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import * as Lucide from 'lucide-react'
+import { getIconByName } from '@/lib/icons'
 import { getWhatsappLink, getWhatsappMessage } from '@/lib/whatsapp'
 
 export type UserDetails = {
@@ -168,7 +169,7 @@ export default function UserDetailsModal({
         {/* Tabs */}
         <div className="flex border-b border-surface-100 dark:border-surface-800 px-4 gap-1 flex-shrink-0 overflow-x-auto scrollbar-hide">
           {tabs.map((tab) => {
-            const Icon = (Lucide as any)[tab.icon] as React.ElementType
+            const Icon = getIconByName(tab.icon)
             return (
               <button
                 key={tab.key}

@@ -1,14 +1,17 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
-import AdvancedReports from '@/components/AdvancedReports'
-import MonthlyGoalsReport from '@/components/MonthlyGoalsReport'
-import ExportModal from '@/components/ExportModal'
 import * as Lucide from 'lucide-react'
 import { localizeCategoryName } from '@/lib/categories'
+
+// Below-the-fold sections and the export modal are split out of the initial bundle
+const AdvancedReports = dynamic(() => import('@/components/AdvancedReports'))
+const MonthlyGoalsReport = dynamic(() => import('@/components/MonthlyGoalsReport'))
+const ExportModal = dynamic(() => import('@/components/ExportModal'))
 
 
 // Translation helper for category & month

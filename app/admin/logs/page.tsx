@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import * as Lucide from 'lucide-react'
+import { getIconByName } from '@/lib/icons'
 
 type AdminLog = {
   id: string
@@ -49,8 +50,7 @@ function formatDate(dateStr: string) {
 
 // Dynamic icon lookup
 function ActionIcon({ name, className }: { name: string; className?: string }) {
-  const Icon = (Lucide as any)[name] as React.ElementType | undefined
-  if (!Icon) return <Lucide.Activity className={className} />
+  const Icon = getIconByName(name, Lucide.Activity)
   return <Icon className={className} />
 }
 

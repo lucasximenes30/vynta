@@ -4,6 +4,7 @@ import React from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import * as Lucide from 'lucide-react'
+import { getIconByName } from '@/lib/icons'
 
 const NAV_LINKS = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
@@ -37,7 +38,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         
         <nav className="flex-1 py-6 px-4 flex flex-col gap-1">
           {NAV_LINKS.map((link) => {
-            const Icon = (Lucide as any)[link.icon] as React.ElementType
+            const Icon = getIconByName(link.icon)
             const isActive = link.href === '/admin/dashboard'
               ? pathname === '/admin/dashboard'
               : pathname.startsWith(link.href)
@@ -92,7 +93,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-surface-900 border-t border-surface-200 dark:border-surface-800 safe-area-bottom">
           <div className="flex items-center justify-around px-2 py-2">
             {NAV_LINKS.map((link) => {
-              const Icon = (Lucide as any)[link.icon] as React.ElementType
+              const Icon = getIconByName(link.icon)
               const isActive = link.href === '/admin/dashboard'
                 ? pathname === '/admin/dashboard'
                 : pathname.startsWith(link.href)

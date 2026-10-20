@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { z } from 'zod'
 import { loginUser } from '@/services/user.service'
 import { setSession } from '@/lib/auth'
@@ -16,18 +16,20 @@ export async function POST(request: NextRequest) {
 
     const result = await loginUser({ email, password })
     
-    // Dispara o evento de Lead no CAPI (não bloqueia o fluxo em caso de falha)
-    try {
-      const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? request.headers.get('x-real-ip') ?? undefined
-      const userAgent = request.headers.get('user-agent') ?? undefined
-      await FacebookService.sendEvent('Lead', {
-        email: result.user.email,
-        clientIpAddress: ip,
-        clientUserAgent: userAgent,
-      }, request.url)
-    } catch (e) {
-      console.error('[Auth/Login] Falha ao enviar evento Lead pro Meta CAPI:', e)
-    }
+    // Dispara o evento de Lead no CAPI após a resposta (não bloqueia o login)
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? request.headers.get('x-real-ip') ?? undefined
+    const userAgent = request.headers.get('user-agent') ?? undefined
+    after(async () => {
+      try {
+        await FacebookService.sendEvent('Lead', {
+          email: result.user.email,
+          clientIpAddress: ip,
+          clientUserAgent: userAgent,
+        }, request.url)
+      } catch (e) {
+        console.error('[Auth/Login] Falha ao enviar evento Lead pro Meta CAPI:', e)
+      }
+    })
     
     // ── Check account status before setting session ──────────────────────
     const isPaidActive = result.user.subscriptionStatus === 'ACTIVE'
@@ -47,25 +49,7 @@ export async function POST(request: NextRequest) {
     // The middleware will block dashboard access based on subscriptionStatus
     // The frontend will redirect inactive users to the unlock screen
     console.log(`[Auth/Login] Setting session for user ${result.user.email}`)
-    await setSession({
-      userId: result.user.id,
-      email: result.user.email,
-      name: result.user.name,
-      subscriptionStatus: result.user.subscriptionStatus,
-      hasWorkoutModule: result.user.hasWorkoutModule,
-      role: result.user.role,
-      plan: result.user.plan,
-      createdAt: result.user.createdAt ? new Date(result.user.createdAt).toISOString() : undefined,
-      forcePasswordChange: result.user.forcePasswordChange,
-      canUseFinance: result.user.canUseFinance,
-      canUseHabits: result.user.canUseHabits,
-      canUseWorkout: result.user.canUseWorkout,
-      canUseGoals: result.user.canUseGoals,
-      canUseNotes: result.user.canUseNotes,
-      canUseAgenda: result.user.canUseAgenda,
-      usedUpgradeOffer: result.user.usedUpgradeOffer,
-      subscriptionEndDate: result.user.subscriptionEndDate ? new Date(result.user.subscriptionEndDate).toISOString() : undefined,
-    })
+    await setSession(result.session)
 
     // If user is inactive and not privileged, return inactive status
     // Frontend will redirect them to unlock screen instead of dashboard
