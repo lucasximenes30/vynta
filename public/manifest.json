@@ -1,22 +1,44 @@
 {
-  "name": "Vynta",
+  "id": "/dashboard",
+  "name": "Vynta — Finanças, hábitos e rotina",
   "short_name": "Vynta",
-  "description": "Seu sistema pessoal de gestão de vida, finanças, hábitos e metas.",
-  "start_url": "/dashboard",
+  "description": "Anote um gasto em segundos e acompanhe finanças, hábitos, treinos e agenda num só app.",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "start_url": "/dashboard?source=pwa",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
   "background_color": "#050505",
   "theme_color": "#050505",
+  "categories": ["finance", "productivity", "lifestyle"],
   "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
     {
-      "src": "/icon.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "name": "Anotar gasto",
+      "short_name": "Gasto",
+      "description": "Registrar uma despesa em segundos",
+      "url": "/dashboard?add=expense&source=shortcut",
+      "icons": [{ "src": "/icons/shortcut-add.png", "sizes": "96x96", "type": "image/png" }]
     },
     {
-      "src": "/icon.png",
-      "sizes": "512x512",
-      "type": "image/png"
+      "name": "Anotar entrada",
+      "short_name": "Entrada",
+      "description": "Registrar um recebimento",
+      "url": "/dashboard?add=income&source=shortcut",
+      "icons": [{ "src": "/icons/shortcut-add.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Finanças",
+      "short_name": "Finanças",
+      "url": "/finances?source=shortcut",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
 }

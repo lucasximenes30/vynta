@@ -19,6 +19,8 @@ export async function GET() {
         plan: true,
         subscriptionStatus: true,
         subscriptionEndDate: true,
+        subscriptionExpiresAt: true,
+        billingCustomerId: true,
         role: true,
       },
     })

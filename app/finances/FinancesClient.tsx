@@ -432,6 +432,25 @@ export default function FinancesClient({
     return () => window.removeEventListener('vynta:nameUpdated', handler)
   }, [])
 
+  // Refresh server data when the quick-add sheet (or undo) creates/deletes a transaction
+  useEffect(() => {
+    const handler = () => refresh()
+    window.addEventListener('vynta:transaction-created', handler)
+    return () => window.removeEventListener('vynta:transaction-created', handler)
+  }, [refresh])
+
+  // /finances?novo=1 (from the quick-add "full form" link) opens the complete form
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('novo')) {
+      setShowForm(true)
+      setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100)
+      params.delete('novo')
+      const qs = params.toString()
+      window.history.replaceState(null, '', window.location.pathname + (qs ? `?${qs}` : ''))
+    }
+  }, [])
+
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' })
     router.push('/login')

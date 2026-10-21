@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import * as Lucide from 'lucide-react'
 import OnboardingClient from '@/components/OnboardingClient'
 import FunnelTracker from '@/components/FunnelTracker'
+import { openQuickAdd } from '@/lib/quickAdd'
 
 interface Session {
   userId: string
@@ -80,6 +81,13 @@ export default function DashboardClient({
     }
   }, [plan, subscriptionExpiresAt])
 
+  // New entries from the quick-add sheet (or undo) update the balance module
+  useEffect(() => {
+    const handler = () => router.refresh()
+    window.addEventListener('vynta:transaction-created', handler)
+    return () => window.removeEventListener('vynta:transaction-created', handler)
+  }, [router])
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
   }
@@ -151,10 +159,10 @@ export default function DashboardClient({
         <main className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-8 space-y-6">
           
           {/* Welcome Banner */}
-          <div className="rounded-3xl bg-gradient-to-br from-brand-600 via-brand-700 to-purple-800 p-6 sm:p-8 text-white shadow-xl dark:shadow-brand-500/10 border border-white/10 relative overflow-hidden">
+          <div className="rounded-3xl bg-gradient-to-br from-brand-600 via-brand-700 to-purple-800 p-5 sm:p-8 text-white shadow-xl dark:shadow-brand-500/10 border border-white/10 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
-            <div className="relative z-10 space-y-4">
-              <div className="flex items-center gap-2">
+            <div className="relative z-10 space-y-3 sm:space-y-4">
+              <div className="hidden sm:flex items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 bg-white/15 border border-white/10 text-[10px] font-bold tracking-widest uppercase shadow-sm">
                   <Lucide.Calendar className="w-3.5 h-3.5" />
                   {todayStr}
@@ -165,19 +173,21 @@ export default function DashboardClient({
                 </span>
               </div>
               <div>
-                <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-2">
-                  {getGreeting()}, {profileName}!
+                <h2 className="text-2xl sm:text-4xl font-bold tracking-tight">
+                  {getGreeting()}, {profileName.split(' ')[0]}!
                 </h2>
-                <p className="text-sm text-white/90 max-w-[65ch] leading-relaxed font-medium">
+                <p className="mt-1 hidden text-sm text-white/90 max-w-[65ch] leading-relaxed font-medium sm:block">
                   Bem-vindo ao Vynta. O seu painel pessoal seguro para gerenciar finanças, construir hábitos duradouros e evoluir fisicamente.
                 </p>
-                <div className="mt-4 flex items-center gap-4 text-xs font-medium text-white/80">
-                  <div className="flex items-center gap-1.5 bg-white/10 px-2.5 py-1.5 rounded-lg border border-white/5">
-                    <Lucide.Activity className="w-4 h-4 text-brand-300" />
-                    <span>Construindo constância diariamente</span>
-                  </div>
-                </div>
+                <p className="mt-1 text-xs font-medium text-white/70 sm:hidden">{todayStr}</p>
               </div>
+              <button
+                onClick={() => openQuickAdd('EXPENSE')}
+                className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-brand-700 shadow-lg shadow-black/10 transition-transform active:scale-95"
+              >
+                <Lucide.PlusCircle className="h-5 w-5" />
+                Anotar gasto
+              </button>
             </div>
           </div>
 
@@ -193,15 +203,15 @@ export default function DashboardClient({
                     Período de Teste
                   </h3>
                   <p className="text-xs font-medium text-amber-700 dark:text-amber-300">
-                    Seu plano acaba em <strong className="font-bold text-amber-600 dark:text-amber-400">{trialHoursRemaining} horas</strong>.
+                    Seu teste acaba em <strong className="font-bold text-amber-600 dark:text-amber-400">{trialHoursRemaining >= 48 ? `${Math.ceil(trialHoursRemaining / 24)} dias` : `${trialHoursRemaining} horas`}</strong>.
                   </p>
                 </div>
               </div>
               <button
-                onClick={() => router.push('/settings')}
+                onClick={() => router.push('/subscription')}
                 className="w-full sm:w-auto px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition-all shadow-sm shadow-amber-500/20 active:scale-95 flex items-center justify-center gap-2"
               >
-                Faça o upgrade agora!
+                Assinar agora
                 <Lucide.ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>

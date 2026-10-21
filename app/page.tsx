@@ -3,14 +3,14 @@ import Link from 'next/link'
 import Image from 'next/image'
 import {
   ArrowRight, Bell, CalendarDays, Check, CreditCard, Dumbbell, FileDown, Flame, Lock,
-  PieChart, RefreshCcw, ShieldCheck, Smartphone, Sparkles, StickyNote, Target, Wallet, X,
+  PieChart, RefreshCcw, ShieldCheck, Smartphone, Sparkles, StickyNote, Target, Wallet, X, Zap,
 } from 'lucide-react'
 import BrandLogo from '@/components/BrandLogo'
 import FunnelTracker from '@/components/FunnelTracker'
 import TrackedCTA from '@/components/landing/TrackedCTA'
 import ViewTracker from '@/components/landing/ViewTracker'
 import StickyMobileCTA from '@/components/landing/StickyMobileCTA'
-import { AgendaMock, FinanceMock, GoalsMock, HabitsMock, WorkoutMock } from '@/components/landing/ProductMocks'
+import { AgendaMock, FinanceMock, GoalsMock, HabitsMock, QuickAddMock, WorkoutMock } from '@/components/landing/ProductMocks'
 import {
   PLANS, PLAN_FEATURES, TRIAL_DAYS, YEARLY_DISCOUNT_PERCENT, YEARLY_MONTHLY_EQUIVALENT_CENTS,
   YEARLY_SAVINGS_CENTS, formatBRL,
@@ -51,8 +51,8 @@ const STEPS = [
     text: 'Só nome, e-mail e senha. Sem cartão, sem CPF, sem instalar nada.',
   },
   {
-    title: 'Registre seus gastos e cartões',
-    text: 'Lance uma despesa em segundos. Parcelas e assinaturas entram sozinhas nos próximos meses.',
+    title: 'Anote um gasto em segundos',
+    text: 'Toque no +, digite o valor e o que foi — a categoria é sugerida sozinha. Menos tempo que a fila do caixa.',
   },
   {
     title: 'Enxergue o mês inteiro',
@@ -114,7 +114,7 @@ const FAQ = [
   },
   {
     q: 'Funciona no celular?',
-    a: 'Sim. O Vynta funciona no navegador do celular e do computador, e você pode instalar na tela inicial do celular como um app, sem passar por loja.',
+    a: 'Sim — foi feito pra celular. Instala na tela inicial como um app (sem loja), abre rápido e o lançamento rápido anota um gasto em poucos segundos, até sem internet: ele fica salvo no aparelho e é enviado sozinho depois.',
   },
   {
     q: 'Como funciona a cobrança?',
@@ -228,7 +228,7 @@ export default function LandingPage() {
             </a>
           </div>
           <ul className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-surface-400 lg:justify-start">
-            {['Sem cartão de crédito', 'Sem CPF', 'Pronto em 30 segundos'].map((item) => (
+            {['Sem cartão de crédito', 'Sem CPF', 'Instala como app no celular'].map((item) => (
               <li key={item} className="flex items-center gap-1.5">
                 <Check className="h-4 w-4 text-emerald-400" strokeWidth={2.5} />
                 {item}
@@ -305,6 +305,39 @@ export default function LandingPage() {
           </ol>
           <div className="mt-10 flex justify-center">
             <PrimaryButton location="how_it_works">Criar minha conta grátis</PrimaryButton>
+          </div>
+        </div>
+      </section>
+
+      {/* Quick add — built for the phone in your pocket */}
+      <section className="border-t border-white/[0.06] bg-white/[0.015]">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-20 sm:px-6 md:py-28 lg:grid-cols-2 lg:gap-16">
+          <div className="order-2 lg:order-1">
+            <QuickAddMock />
+          </div>
+          <div className="order-1 space-y-6 lg:order-2">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-500/15">
+              <Zap className="h-5 w-5 text-brand-300" />
+            </div>
+            <SectionTitle
+              title="Comprou, anotou, pronto. Menos de 30 segundos."
+              subtitle="A maioria dos apps pede formulário. O Vynta pede só o essencial — feito pra você anotar ainda na fila do caixa, antes de guardar o celular no bolso."
+            />
+            <ul className="space-y-4">
+              {[
+                'Um toque no botão + e o teclado já abre no valor',
+                'Escreveu “uber”, “mercado” ou “ifood”? A categoria entra sozinha',
+                'O dia já vem certo — e seus lançamentos frequentes viram atalhos',
+                'Sem internet? Fica salvo no aparelho e é enviado quando conectar',
+              ].map((text) => (
+                <li key={text} className="flex items-start gap-3">
+                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/[0.05]">
+                    <Check className="h-4 w-4 text-emerald-400" strokeWidth={2.5} />
+                  </span>
+                  <span className="leading-relaxed text-surface-300">{text}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </section>

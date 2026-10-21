@@ -29,6 +29,10 @@ export default function SettingsClient({ session }: SettingsClientProps) {
   const [userPlan, setUserPlan] = useState<string | null>(null)
   const [userRole, setUserRole] = useState<string | null>(null)
   const [subscriptionEndDate, setSubscriptionEndDate] = useState<string | null>(null)
+  const [trialEndsAt, setTrialEndsAt] = useState<string | null>(null)
+  const [hasBillingCustomer, setHasBillingCustomer] = useState(false)
+  const [isOpeningPortal, setIsOpeningPortal] = useState(false)
+  const [portalError, setPortalError] = useState('')
 
   // Password state
   const [currentPassword, setCurrentPassword] = useState('')
@@ -54,11 +58,37 @@ export default function SettingsClient({ session }: SettingsClientProps) {
           setUserPlan(data.user?.plan || null)
           setUserRole(data.user?.role || null)
           setSubscriptionEndDate(data.user?.subscriptionEndDate || null)
+          setTrialEndsAt(data.user?.subscriptionExpiresAt || null)
+          setHasBillingCustomer(!!data.user?.billingCustomerId)
         }
       } catch { /* ignore */ }
     }
     loadUserData()
   }, [])
+
+  const isPrivileged = userRole === 'ADMIN' || userRole === 'COURTESY'
+  const isPaidPlan = userPlan === 'PRO' || userPlan === 'PRO_YEARLY' || userPlan === 'VIP'
+  const isTrial = userPlan === 'FREE_TRIAL' && !isPrivileged
+  const hasFullPlan = isPaidPlan || isPrivileged
+  const planLabel = userRole === 'ADMIN' ? 'Administrador'
+    : userRole === 'COURTESY' ? 'Cortesia'
+    : userPlan === 'PRO_YEARLY' ? 'Vynta Completo · Anual'
+    : userPlan === 'PRO' || userPlan === 'VIP' ? 'Vynta Completo · Mensal'
+    : isTrial ? 'Teste grátis' : 'Sem plano ativo'
+
+  const openBillingPortal = async () => {
+    setIsOpeningPortal(true)
+    setPortalError('')
+    try {
+      const res = await fetch('/api/subscription/portal', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok || !data.url) throw new Error(data.error)
+      window.location.href = data.url
+    } catch (err: any) {
+      setPortalError(err?.message || 'Não foi possível abrir o portal agora.')
+      setIsOpeningPortal(false)
+    }
+  }
 
   const handleUpdateName = async () => {
     if (!newName.trim() || newName.trim() === profileName) return
@@ -244,7 +274,7 @@ export default function SettingsClient({ session }: SettingsClientProps) {
 
             {/* Subscription status */}
             <div className="relative overflow-hidden p-5 rounded-2xl border bg-gradient-to-br transition-all duration-300 border-surface-200 dark:border-surface-700/60 bg-white dark:bg-surface-900/60 shadow-sm hover:shadow-md">
-              {(userPlan === 'PRO' || userRole === 'ADMIN' || userRole === 'COURTESY') && (
+              {hasFullPlan && (
                 <div className="absolute top-0 right-0 p-4 opacity-10 dark:opacity-20 pointer-events-none">
                   <Lucide.Crown className="w-24 h-24 text-brand-500" />
                 </div>
@@ -254,27 +284,32 @@ export default function SettingsClient({ session }: SettingsClientProps) {
                   <div>
                     <p className="text-[10px] font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-widest mb-1">Status da Assinatura</p>
                     <h4 className="text-xl font-bold text-surface-900 dark:text-white flex items-center gap-2">
-                      {userRole === 'ADMIN' ? 'Administrador' : userRole === 'COURTESY' ? 'Cortesia VIP' : userPlan === 'PRO' ? 'Plano PRO' : userPlan === 'VIP' ? 'Plano VIP' : 'Plano Gratuito'}
-                      {(userPlan === 'PRO' || userRole === 'ADMIN' || userRole === 'COURTESY') && (
+                      {planLabel}
+                      {hasFullPlan && (
                         <Lucide.CheckCircle className="w-5 h-5 text-brand-500 dark:text-brand-400" />
                       )}
                     </h4>
-                    {subscriptionEndDate && (
+                    {isPaidPlan && subscriptionEndDate && (
                       <p className="text-xs text-surface-500 dark:text-surface-400 mt-1">
-                        Renova em: <span className="font-medium text-surface-700 dark:text-surface-300">{new Date(subscriptionEndDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</span>
+                        Acesso garantido até <span className="font-medium text-surface-700 dark:text-surface-300">{new Date(subscriptionEndDate).toLocaleDateString('pt-BR')}</span>
+                      </p>
+                    )}
+                    {isTrial && trialEndsAt && (
+                      <p className="text-xs text-surface-500 dark:text-surface-400 mt-1">
+                        Teste grátis até <span className="font-medium text-surface-700 dark:text-surface-300">{new Date(trialEndsAt).toLocaleDateString('pt-BR')}</span>
                       </p>
                     )}
                   </div>
                   <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                    (userPlan === 'PRO' || userRole === 'ADMIN' || userRole === 'COURTESY') 
+                    hasFullPlan
                       ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400' 
                       : 'bg-surface-100 dark:bg-surface-800 border-surface-200 dark:border-surface-700 text-surface-600 dark:text-surface-400'
                   }`}>
-                    Ativo
+                    {isTrial ? 'Teste' : 'Ativo'}
                   </span>
                 </div>
 
-                {(userPlan === 'PRO' || userRole === 'ADMIN' || userRole === 'COURTESY') && (
+                {hasFullPlan && (
                   <div className="mt-4 pt-4 border-t border-surface-100 dark:border-surface-800/60">
                     <p className="text-[10px] font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-widest mb-3">Benefícios Ativos</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -295,10 +330,18 @@ export default function SettingsClient({ session }: SettingsClientProps) {
                   </div>
                 )}
                 
-                {(!userPlan || userPlan !== 'PRO') && userRole !== 'ADMIN' && userRole !== 'COURTESY' && (
-                  <button onClick={() => router.push('/subscription')} className="mt-4 w-full btn-primary bg-brand-600 text-xs font-semibold py-2">
-                    Fazer Upgrade para VIP
+                {!hasFullPlan && (
+                  <button onClick={() => router.push('/subscription')} className="mt-4 w-full btn-primary bg-brand-600 text-sm font-semibold py-3">
+                    {isTrial ? 'Assinar o Vynta' : 'Ver planos'}
                   </button>
+                )}
+                {isPaidPlan && hasBillingCustomer && (
+                  <>
+                    <button onClick={openBillingPortal} disabled={isOpeningPortal} className="mt-4 w-full btn-secondary text-sm font-semibold py-3 disabled:opacity-60">
+                      {isOpeningPortal ? 'Abrindo…' : 'Gerenciar assinatura (cartão, recibos, cancelar)'}
+                    </button>
+                    {portalError && <p className="mt-2 text-xs text-red-500">{portalError}</p>}
+                  </>
                 )}
               </div>
             </div>

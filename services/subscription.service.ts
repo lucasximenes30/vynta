@@ -88,6 +88,15 @@ export async function activateRecurringSubscription({
     ? await prisma.paymentTransaction.findUnique({ where: { providerTransactionId: checkoutId }, select: { id: true, status: true } })
     : null
 
+  // First charge already activated by /api/subscription/status: only attach the real ids.
+  if (pendingCheckout?.status === 'ACTIVE') {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { subscriptionId, ...(customerId ? { billingCustomerId: customerId } : {}) },
+    })
+    return null
+  }
+
   const [updatedUser] = await prisma.$transaction([
     prisma.user.update({
       where: { id: userId },
@@ -109,7 +118,7 @@ export async function activateRecurringSubscription({
       },
     }),
     // First charge: promote the pending checkout record; renewals: store a new charge record.
-    pendingCheckout && pendingCheckout.status !== 'ACTIVE'
+    pendingCheckout
       ? prisma.paymentTransaction.update({
           where: { id: pendingCheckout.id },
           data: { status: 'ACTIVE', rawStatus: `charge:${chargeId}`, paidAt: now, amount: amountCents / 100 },
@@ -137,31 +146,36 @@ export async function activateRecurringSubscription({
   return updatedUser
 }
 
-/** Cancels a user's subscription at AbacatePay (if id is present) and updates DB status to CANCELED. */
-export async function cancelRecurringSubscription(userId: string) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true, email: true, subscriptionId: true },
+/**
+ * Handles a cancelled subscription. A requested cancellation keeps access until the paid period
+ * ends (minus the renewal grace); a cancellation for unpaid charges ends access immediately.
+ */
+export async function cancelRecurringSubscription(subscriptionId: string, unpaid: boolean) {
+  const users = await prisma.user.findMany({
+    where: { subscriptionId },
+    select: { id: true, subscriptionEndDate: true },
   })
-  if (!user) throw new Error('User not found')
+  const now = Date.now()
 
-  if (user.subscriptionId) {
-    try {
-      const { cancelAbacateSubscription } = await import('@/services/abacatepay.service')
-      await cancelAbacateSubscription(user.subscriptionId)
-    } catch (err: any) {
-      console.warn(`[Subscription Service] Could not cancel subscription at AbacatePay:`, err?.message)
-    }
-  }
+  await Promise.all(users.map((user) => {
+    const paidUntil = (user.subscriptionEndDate?.getTime() ?? now) - RENEWAL_GRACE_DAYS * 24 * 60 * 60 * 1000
+    const keepsAccess = !unpaid && paidUntil > now
+    return prisma.user.update({
+      where: { id: user.id },
+      data: keepsAccess
+        ? { subscriptionEndDate: new Date(paidUntil) }
+        : { subscriptionStatus: UserSubscriptionStatus.CANCELED, subscriptionEndDate: new Date(now) },
+    })
+  }))
+}
 
-  const updatedUser = await prisma.user.update({
-    where: { id: userId },
-    data: {
-      subscriptionStatus: UserSubscriptionStatus.CANCELED,
-    },
+/** The checkout that started the user's current subscription (needed by the customer portal). */
+export async function getSubscriptionCheckoutId(userId: string): Promise<string | null> {
+  const tx = await prisma.paymentTransaction.findFirst({
+    where: { userId, provider: 'abacatepay', status: 'ACTIVE', providerTransactionId: { startsWith: 'bill_' } },
+    orderBy: { createdAt: 'desc' },
+    select: { providerTransactionId: true },
   })
-
-  console.log(`[Subscription Service] User ${user.email} subscription CANCELED`)
-  return updatedUser
+  return tx?.providerTransactionId ?? null
 }
 

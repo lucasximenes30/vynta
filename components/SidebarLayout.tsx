@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import Sidebar from './Sidebar'
+import QuickAddHost from './quick-add/QuickAddHost'
+import { openQuickAdd } from '@/lib/quickAdd'
 import * as Lucide from 'lucide-react'
 
 // Routes where the sidebar/bottom nav should NOT appear
-const NO_SIDEBAR_ROUTES = ['/', '/login', '/register', '/admin']
+const NO_SIDEBAR_ROUTES = ['/', '/login', '/register', '/admin', '/offline']
 
 // Main app routes prefetched once the shell is mounted so screen switches are instant
 const PREFETCH_ROUTES = ['/dashboard', '/finances', '/habits', '/workout', '/calendar', '/goals', '/notes', '/reports', '/settings', '/cards']
@@ -37,10 +39,10 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
 
   const MOBILE_NAV_ITEMS = [
     { Icon: Lucide.Home, label: 'Painel', href: '/dashboard' },
-    { Icon: Lucide.CalendarDays, label: 'Agenda', href: '/calendar' },
+    { Icon: Lucide.Wallet, label: 'Finanças', href: '/finances' },
     { isAction: true },
-    { Icon: Lucide.BarChart3, label: 'Relatórios', href: '/reports' },
-    { Icon: Lucide.Settings, label: 'Ajustes', href: '/settings' },
+    { Icon: Lucide.CheckSquare, label: 'Hábitos', href: '/habits' },
+    { Icon: Lucide.LayoutGrid, label: 'Mais', opensMenu: true },
   ]
 
   return (
@@ -54,6 +56,9 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
         {children}
       </div>
 
+      {/* Quick-add transaction sheet, toast and offline queue sync */}
+      <QuickAddHost />
+
       {/* Quick Actions Overlay (Mobile) */}
       {showQuickActions && (
         <div className="md:hidden fixed inset-0 z-50 flex flex-col justify-end">
@@ -61,7 +66,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
             className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
             onClick={() => setShowQuickActions(false)}
           />
-          <div className="relative bg-white dark:bg-surface-900 rounded-t-[2.5rem] p-6 pb-24 shadow-2xl animate-in slide-in-from-bottom duration-300 border-t border-surface-200 dark:border-surface-800/80">
+          <div className="relative bg-white dark:bg-surface-900 rounded-t-[2.5rem] p-6 pb-[calc(6rem+env(safe-area-inset-bottom))] shadow-2xl animate-in slide-in-from-bottom duration-300 border-t border-surface-200 dark:border-surface-800/80">
             {/* Drawer Indicator */}
             <div className="mx-auto w-12 h-1.5 rounded-full bg-surface-200 dark:bg-surface-800 mb-6" />
             
@@ -77,24 +82,39 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
             
             <div className="grid grid-cols-3 gap-4">
               {[
-                { label: 'Finanças', icon: Lucide.Wallet, color: 'text-brand-500', bg: 'bg-brand-50 dark:bg-brand-500/10', href: '/finances' },
-                { label: 'Hábito', icon: Lucide.CheckSquare, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10', href: '/habits' },
+                { label: 'Anotar gasto', icon: Lucide.Banknote, color: 'text-white', bg: 'bg-brand-600', action: () => { setShowQuickActions(false); openQuickAdd('EXPENSE') } },
                 { label: 'Treino', icon: Lucide.Dumbbell, color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-500/10', href: '/workout' },
-                { label: 'Meta', icon: Lucide.Target, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-500/10', href: '/goals' },
                 { label: 'Agenda', icon: Lucide.CalendarDays, color: 'text-pink-500', bg: 'bg-pink-50 dark:bg-pink-500/10', href: '/calendar' },
-                { label: 'Nota', icon: Lucide.StickyNote, color: 'text-yellow-500', bg: 'bg-yellow-50 dark:bg-yellow-500/10', href: '/notes' },
+                { label: 'Metas', icon: Lucide.Target, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-500/10', href: '/goals' },
+                { label: 'Notas', icon: Lucide.StickyNote, color: 'text-yellow-500', bg: 'bg-yellow-50 dark:bg-yellow-500/10', href: '/notes' },
+                { label: 'Relatórios', icon: Lucide.BarChart3, color: 'text-violet-500', bg: 'bg-violet-50 dark:bg-violet-500/10', href: '/reports' },
+                { label: 'Cartões', icon: Lucide.CreditCard, color: 'text-cyan-500', bg: 'bg-cyan-50 dark:bg-cyan-500/10', href: '/cards' },
+                { label: 'Ajustes', icon: Lucide.Settings, color: 'text-surface-500', bg: 'bg-surface-100 dark:bg-surface-800', href: '/settings' },
               ].map((action, i) => (
-                <Link
-                  key={i}
-                  href={action.href}
-                  onClick={() => setShowQuickActions(false)}
-                  className="flex flex-col items-center gap-2 group transition-all"
-                >
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${action.bg} transition-all active:scale-95 group-hover:scale-105 shadow-sm`}>
-                    <action.icon className={`w-6 h-6 ${action.color}`} />
-                  </div>
-                  <span className="text-xs font-semibold text-surface-700 dark:text-surface-300">{action.label}</span>
-                </Link>
+                'action' in action && action.action ? (
+                  <button
+                    key={i}
+                    onClick={action.action}
+                    className="flex flex-col items-center gap-2 group transition-all"
+                  >
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${action.bg} transition-all active:scale-95 group-hover:scale-105 shadow-sm shadow-brand-500/30`}>
+                      <action.icon className={`w-6 h-6 ${action.color}`} />
+                    </div>
+                    <span className="text-xs font-semibold text-surface-700 dark:text-surface-300">{action.label}</span>
+                  </button>
+                ) : (
+                  <Link
+                    key={i}
+                    href={action.href as string}
+                    onClick={() => setShowQuickActions(false)}
+                    className="flex flex-col items-center gap-2 group transition-all"
+                  >
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${action.bg} transition-all active:scale-95 group-hover:scale-105 shadow-sm`}>
+                      <action.icon className={`w-6 h-6 ${action.color}`} />
+                    </div>
+                    <span className="text-xs font-semibold text-surface-700 dark:text-surface-300">{action.label}</span>
+                  </Link>
+                )
               ))}
             </div>
           </div>
@@ -109,7 +129,8 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
               return (
                 <div key="action" className="relative -top-5 flex justify-center w-16">
                   <button
-                    onClick={() => setShowQuickActions(true)}
+                    onClick={() => openQuickAdd('EXPENSE')}
+                    aria-label="Anotar gasto"
                     className="flex items-center justify-center w-14 h-14 rounded-full bg-brand-600 text-white shadow-lg shadow-brand-500/30 transition-transform active:scale-90 hover:scale-105 border border-brand-500/20"
                   >
                     <Lucide.Plus className="w-7 h-7" />
@@ -118,7 +139,22 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
               )
             }
 
-            const isActive = pathname === item.href
+            if (item.opensMenu) {
+              return (
+                <button
+                  key="menu"
+                  onClick={() => setShowQuickActions(true)}
+                  className="flex flex-col items-center justify-center w-16 h-full gap-0.5 transition-colors group"
+                >
+                  <item.Icon className={`w-5 h-5 transition-transform group-active:scale-90 ${showQuickActions ? 'text-brand-600 dark:text-brand-400' : 'text-surface-400 dark:text-surface-500'}`} />
+                  <span className={`text-[9px] font-semibold transition-colors uppercase tracking-wider ${showQuickActions ? 'text-brand-600 dark:text-brand-400 font-bold' : 'text-surface-400 dark:text-surface-500'}`}>
+                    {item.label}
+                  </span>
+                </button>
+              )
+            }
+
+            const isActive = pathname === item.href || (item.href === '/finances' && pathname.startsWith('/cards'))
             const Icon = item.Icon!
 
             return (

@@ -1,4 +1,4 @@
-import { Bell, CalendarDays, Check, CreditCard, Dumbbell, Flame, RefreshCcw, Target } from 'lucide-react'
+import { Bell, CalendarDays, Car, Check, Coffee, CreditCard, Dumbbell, Flame, RefreshCcw, ShoppingCart, Target } from 'lucide-react'
 
 // Illustrative UI previews of real Vynta features, rendered in code (crisp at any size, zero JS).
 
@@ -164,6 +164,48 @@ const EXERCISES = [
   { name: 'Remada curvada', sets: '4 × 12', load: '35 kg', up: false },
   { name: 'Agachamento', sets: '4 × 8', load: '60 kg', up: true },
 ]
+
+// Faithful preview of the mobile quick-add sheet (the + button in the bottom bar).
+export function QuickAddMock() {
+  return (
+    <div className="mx-auto w-full max-w-[300px] rounded-[1.6rem] border border-white/10 bg-[#07080c] p-1.5 shadow-2xl shadow-black/60">
+      <div className="overflow-hidden rounded-[1.4rem] bg-surface-900">
+        <div className="mx-auto mt-2.5 h-1 w-10 rounded-full bg-surface-700" />
+        <div className="space-y-3.5 p-4">
+          <div className="flex gap-1.5 rounded-xl bg-surface-800 p-1 text-[11px] font-semibold">
+            <span className="flex-1 rounded-lg bg-surface-700 py-1.5 text-center text-rose-400">Gasto</span>
+            <span className="flex-1 py-1.5 text-center text-surface-500">Entrada</span>
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-surface-500">Quanto foi?</p>
+            <p className="font-display text-[1.7rem] font-bold leading-tight tracking-tight text-white">R$ 32,50</p>
+          </div>
+          <div className="rounded-xl border border-surface-700 bg-surface-800 px-3 py-2.5 text-xs text-white">Uber até o metrô</div>
+          <div className="flex gap-1.5">
+            {['Mercado', 'iFood', 'Academia'].map((s) => (
+              <span key={s} className="rounded-full border border-surface-700 bg-surface-800 px-2.5 py-1 text-[10px] font-medium text-surface-300">{s}</span>
+            ))}
+          </div>
+          <div className="flex gap-1.5">
+            {[
+              { Icon: Car, label: 'Transporte', active: true },
+              { Icon: Coffee, label: 'Restaurante', active: false },
+              { Icon: ShoppingCart, label: 'Mercado', active: false },
+            ].map(({ Icon, label, active }) => (
+              <span key={label} className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-[10px] font-semibold ${active ? 'border-brand-500 bg-brand-500/15 text-brand-200' : 'border-surface-700 text-surface-400'}`}>
+                <Icon className="h-3 w-3" /> {label}
+              </span>
+            ))}
+          </div>
+          <div className="flex items-center justify-between rounded-2xl bg-brand-600 px-4 py-3 text-sm font-bold text-white">
+            <span className="flex items-center gap-1.5"><Check className="h-4 w-4" /> Salvar gasto</span>
+            <span>R$ 32,50</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export function WorkoutMock() {
   return (

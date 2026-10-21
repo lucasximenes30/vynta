@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
-import { UserSubscriptionStatus } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { activateRecurringSubscription } from '@/services/subscription.service'
-import { findSubscriptionByCheckout } from '@/services/abacatepay.service'
+import { activateRecurringSubscription, cancelRecurringSubscription } from '@/services/subscription.service'
+import { findSubscriptionByCheckout, getSubscription } from '@/services/abacatepay.service'
 import { FacebookService } from '@/services/facebook.service'
 import { tierFromCycle, tierFromAmount, normalizeTier, type BillingTier } from '@/lib/plans'
 import crypto from 'crypto'
@@ -52,13 +51,11 @@ export async function POST(req: Request) {
 
   const isSignatureValid = verifySignature(rawBody, signature, secret)
 
-  if (!isSignatureValid && !isQuerySecretMatch) {
-    if (process.env.NODE_ENV !== 'production' || !secret) {
-      console.warn('[AbacatePay Webhook] Signature not verified, but proceeding (dev or unconfigured secret).')
-    } else {
-      console.error('[AbacatePay Webhook] Unauthorized - signature mismatch and no valid secret query.')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  // The HMAC key is public (integrity only); only the URL secret proves the event came from AbacatePay.
+  // Without it, the event is still processed, but every fact is re-read from the AbacatePay API.
+  const isTrusted = isQuerySecretMatch || process.env.NODE_ENV !== 'production'
+  if (!isQuerySecretMatch) {
+    console.warn(`[AbacatePay Webhook] webhookSecret ${secret ? 'mismatch' : 'not configured'} (hmac ${isSignatureValid ? 'ok' : 'invalid'}); verifying via API.`)
   }
 
   try {
@@ -67,10 +64,16 @@ export async function POST(req: Request) {
     console.log(`[AbacatePay Webhook] Event received: ${eventType} (id: ${event.id})`)
 
     const data = event.data || {}
-    const subscription = data.subscription
-    const checkout = data.checkout
+    let subscription = data.subscription
+    const checkout = isTrusted ? data.checkout : undefined
     const payment = data.payment
-    const customer = data.customer
+    const customer = isTrusted ? data.customer : undefined
+
+    if (!isTrusted && subscription?.id) {
+      const verified = await getSubscription(subscription.id).catch(() => null)
+      if (!verified) return NextResponse.json({ error: 'Unknown subscription' }, { status: 401 })
+      subscription = verified
+    }
 
     // Handle subscription events (completed or renewed)
     if (eventType === 'subscription.completed' || eventType === 'subscription.renewed') {
@@ -80,10 +83,15 @@ export async function POST(req: Request) {
         return NextResponse.json({ ok: true, message: 'Ignored - missing subscription' })
       }
 
+      if (!isTrusted && subscription.status !== 'ACTIVE') {
+        return NextResponse.json({ error: 'Subscription not active' }, { status: 401 })
+      }
+
       const checkoutId = checkout?.id || subscription?.checkoutId || null
       const customerId = customer?.id || subscription?.customerId || null
-      const chargeId = payment?.id || checkoutId || subscriptionId
-      const amountCents = Number(payment?.amount || subscription?.amount || checkout?.amount || 0)
+      // Untrusted payloads can't pick the charge id, otherwise replays would extend access forever.
+      const chargeId = (isTrusted && payment?.id) || `${subscriptionId}:${event.id}`
+      const amountCents = Number((isTrusted && payment?.amount) || subscription?.amount || checkout?.amount || 0)
 
       // Find user
       let userId: string | null = null
@@ -199,21 +207,9 @@ export async function POST(req: Request) {
     // Handle subscription cancellation
     if (eventType === 'subscription.cancelled') {
       const subscriptionId = subscription?.id
-      const customerId = customer?.id
-
-      if (subscriptionId) {
-        await prisma.user.updateMany({
-          where: {
-            OR: [
-              { subscriptionId },
-              ...(customerId ? [{ billingCustomerId: customerId }] : []),
-            ],
-          },
-          data: {
-            subscriptionStatus: UserSubscriptionStatus.CANCELED,
-          },
-        })
-        console.log(`[AbacatePay Webhook] Subscription cancelled for ${subscriptionId}`)
+      if (subscriptionId && (isTrusted || subscription.status === 'CANCELLED')) {
+        await cancelRecurringSubscription(subscriptionId, subscription?.cancelledDueTo === 'max_payment_retries_exceeded')
+        console.log(`[AbacatePay Webhook] Subscription cancelled for ${subscriptionId} (${subscription?.cancelledDueTo ?? 'requested'})`)
       }
       return NextResponse.json({ ok: true, message: 'Cancellation processed' }, { status: 200 })
     }

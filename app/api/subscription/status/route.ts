@@ -113,15 +113,11 @@ export async function POST() {
     // If the database transaction was already promoted to ACTIVE by the webhook
     if (tx.status === 'ACTIVE') {
       const refreshedUser = await prisma.user.findUnique({ where: { id: user.id } })
-      if (refreshedUser) {
-        await setSession(sessionPayloadFromUser(refreshedUser))
-      }
-      return NextResponse.json({
-        ok: true,
-        status: 'approved',
-        message: 'Pagamento confirmado! Seu acesso foi liberado.',
-        canAccess: true,
-      })
+      const canAccess = !!refreshedUser && userHasAccess(refreshedUser)
+      if (refreshedUser) await setSession(sessionPayloadFromUser(refreshedUser))
+      return NextResponse.json(canAccess
+        ? { ok: true, status: 'approved', message: 'Pagamento confirmado! Seu acesso foi liberado.', canAccess }
+        : { ok: false, status: 'expired', message: 'Sua assinatura não está mais ativa.', canAccess })
     }
 
     // Otherwise, actively check with AbacatePay API
