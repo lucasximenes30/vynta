@@ -30,7 +30,7 @@
 - Web Push com VAPID (`web-push`). Envs: `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `CRON_SECRET` (ver `.env.example`). Trocar as chaves VAPID invalida todas as inscrições.
 - Servidor: `services/push.service.ts` (envio, poda de inscrições 404/410, preferências) e `services/pushScheduler.service.ts` (lembretes). Cliente: `lib/push.ts`, `components/push/*`. SW: handlers `push`, `notificationclick` (envia `vynta:navigate` para o app aberto) e `pushsubscriptionchange` em `public/sw.js`.
 - Agendamento: `GET /api/cron/push` com `Authorization: Bearer $CRON_SECRET` (Vercel Cron em `vercel.json`, 2x/dia — compatível com o plano Hobby). É idempotente: cada envio é reservado em `push_logs (userId, key)` antes de sair, então pode rodar em qualquer frequência. Com cron a cada 15 min (Pro ou agendador externo) os avisos "compromisso em X min" também passam a funcionar.
-- Janelas no fuso do usuário (`notification_preferences.timezone`): manhã 07–11h (contas, agenda do dia), noite 19–22h (hábitos, "gastou algo hoje?"), trial no último dia.
+- Janelas no fuso do usuário (`notification_preferences.timezone`): manhã 07–11h ("resumo do dia" único com agenda+contas — enviado sempre que ao menos uma das categorias está ligada, mesmo vazio), noite 19–22h (hábitos, "gastou algo hoje?"), "compromisso em X min" 06–23h, trial no último dia.
 - Login/registro desvinculam o aparelho da conta anterior (`detachPushFromAccount`); o app revincula ao abrir (`syncPushSubscription`).
 
 ## Agenda externa (iCal / Google)

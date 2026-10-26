@@ -7,7 +7,9 @@ import { DEFAULT_PREFERENCES, isPushConfigured, sendToSubscriptions, type PushPa
  * Scheduled Web Push reminders. Called by the cron route; safe to run at any frequency:
  * every push is claimed in `push_logs` (userId + key) before it is sent, so overlapping or
  * repeated runs never notify twice. What gets sent depends on each user's local time:
- *  - morning (07h–11h): bills due today/tomorrow/late, today's agenda, trial ending
+ *  - morning (07h–11h): "resumo do dia" — agenda + contas num único push. Sempre enviado
+ *    quando ao menos uma das categorias está ligada, mesmo vazio ("dia livre"), mais o
+ *    aviso de trial no último dia
  *  - evening (19h–22h): pending habits, "did you log your spending today?"
  *  - any time (06h–23h): agenda events starting within the next hour (needs a frequent cron)
  */
@@ -175,25 +177,65 @@ export async function runScheduledPushes(now = new Date()) {
     })
   }
 
-  // Agenda: morning digest + "starting soon"
+  // Morning: "resumo do dia" — agenda e contas num único push, uma vez ao dia.
+  // Enviado até quando não há nada ("dia livre"), para o usuário saber que o Vynta conferiu.
+  const billsByUser = new Map<string, { type: string; title: string }[]>()
+  await mapLimit(morning.filter((c) => c.prefs.bills && c.user.canUseFinance), CONCURRENCY, async ({ user, local }) => {
+    const [y, mo, d] = local.day.split('-').map(Number)
+    billsByUser.set(user.id, (await listUserNotifications(user.id, new Date(y, mo - 1, d, 12)))
+      .filter((n) => n.sourceType !== 'card_limit' && (n.type === 'today' || (n.type === 'upcoming' && n.days === 1) || (n.type === 'late' && n.days <= 3))))
+  })
+
+  for (const { user, local, prefs } of morning) {
+    const parts: string[] = []
+    let nEvents = 0
+    let nLate = 0
+    let nTodayBills = 0
+
+    if (prefs.agenda && user.canUseAgenda !== false) {
+      const today = events.filter((e) => e.userId === user.id && e.date.toISOString().slice(0, 10) === local.day)
+      nEvents = today.length
+      parts.push(nEvents
+        ? `${nEvents === 1 ? '1 compromisso' : `${nEvents} compromissos`}: ${
+            today.map((e) => (e.startTime && !e.isAllDay ? `${e.startTime} ${e.title}` : e.title)).slice(0, 3).join(', ')
+          }${nEvents > 3 ? ` e mais ${nEvents - 3}` : ''}`
+        : 'agenda livre')
+    }
+
+    if (prefs.bills && user.canUseFinance) {
+      const bills = billsByUser.get(user.id) ?? []
+      const late = bills.filter((b) => b.type === 'late')
+      const todayB = bills.filter((b) => b.type === 'today')
+      const tomorrow = bills.filter((b) => b.type === 'upcoming')
+      nLate = late.length
+      nTodayBills = todayB.length
+      if (late.length) parts.push(`${late.length === 1 ? '1 conta atrasada' : `${late.length} contas atrasadas`}: ${listNames(late.map((b) => b.title))}`)
+      else if (todayB.length) parts.push(`${todayB.length === 1 ? '1 conta vence hoje' : `${todayB.length} contas vencem hoje`}: ${listNames(todayB.map((b) => b.title))}`)
+      else if (tomorrow.length) parts.push(`${tomorrow.length === 1 ? '1 conta vence amanhã' : `${tomorrow.length} contas vencem amanhã`}: ${listNames(tomorrow.map((b) => b.title))}`)
+      else parts.push('nenhuma conta vencendo')
+    }
+
+    if (!parts.length) continue
+    planned.push({
+      userId: user.id,
+      key: `day-digest:${local.day}`,
+      payload: {
+        title: nLate ? (nLate === 1 ? '1 conta atrasada' : `${nLate} contas atrasadas`)
+          : nEvents ? (nEvents === 1 ? '1 compromisso hoje' : `${nEvents} compromissos hoje`)
+          : nTodayBills ? (nTodayBills === 1 ? 'Conta vence hoje' : `${nTodayBills} contas vencem hoje`)
+          : 'Dia livre por aqui',
+        body: parts.join(' · '),
+        url: nLate || nTodayBills ? '/finances?source=push' : nEvents ? '/calendar?source=push' : '/dashboard?source=push',
+        tag: 'day-digest',
+        ttl: 8 * 3600,
+      },
+    })
+  }
+
+  // Agenda: "starting soon"
   for (const { user, local } of daytime) {
     const today = events.filter((e) => e.userId === user.id && e.date.toISOString().slice(0, 10) === local.day)
     if (today.length === 0) continue
-
-    if (inRange(local.hour, MORNING)) {
-      planned.push({
-        userId: user.id,
-        key: `agenda-digest:${local.day}`,
-        payload: {
-          title: today.length === 1 ? 'Você tem 1 compromisso hoje' : `Você tem ${today.length} compromissos hoje`,
-          body: today.map((e) => (e.startTime && !e.isAllDay ? `${e.startTime} ${e.title}` : e.title)).slice(0, 3).join(' · ')
-            + (today.length > 3 ? ` · +${today.length - 3}` : ''),
-          url: '/calendar?source=push',
-          tag: 'agenda',
-          ttl: 6 * 3600,
-        },
-      })
-    }
 
     const nowMin = local.hour * 60 + local.minute
     for (const e of today) {
@@ -214,32 +256,6 @@ export async function runScheduledPushes(now = new Date()) {
       })
     }
   }
-
-  // Morning: bills due (per-user, reuses the in-app notification rules)
-  await mapLimit(morning.filter((c) => c.prefs.bills && c.user.canUseFinance), CONCURRENCY, async ({ user, local }) => {
-    const [y, mo, d] = local.day.split('-').map(Number)
-    const bills = (await listUserNotifications(user.id, new Date(y, mo - 1, d, 12)))
-      .filter((n) => n.sourceType !== 'card_limit' && (n.type === 'today' || (n.type === 'upcoming' && n.days === 1) || (n.type === 'late' && n.days <= 3)))
-    if (bills.length === 0) return
-    const late = bills.filter((b) => b.type === 'late')
-    const today = bills.filter((b) => b.type === 'today')
-    const tomorrow = bills.filter((b) => b.type === 'upcoming')
-    const title = late.length
-      ? `${late.length === 1 ? '1 conta atrasada' : `${late.length} contas atrasadas`}`
-      : today.length
-        ? `${today.length === 1 ? 'Conta vence hoje' : `${today.length} contas vencem hoje`}`
-        : `${tomorrow.length === 1 ? 'Conta vence amanhã' : `${tomorrow.length} contas vencem amanhã`}`
-    const body = [
-      late.length ? `Atrasado: ${listNames(late.map((b) => b.title))}` : '',
-      today.length ? `Hoje: ${listNames(today.map((b) => b.title))}` : '',
-      tomorrow.length ? `Amanhã: ${listNames(tomorrow.map((b) => b.title))}` : '',
-    ].filter(Boolean).join(' · ')
-    planned.push({
-      userId: user.id,
-      key: `bills:${local.day}`,
-      payload: { title, body, url: '/finances?source=push', tag: 'bills', ttl: 8 * 3600 },
-    })
-  })
 
   if (planned.length === 0) return { users: users.length, planned: 0, sent: 0 }
 
