@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import {
   X, Check, Utensils, Coffee, ShoppingCart, Car, ShoppingBag, Receipt, HeartPulse, Clapperboard,
@@ -59,20 +59,36 @@ function localDayOffset(days: number) {
   return todayDateValue(d)
 }
 
-/** Keeps the sheet above the iOS keyboard (Android already resizes the layout viewport). */
-function useKeyboardInset() {
-  const [inset, setInset] = useState(0)
+/**
+ * Tracks the *visible* part of the screen (above the on-screen keyboard). iOS doesn't resize the
+ * layout viewport when the keyboard opens — it pans it — so `fixed inset-0` ends up partly behind
+ * the keyboard and partly above the top of the screen. Pinning the sheet's container to the
+ * visual viewport keeps it exactly in the visible area on iOS and Android.
+ */
+function useVisibleViewport() {
+  const read = () => {
+    const vv = typeof window !== 'undefined' ? window.visualViewport : null
+    if (!vv) return { top: 0, height: typeof window !== 'undefined' ? window.innerHeight : 0, keyboard: false }
+    return { top: vv.offsetTop, height: vv.height, keyboard: window.innerHeight - vv.height > 120 }
+  }
+  const [vp, setVp] = useState(read)
   useEffect(() => {
     const vv = window.visualViewport
     if (!vv) return
-    const update = () => setInset(Math.max(0, window.innerHeight - vv.height - vv.offsetTop))
+    let frame = 0
+    const update = () => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => setVp(read()))
+    }
     vv.addEventListener('resize', update)
     vv.addEventListener('scroll', update)
     update()
-    return () => { vv.removeEventListener('resize', update); vv.removeEventListener('scroll', update) }
+    return () => { cancelAnimationFrame(frame); vv.removeEventListener('resize', update); vv.removeEventListener('scroll', update) }
   }, [])
-  return inset
+  return vp
 }
+
+const CLOSE_MS = 180
 
 export default function QuickAddSheet({ initialType, onClose, onSubmit }: {
   initialType: QuickAddType
@@ -93,18 +109,52 @@ export default function QuickAddSheet({ initialType, onClose, onSubmit }: {
 
   const amountRef = useRef<HTMLInputElement>(null)
   const titleRef = useRef<HTMLInputElement>(null)
-  const keyboardInset = useKeyboardInset()
+  const vp = useVisibleViewport()
+  const [closing, setClosing] = useState(false)
+  const [dragY, setDragY] = useState(0)
+  const dragStart = useRef<number | null>(null)
+
+  // Slide down, then unmount; the keyboard is dismissed at the same time.
+  const requestClose = useCallback(() => {
+    if (closing) return
+    ;(document.activeElement as HTMLElement | null)?.blur?.()
+    setClosing(true)
+    setTimeout(onClose, CLOSE_MS)
+  }, [closing, onClose])
+
+  // Keep the focused field visible inside the sheet once the keyboard has settled.
+  const revealOnFocus = (e: React.FocusEvent<HTMLElement>) => {
+    const el = e.currentTarget
+    setTimeout(() => el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 260)
+  }
+
+  const dragHandlers = {
+    onPointerDown: (e: React.PointerEvent) => {
+      if ((e.target as HTMLElement).closest('button')) return
+      dragStart.current = e.clientY
+      ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+    },
+    onPointerMove: (e: React.PointerEvent) => {
+      if (dragStart.current !== null) setDragY(Math.max(0, e.clientY - dragStart.current))
+    },
+    onPointerUp: () => {
+      if (dragStart.current === null) return
+      dragStart.current = null
+      if (dragY > 90) requestClose()
+      else setDragY(0)
+    },
+  }
 
   // Focus moves here from the trap input focused during the tap, so iOS keeps the keyboard open.
   useLayoutEffect(() => { amountRef.current?.focus({ preventScroll: true }) }, [])
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') requestClose() }
     document.addEventListener('keydown', onKey)
     const { overflow } = document.body.style
     document.body.style.overflow = 'hidden'
     return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = overflow }
-  }, [onClose])
+  }, [requestClose])
 
   useEffect(() => {
     if (serverSuggestions) return
@@ -167,36 +217,53 @@ export default function QuickAddSheet({ initialType, onClose, onSubmit }: {
   }
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-end justify-center md:items-center" role="dialog" aria-modal="true" aria-label="Novo lançamento">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] animate-in fade-in duration-150" onClick={onClose} />
+    <>
+      <div
+        className={`fixed inset-x-0 -inset-y-[50vh] z-[70] bg-black/60 backdrop-blur-[2px] transition-opacity duration-200 ${closing ? 'opacity-0' : 'animate-in fade-in'}`}
+        onClick={requestClose}
+        aria-hidden
+      />
+      <div
+        className="fixed inset-x-0 z-[71] flex items-end justify-center md:items-center pointer-events-none"
+        style={{ top: vp.top, height: vp.height, transition: 'height 240ms cubic-bezier(0.2, 0.8, 0.2, 1)' }}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Novo lançamento"
+      >
       <form
         onSubmit={submit}
-        style={{ marginBottom: keyboardInset }}
-        className="relative w-full md:max-w-md max-h-[92dvh] overflow-y-auto overscroll-contain rounded-t-[28px] md:rounded-3xl bg-white dark:bg-surface-900 border-t md:border border-surface-200 dark:border-surface-800 shadow-2xl animate-in slide-in-from-bottom-6 duration-200 pb-[max(1rem,env(safe-area-inset-bottom))]"
+        style={{
+          transform: closing ? 'translate3d(0, 100%, 0)' : `translate3d(0, ${dragY}px, 0)`,
+          transition: dragStart.current !== null ? 'none' : `transform ${closing ? CLOSE_MS : 220}ms cubic-bezier(0.2, 0.8, 0.2, 1)`,
+        }}
+        className={`pointer-events-auto relative flex w-full flex-col md:max-w-md max-h-full md:max-h-[92dvh] rounded-t-[28px] md:rounded-3xl bg-white dark:bg-surface-900 border-t md:border border-surface-200 dark:border-surface-800 shadow-2xl will-change-transform ${closing ? '' : 'animate-in slide-in-from-bottom'}`}
       >
-        <div className="mx-auto mt-2.5 h-1.5 w-10 rounded-full bg-surface-200 dark:bg-surface-700 md:hidden" />
+        <div {...dragHandlers} className="shrink-0 touch-none select-none">
+          <div className={`mx-auto mt-2.5 h-1.5 w-10 rounded-full bg-surface-200 dark:bg-surface-700 md:hidden ${vp.keyboard ? 'hidden' : ''}`} />
 
-        <div className="flex items-center justify-between gap-3 px-5 pt-3">
-          <div className="grid grid-cols-2 rounded-2xl bg-surface-100 dark:bg-surface-800 p-1 text-sm font-semibold">
-            {(['EXPENSE', 'INCOME'] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => { setType(t); setCategoryTouched(false) }}
-                className={`rounded-xl px-4 py-2 transition-colors ${type === t
-                  ? t === 'EXPENSE' ? 'bg-white text-rose-600 shadow-sm dark:bg-surface-700 dark:text-rose-400' : 'bg-white text-emerald-600 shadow-sm dark:bg-surface-700 dark:text-emerald-400'
-                  : 'text-surface-500'}`}
-              >
-                {t === 'EXPENSE' ? 'Gasto' : 'Entrada'}
-              </button>
-            ))}
+          <div className="flex items-center justify-between gap-3 px-5 pt-3">
+            <div className="grid grid-cols-2 rounded-2xl bg-surface-100 dark:bg-surface-800 p-1 text-sm font-semibold">
+              {(['EXPENSE', 'INCOME'] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => { setType(t); setCategoryTouched(false) }}
+                  className={`rounded-xl px-4 py-2 transition-colors ${type === t
+                    ? t === 'EXPENSE' ? 'bg-white text-rose-600 shadow-sm dark:bg-surface-700 dark:text-rose-400' : 'bg-white text-emerald-600 shadow-sm dark:bg-surface-700 dark:text-emerald-400'
+                    : 'text-surface-500'}`}
+                >
+                  {t === 'EXPENSE' ? 'Gasto' : 'Entrada'}
+                </button>
+              ))}
+            </div>
+            <button type="button" onClick={requestClose} aria-label="Fechar" className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-100 text-surface-500 dark:bg-surface-800">
+              <X className="h-5 w-5" />
+            </button>
           </div>
-          <button type="button" onClick={onClose} aria-label="Fechar" className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-100 text-surface-500 dark:bg-surface-800">
-            <X className="h-5 w-5" />
-          </button>
         </div>
 
-        <div className="px-5 pt-5">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-3">
+        <div className={`px-5 ${vp.keyboard ? 'pt-2' : 'pt-5'}`}>
           <label htmlFor="qa-amount" className="text-xs font-semibold uppercase tracking-wider text-surface-500">Quanto foi?</label>
           <input
             id="qa-amount"
@@ -212,9 +279,9 @@ export default function QuickAddSheet({ initialType, onClose, onSubmit }: {
               setCents(Number(digits) || 0)
               setError('')
             }}
-            onFocus={(e) => { const el = e.currentTarget; requestAnimationFrame(() => el.setSelectionRange(el.value.length, el.value.length)) }}
+            onFocus={(e) => { const el = e.currentTarget; requestAnimationFrame(() => el.setSelectionRange(el.value.length, el.value.length)); revealOnFocus(e) }}
             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); titleRef.current?.focus() } }}
-            className={`mt-1 w-full bg-transparent font-display text-[2.6rem] leading-tight font-bold tracking-tight outline-none caret-brand-500 ${cents === 0 ? 'text-surface-300 dark:text-surface-600' : isExpense ? 'text-surface-900 dark:text-white' : 'text-emerald-600 dark:text-emerald-400'}`}
+            className={`mt-1 w-full bg-transparent font-display leading-tight transition-[font-size] duration-200 ${vp.keyboard ? 'text-[2.1rem]' : 'text-[2.6rem]'} font-bold tracking-tight outline-none caret-brand-500 ${cents === 0 ? 'text-surface-300 dark:text-surface-600' : isExpense ? 'text-surface-900 dark:text-white' : 'text-emerald-600 dark:text-emerald-400'}`}
           />
         </div>
 
@@ -231,6 +298,7 @@ export default function QuickAddSheet({ initialType, onClose, onSubmit }: {
             placeholder={isExpense ? 'O que foi? Ex.: mercado, Uber, iFood' : 'De onde veio? Ex.: salário, freela'}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            onFocus={revealOnFocus}
             className="w-full rounded-2xl border border-surface-200 bg-surface-50 px-4 py-3.5 text-base text-surface-900 placeholder:text-surface-400 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-surface-700 dark:bg-surface-800 dark:text-white"
           />
         </div>
@@ -250,7 +318,7 @@ export default function QuickAddSheet({ initialType, onClose, onSubmit }: {
           </div>
         )}
 
-        <div className="mt-5 px-5">
+        <div className={`px-5 ${vp.keyboard ? 'mt-3' : 'mt-5'}`}>
           <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-surface-500">
             Categoria
             {!categoryTouched && category !== 'General' && (
@@ -308,9 +376,10 @@ export default function QuickAddSheet({ initialType, onClose, onSubmit }: {
           </label>
         </div>
 
-        {error && <p className="px-5 pt-3 text-sm font-medium text-rose-600 dark:text-rose-400">{error}</p>}
+        </div>
 
-        <div className="px-5 pt-5">
+        <div className="shrink-0 border-t border-surface-100 px-5 pt-3 dark:border-surface-800 pb-[max(0.75rem,env(safe-area-inset-bottom))]" style={vp.keyboard ? { paddingBottom: '0.75rem' } : undefined}>
+          {error && <p className="pb-2 text-sm font-medium text-rose-600 dark:text-rose-400">{error}</p>}
           <button
             type="submit"
             disabled={!canSave}
@@ -319,15 +388,18 @@ export default function QuickAddSheet({ initialType, onClose, onSubmit }: {
             {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Check className="h-5 w-5" />}
             {saving ? 'Salvando…' : `Salvar ${isExpense ? 'gasto' : 'entrada'}${cents > 0 ? ` · ${brl(cents)}` : ''}`}
           </button>
-          <Link
-            href="/finances?novo=1"
-            onClick={onClose}
-            className="mt-3 block text-center text-xs font-medium text-surface-500 underline-offset-2 hover:underline"
-          >
-            Parcelado, no cartão ou conta fixa? Abrir formulário completo
-          </Link>
+          {!vp.keyboard && (
+            <Link
+              href="/finances?novo=1"
+              onClick={onClose}
+              className="mt-3 block text-center text-xs font-medium text-surface-500 underline-offset-2 hover:underline"
+            >
+              Parcelado, no cartão ou conta fixa? Abrir formulário completo
+            </Link>
+          )}
         </div>
       </form>
-    </div>
+      </div>
+    </>
   )
 }
