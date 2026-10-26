@@ -62,7 +62,7 @@ export default function BrandLogo({
           V
         </span>
         <Image
-          src="/assets/logo/logo.png"
+          src="/assets/logo/logo-mark.png"
           alt="Vynta logo"
           fill
           priority={priority}

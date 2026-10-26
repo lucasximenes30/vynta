@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
@@ -27,6 +27,9 @@ export const metadata: Metadata = {
     type: 'website',
   },
 }
+
+// Landing has its own theme color so iOS/Android tint the top chrome dark like the page.
+export const viewport: Viewport = { themeColor: '#07080c' }
 
 const PRIMARY_CTA = `Testar ${TRIAL_DAYS} dias grátis`
 
@@ -181,6 +184,9 @@ export default function LandingPage() {
   return (
     <main className="relative min-h-[100dvh] overflow-x-hidden bg-[#07080c] font-sans text-surface-200 selection:bg-brand-500/30">
       <FunnelTracker eventName="landing_view" />
+
+      {/* Covers the iOS status bar / bottom toolbar areas, where Safari shows the light body bg */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 bg-[#07080c]" />
 
       <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[900px] bg-[radial-gradient(ellipse_at_top,rgba(66,88,249,0.22),transparent_60%)]" />
 
