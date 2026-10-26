@@ -4,6 +4,12 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import * as Lucide from 'lucide-react'
 import { useTheme } from '@/lib/theme'
+import dynamic from 'next/dynamic'
+
+const NotificationSettings = dynamic(() => import('@/components/push/NotificationSettings'), {
+  ssr: false,
+  loading: () => <div className="card h-48 animate-pulse" />,
+})
 
 interface Session { userId: string; email: string; name: string }
 
@@ -258,6 +264,8 @@ export default function SettingsClient({ session }: SettingsClientProps) {
               </div>
             </div>
           </div>
+
+          <NotificationSettings />
 
           {/* Profile Card */}
           <div className="card space-y-6">

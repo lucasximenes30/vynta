@@ -25,3 +25,17 @@
 - Datas de transação são sempre `<dia local>T12:00:00Z` (ver `todayDateValue`), nunca horário real em UTC.
 - Fila offline: `readQueue/enqueueTransaction/syncQueue` em `lib/quickAdd.ts`; SW em `public/sw.js` (cache só de estáticos e página inicial — nunca `/api/*` nem HTML autenticado).
 - Pagamentos: webhook `subscription.completed/renewed` ativa via `activateRecurringSubscription` (idempotente por charge); `subscription.cancelled` via `cancelRecurringSubscription` (acesso até o fim do período pago). Só o `webhookSecret` na URL autentica o evento — o HMAC usa chave pública e serve só de integridade.
+
+## Notificações push (PWA)
+- Web Push com VAPID (`web-push`). Envs: `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `CRON_SECRET` (ver `.env.example`). Trocar as chaves VAPID invalida todas as inscrições.
+- Servidor: `services/push.service.ts` (envio, poda de inscrições 404/410, preferências) e `services/pushScheduler.service.ts` (lembretes). Cliente: `lib/push.ts`, `components/push/*`. SW: handlers `push`, `notificationclick` (envia `vynta:navigate` para o app aberto) e `pushsubscriptionchange` em `public/sw.js`.
+- Agendamento: `GET /api/cron/push` com `Authorization: Bearer $CRON_SECRET` (Vercel Cron em `vercel.json`, 2x/dia — compatível com o plano Hobby). É idempotente: cada envio é reservado em `push_logs (userId, key)` antes de sair, então pode rodar em qualquer frequência. Com cron a cada 15 min (Pro ou agendador externo) os avisos "compromisso em X min" também passam a funcionar.
+- Janelas no fuso do usuário (`notification_preferences.timezone`): manhã 07–11h (contas, agenda do dia), noite 19–22h (hábitos, "gastou algo hoje?"), trial no último dia.
+- Login/registro desvinculam o aparelho da conta anterior (`detachPushFromAccount`); o app revincula ao abrir (`syncPushSubscription`).
+- Teste local de entrega: endpoint HTTPS falso + `http_ece` para decifrar (web-push exige https). iOS só recebe push com o app instalado na tela de início (16.4+).
+
+## Navegação / cache do cliente
+- `experimental.staleTimes.dynamic = 30` (next.config): telas visitadas são reaproveitadas por 30s. `components/RouterCacheSync.tsx` marca o cache como sujo após qualquer `fetch` não-GET bem-sucedido para `/api/*` e faz `router.refresh()` na próxima troca de tela. Mutações novas via `fetch('/api/...')` já ficam cobertas.
+- Skeletons por rota (`components/PageSkeleton.tsx` + `loading.tsx`) — mantenha-os parecidos com o layout real.
+- Pixels de marketing (Utmify, Facebook) só carregam nas rotas de aquisição/checkout (`components/MarketingScripts.tsx`); não os coloque nas telas logadas.
+- Animações simples: use as classes CSS `animate-in fade-in zoom-in-95 slide-in-from-bottom-*` (definidas em `globals.css`) em vez de framer-motion; `collapse-grid[data-open]` para acordeões.

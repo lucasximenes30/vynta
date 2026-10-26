@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import Sidebar from './Sidebar'
 import QuickAddHost from './quick-add/QuickAddHost'
+import PushBridge from './push/PushBridge'
+import RouterCacheSync from './RouterCacheSync'
 import { openQuickAdd } from '@/lib/quickAdd'
 import * as Lucide from 'lucide-react'
 
@@ -58,6 +60,8 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
 
       {/* Quick-add transaction sheet, toast and offline queue sync */}
       <QuickAddHost />
+      <PushBridge />
+      <RouterCacheSync />
 
       {/* Quick Actions Overlay (Mobile) */}
       {showQuickActions && (

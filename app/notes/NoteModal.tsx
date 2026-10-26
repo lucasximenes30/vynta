@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import * as Lucide from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
 
 const COLORS = [
   { value: 'default', label: 'Padrão' },
@@ -105,23 +104,15 @@ export default function NoteModal({
   if (formData.color === 'rose') bgClassPreview = 'bg-rose-50/80 dark:bg-[#361623]'
 
   return (
-    <AnimatePresence>
+    <>
       {isOpen && (
         <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+          <div
+            className="animate-in fade-in absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={onClose}
           />
-          <motion.div 
-            initial={{ y: '100%', opacity: 0, scale: 0.95 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: '100%', opacity: 0, scale: 0.95 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className={`w-full max-w-2xl sm:rounded-[2.5rem] rounded-t-[2.5rem] shadow-2xl flex flex-col overflow-hidden relative border border-surface-200 dark:border-surface-700/50 transition-colors duration-500 ${bgClassPreview}`}
+          <div
+            className={`animate-in fade-in slide-in-from-bottom w-full max-w-2xl sm:rounded-[2.5rem] rounded-t-[2.5rem] shadow-2xl flex flex-col overflow-hidden relative border border-surface-200 dark:border-surface-700/50 transition-colors duration-500 ${bgClassPreview}`}
             style={{ maxHeight: 'min(96vh, 48rem)', height: '80vh' }}
           >
             {/* Soft inner glow */}
@@ -232,13 +223,10 @@ export default function NoteModal({
               </div>
 
               <div className="pointer-events-auto flex gap-3">
-                <AnimatePresence>
+                <>
                   {showDeleteConfirm && (
-                    <motion.div 
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      className="flex items-center gap-2 bg-white/90 dark:bg-surface-900/90 backdrop-blur-xl p-1.5 rounded-full border border-surface-200 dark:border-surface-700 shadow-xl"
+                    <div
+                      className="animate-in fade-in slide-in-from-right-4 flex items-center gap-2 bg-white/90 dark:bg-surface-900/90 backdrop-blur-xl p-1.5 rounded-full border border-surface-200 dark:border-surface-700 shadow-xl"
                     >
                       <span className="text-xs font-semibold px-3 text-surface-600 dark:text-surface-300">
                         Confirmar exclusão?
@@ -257,9 +245,9 @@ export default function NoteModal({
                       >
                         Sim
                       </button>
-                    </motion.div>
+                    </div>
                   )}
-                </AnimatePresence>
+                </>
 
                 {!showDeleteConfirm && (
                   <button
@@ -278,9 +266,9 @@ export default function NoteModal({
                 )}
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
       )}
-    </AnimatePresence>
+    </>
   )
 }

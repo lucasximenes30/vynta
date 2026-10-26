@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import * as Lucide from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
 
 interface ExportModalProps {
   isOpen: boolean
@@ -49,22 +48,16 @@ export default function ExportModal({ isOpen, onClose, selectedMonth }: ExportMo
   }
 
   return (
-    <AnimatePresence>
+    <>
       {isOpen && (
         <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-surface-950/40 backdrop-blur-sm"
+          <div
+            className="animate-in fade-in fixed inset-0 z-50 bg-surface-950/40 backdrop-blur-sm"
             onClick={onClose}
           />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="w-full max-w-md overflow-hidden rounded-2xl bg-white dark:bg-surface-900 shadow-xl pointer-events-auto border border-surface-200 dark:border-surface-800"
+            <div
+              className="animate-in fade-in zoom-in-95 slide-in-from-bottom-2 w-full max-w-md overflow-hidden rounded-2xl bg-white dark:bg-surface-900 shadow-xl pointer-events-auto border border-surface-200 dark:border-surface-800"
             >
               {/* Header */}
               <div className="flex items-center justify-between border-b border-surface-100 dark:border-surface-800 px-6 py-4 bg-surface-50/50 dark:bg-surface-950/50">
@@ -175,10 +168,10 @@ export default function ExportModal({ isOpen, onClose, selectedMonth }: ExportMo
                   )}
                 </div>
               </div>
-            </motion.div>
+            </div>
           </div>
         </>
       )}
-    </AnimatePresence>
+    </>
   )
 }

@@ -44,13 +44,14 @@ export const YEARLY_DISCOUNT_PERCENT = Math.round((YEARLY_SAVINGS_CENTS / (PLANS
 
 export const PLAN_FEATURES = [
   'Finanças completas: contas, cartões, parcelas e assinaturas',
-  'Alertas de contas a vencer e fatura do cartão',
+  'Notificações no celular: contas, fatura, agenda e hábitos',
   'Relatórios mensais com insights de IA',
   'Metas financeiras com acompanhamento',
   'Hábitos com sequência e pontuação',
   'Agenda e notas integradas',
   'Planos de treino com histórico de evolução',
   'Exportação em PDF, Excel e CSV',
+  'App instalável, com lançamento de gastos até sem internet',
 ]
 
 export function formatBRL(cents: number): string {

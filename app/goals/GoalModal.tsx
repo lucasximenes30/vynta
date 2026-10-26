@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import * as Lucide from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
 
 const COLORS = [
   { value: 'bg-brand-500', label: 'Roxo (Padrão)' },
@@ -117,23 +116,15 @@ export default function GoalModal({
   }
 
   return (
-    <AnimatePresence>
+    <>
       {isOpen && (
         <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+          <div
+            className="animate-in fade-in absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={onClose}
           />
-          <motion.div 
-            initial={{ y: '100%', opacity: 0, scale: 0.95 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: '100%', opacity: 0, scale: 0.95 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="w-full max-w-lg bg-surface-50 dark:bg-surface-950 sm:rounded-[2.5rem] rounded-t-[2.5rem] p-1.5 shadow-2xl relative border border-white/10"
+          <div
+            className="animate-in fade-in slide-in-from-bottom w-full max-w-lg bg-surface-50 dark:bg-surface-950 sm:rounded-[2.5rem] rounded-t-[2.5rem] p-1.5 shadow-2xl relative border border-white/10"
             style={{ maxHeight: 'min(96vh, 48rem)' }}
           >
             <div className="bg-white dark:bg-surface-900 rounded-t-[calc(2.5rem-0.375rem)] sm:rounded-[calc(2.5rem-0.375rem)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] flex flex-col overflow-hidden h-full">
@@ -232,12 +223,11 @@ export default function GoalModal({
                           title={c.label}
                         >
                           {formData.color === c.value && (
-                            <motion.div 
-                              layoutId="color-check"
+                            <div
                               className="absolute inset-0 flex items-center justify-center text-white"
                             >
                               <Lucide.Check strokeWidth={3} className="w-4 h-4" />
-                            </motion.div>
+                            </div>
                           )}
                         </button>
                       ))}
@@ -260,14 +250,11 @@ export default function GoalModal({
 
               {/* Footer */}
               <div className="flex-shrink-0 p-6 sm:p-8 pt-6 border-t border-surface-100 dark:border-surface-800 bg-surface-50/50 dark:bg-surface-900/50 backdrop-blur-md pb-safe">
-                <AnimatePresence mode="wait">
+                <>
                   {showDeleteConfirm ? (
-                    <motion.div 
+                    <div
                       key="delete-confirm"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="flex flex-col gap-4"
+                      className="animate-in fade-in slide-in-from-bottom-2 flex flex-col gap-4"
                     >
                       <div className="flex gap-3 items-start text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 p-4 rounded-2xl border border-red-100 dark:border-red-500/20">
                         <Lucide.AlertTriangle strokeWidth={1.5} className="w-5 h-5 shrink-0 mt-0.5" />
@@ -293,14 +280,11 @@ export default function GoalModal({
                           {loading ? 'Excluindo...' : 'Excluir Meta'}
                         </button>
                       </div>
-                    </motion.div>
+                    </div>
                   ) : (
-                    <motion.div 
+                    <div
                       key="actions"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="flex gap-3"
+                      className="animate-in fade-in slide-in-from-bottom-2 flex gap-3"
                     >
                       {goal && (
                         <button
@@ -336,14 +320,14 @@ export default function GoalModal({
                           <span>{goal ? 'Salvar Edição' : 'Criar Meta'}</span>
                         )}
                       </button>
-                    </motion.div>
+                    </div>
                   )}
-                </AnimatePresence>
+                </>
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
       )}
-    </AnimatePresence>
+    </>
   )
 }

@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import * as Lucide from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
 import GoalModal from './GoalModal'
 import TransactionModal from './TransactionModal'
 
@@ -42,26 +41,6 @@ export default function GoalsClient({ initialGoals }: { initialGoals: any[] }) {
     setTransactionModalOpen(true)
   }
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
-  }
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20, filter: 'blur(4px)' },
-    show: {
-      opacity: 1,
-      y: 0,
-      filter: 'blur(0px)',
-      transition: { type: 'spring' as const, stiffness: 100, damping: 20 },
-    },
-  }
-
   return (
     <div className="min-h-[100dvh] bg-surface-50 dark:bg-surface-950 text-surface-900 dark:text-surface-100 transition-colors duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]">
       {/* Header */}
@@ -93,11 +72,8 @@ export default function GoalsClient({ initialGoals }: { initialGoals: any[] }) {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 sm:px-6 py-12 sm:py-24 space-y-12">
-        <motion.div 
-          initial={{ opacity: 0, y: 16, filter: 'blur(4px)' }}
-          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-          transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
-          className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6"
+        <div
+          className="animate-in fade-in slide-in-from-bottom-2 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6"
         >
           <div>
             <div className="mb-4 inline-flex items-center rounded-full border border-surface-200 dark:border-surface-800 bg-white/50 dark:bg-surface-900/50 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-surface-600 dark:text-surface-400 backdrop-blur-sm">
@@ -110,18 +86,15 @@ export default function GoalsClient({ initialGoals }: { initialGoals: any[] }) {
               Transforme seus sonhos em planos. Guarde dinheiro com propósito e acompanhe cada passo do seu progresso em tempo real.
             </p>
           </div>
-        </motion.div>
+        </div>
 
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="w-8 h-8 border-2 border-brand-500/30 border-t-brand-500 rounded-full animate-spin" />
           </div>
         ) : goals.length === 0 ? (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
-            className="p-1.5 rounded-[2.5rem] bg-surface-100/50 dark:bg-surface-800/30 border border-surface-200 dark:border-surface-700/50"
+          <div
+            className="animate-in fade-in zoom-in-95 p-1.5 rounded-[2.5rem] bg-surface-100/50 dark:bg-surface-800/30 border border-surface-200 dark:border-surface-700/50"
           >
             <div className="rounded-[calc(2.5rem-0.375rem)] bg-white dark:bg-surface-900 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] text-center py-24 px-6 flex flex-col items-center justify-center relative overflow-hidden">
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(66,88,249,0.05),transparent_50%)] pointer-events-none" />
@@ -143,15 +116,12 @@ export default function GoalsClient({ initialGoals }: { initialGoals: any[] }) {
                 Criar meta
               </button>
             </div>
-          </motion.div>
+          </div>
         ) : (
-          <motion.div 
-            variants={containerVariants}
-            initial="hidden"
-            animate="show"
+          <div
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
           >
-            <AnimatePresence>
+            <>
               {goals.map((g) => {
                 const current = parseFloat(g.currentAmount)
                 const target = parseFloat(g.targetAmount)
@@ -162,11 +132,9 @@ export default function GoalsClient({ initialGoals }: { initialGoals: any[] }) {
                   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val)
 
                 return (
-                  <motion.div 
+                  <div
                     key={g.id} 
-                    layoutId={`goal-${g.id}`}
-                    variants={itemVariants}
-                    className="group relative p-1.5 rounded-[2rem] bg-surface-100/50 dark:bg-surface-800/30 border border-surface-200 dark:border-surface-700/50 hover:bg-surface-200/50 dark:hover:bg-surface-700/50 transition-colors duration-500"
+                    className="animate-in fade-in slide-in-from-bottom-4 group relative p-1.5 rounded-[2rem] bg-surface-100/50 dark:bg-surface-800/30 border border-surface-200 dark:border-surface-700/50 hover:bg-surface-200/50 dark:hover:bg-surface-700/50 transition-colors duration-500"
                   >
                     <div className="relative h-full flex flex-col rounded-[calc(2rem-0.375rem)] bg-white dark:bg-surface-900 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] p-6 overflow-hidden">
                       {/* Subtle Background Glow */}
@@ -224,15 +192,13 @@ export default function GoalsClient({ initialGoals }: { initialGoals: any[] }) {
                             </div>
                           </div>
                           <div className="overflow-hidden h-2.5 text-xs flex rounded-full bg-surface-100 dark:bg-surface-800/80 shadow-inner">
-                            <motion.div
-                              initial={{ width: 0 }}
-                              animate={{ width: `${progress}%` }}
-                              transition={{ duration: 1.5, ease: [0.32, 0.72, 0, 1] }}
-                              className={`shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center ${g.color || 'bg-brand-500'} relative`}
+                            <div
+                              style={{ width: `${progress}%` }}
+                              className={`transition-[width] duration-1000 ease-out shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center ${g.color || 'bg-brand-500'} relative`}
                             >
                               <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white/30" />
                               <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.15)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.15)_50%,rgba(255,255,255,0.15)_75%,transparent_75%,transparent)] bg-[length:1rem_1rem] animate-[progress-stripes_1s_linear_infinite] opacity-30" />
-                            </motion.div>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -246,11 +212,11 @@ export default function GoalsClient({ initialGoals }: { initialGoals: any[] }) {
                         Gerenciar
                       </button>
                     </div>
-                  </motion.div>
+                  </div>
                 )
               })}
-            </AnimatePresence>
-          </motion.div>
+            </>
+          </div>
         )}
       </main>
 

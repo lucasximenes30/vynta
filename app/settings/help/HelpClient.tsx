@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import * as Lucide from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
 
 const HELP_SECTIONS = [
   {
@@ -237,20 +236,13 @@ export default function HelpClient() {
                   />
                 </button>
 
-                <AnimatePresence>
-                  {isOpen && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3, ease: 'easeInOut' }}
-                    >
-                      <div className="px-6 pb-6 pt-2 border-t border-surface-100 dark:border-surface-800 ml-[4.5rem]">
-                        {section.content}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                <div className="collapse-grid" data-open={isOpen} aria-hidden={!isOpen}>
+                  <div>
+                    <div className="px-6 pb-6 pt-2 border-t border-surface-100 dark:border-surface-800 sm:ml-[4.5rem]">
+                      {section.content}
+                    </div>
+                  </div>
+                </div>
               </div>
             )
           })}

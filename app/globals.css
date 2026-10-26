@@ -160,10 +160,10 @@
   animation: pageFadeIn 0.35s ease-out;
 }
 
+/* Transform-only so content is visible (and counts for LCP) from the very first frame. */
 @keyframes dashboardFadeIn {
   from {
-    opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -172,7 +172,7 @@
 }
 
 .animate-dashboard-fade {
-  animation: dashboardFadeIn 0.5s ease-out forwards;
+  animation: dashboardFadeIn 0.25s ease-out;
 }
 
 @keyframes authFadeIn {
@@ -206,6 +206,9 @@
 }
 
 @layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
   .scrollbar-thin::-webkit-scrollbar {
     width: 6px;
   }
@@ -227,4 +230,35 @@
       transform: translateX(0);
     }
   }
+}
+
+/* Lightweight replacement for tailwindcss-animate's enter utilities (and for framer-motion
+   in simple enter transitions): `animate-in fade-in zoom-in-95 slide-in-from-bottom-4`. */
+@keyframes vyntaEnter {
+  from {
+    opacity: var(--enter-opacity, 1);
+    transform: translate3d(var(--enter-x, 0), var(--enter-y, 0), 0) scale(var(--enter-scale, 1));
+  }
+}
+
+.animate-in { animation: vyntaEnter 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.fade-in { --enter-opacity: 0; }
+.fade-in-50 { --enter-opacity: 0.5; }
+.zoom-in-95 { --enter-scale: 0.95; }
+.slide-in-from-bottom { --enter-y: 100%; }
+.slide-in-from-bottom-0 { --enter-y: 0; }
+.slide-in-from-bottom-2 { --enter-y: 0.5rem; }
+.slide-in-from-bottom-4 { --enter-y: 1rem; }
+.slide-in-from-bottom-6 { --enter-y: 1.5rem; }
+.slide-in-from-bottom-8 { --enter-y: 2rem; }
+.slide-in-from-top-2 { --enter-y: -0.5rem; }
+.slide-in-from-right-4 { --enter-x: 1rem; }
+
+/* Accordion that animates to its natural height without JS. */
+.collapse-grid { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.25s ease, opacity 0.25s ease; opacity: 0; }
+.collapse-grid[data-open='true'] { grid-template-rows: 1fr; opacity: 1; }
+.collapse-grid > * { overflow: hidden; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-in, .animate-dashboard-fade, .animate-fade-in, .animate-auth-fade, .reports-page-enter { animation: none !important; }
 }

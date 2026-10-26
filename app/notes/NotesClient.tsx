@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import * as Lucide from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
 import NoteModal from './NoteModal'
 
 export default function NotesClient({ initialNotes }: { initialNotes: any[] }) {
@@ -47,26 +46,6 @@ export default function NotesClient({ initialNotes }: { initialNotes: any[] }) {
     }
   }
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
-  }
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20, filter: 'blur(4px)' },
-    show: {
-      opacity: 1,
-      y: 0,
-      filter: 'blur(0px)',
-      transition: { type: 'spring' as const, stiffness: 100, damping: 20 },
-    },
-  }
-
   return (
     <div className="min-h-[100dvh] bg-surface-50 dark:bg-surface-950 text-surface-900 dark:text-surface-100 transition-colors duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]">
       {/* Header */}
@@ -98,11 +77,8 @@ export default function NotesClient({ initialNotes }: { initialNotes: any[] }) {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 sm:px-6 py-12 sm:py-24 space-y-12">
-        <motion.div 
-          initial={{ opacity: 0, y: 16, filter: 'blur(4px)' }}
-          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-          transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
-          className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6"
+        <div
+          className="animate-in fade-in slide-in-from-bottom-2 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6"
         >
           <div>
             <div className="mb-4 inline-flex items-center rounded-full border border-surface-200 dark:border-surface-800 bg-white/50 dark:bg-surface-900/50 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-surface-600 dark:text-surface-400 backdrop-blur-sm">
@@ -115,18 +91,15 @@ export default function NotesClient({ initialNotes }: { initialNotes: any[] }) {
               Anotações fluidas, elegantes e perfeitamente integradas à sua rotina financeira e organização pessoal.
             </p>
           </div>
-        </motion.div>
+        </div>
 
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="w-8 h-8 border-2 border-surface-900/30 dark:border-white/30 border-t-surface-900 dark:border-t-white rounded-full animate-spin" />
           </div>
         ) : notes.length === 0 ? (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
-            className="p-1.5 rounded-[2.5rem] bg-surface-100/50 dark:bg-surface-800/30 border border-surface-200 dark:border-surface-700/50"
+          <div
+            className="animate-in fade-in zoom-in-95 p-1.5 rounded-[2.5rem] bg-surface-100/50 dark:bg-surface-800/30 border border-surface-200 dark:border-surface-700/50"
           >
             <div className="rounded-[calc(2.5rem-0.375rem)] bg-white dark:bg-surface-900 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] text-center py-24 px-6 flex flex-col items-center justify-center">
               <div className="w-20 h-20 rounded-[1.5rem] bg-surface-50 dark:bg-surface-950 border border-surface-100 dark:border-surface-800 flex items-center justify-center mb-6 shadow-sm rotate-3 hover:rotate-0 transition-transform duration-500">
@@ -146,15 +119,12 @@ export default function NotesClient({ initialNotes }: { initialNotes: any[] }) {
                 Escrever Primeira Nota
               </button>
             </div>
-          </motion.div>
+          </div>
         ) : (
-          <motion.div 
-            variants={containerVariants}
-            initial="hidden"
-            animate="show"
+          <div
             className="columns-1 sm:columns-2 lg:columns-3 gap-6 space-y-6"
           >
-            <AnimatePresence>
+            <>
               {notes.map((note) => {
                 let bgClass = 'bg-white dark:bg-surface-900'
                 let borderClass = 'border-surface-200 dark:border-surface-800'
@@ -167,12 +137,10 @@ export default function NotesClient({ initialNotes }: { initialNotes: any[] }) {
                 if (note.color === 'rose') { bgClass = 'bg-rose-50/50 dark:bg-rose-500/5'; borderClass = 'border-rose-200/50 dark:border-rose-500/20'; highlightClass = 'text-rose-900 dark:text-rose-100'; }
 
                 return (
-                  <motion.div 
+                  <div
                     key={note.id} 
-                    layoutId={`note-${note.id}`}
-                    variants={itemVariants}
                     onClick={() => handleEdit(note)}
-                    className={`break-inside-avoid relative group cursor-pointer transition-all duration-500 rounded-[1.5rem] border ${borderClass} ${bgClass} p-6 shadow-sm hover:shadow-[0_16px_32px_-12px_rgba(0,0,0,0.1)] dark:hover:shadow-none hover:-translate-y-1 overflow-hidden flex flex-col`}
+                    className={`animate-in fade-in slide-in-from-bottom-4 break-inside-avoid relative group cursor-pointer transition-all duration-500 rounded-[1.5rem] border ${borderClass} ${bgClass} p-6 shadow-sm hover:shadow-[0_16px_32px_-12px_rgba(0,0,0,0.1)] dark:hover:shadow-none hover:-translate-y-1 overflow-hidden flex flex-col`}
                   >
                     <div className="absolute inset-0 bg-gradient-to-b from-white/50 to-transparent dark:from-white/5 pointer-events-none" />
 
@@ -228,11 +196,11 @@ export default function NotesClient({ initialNotes }: { initialNotes: any[] }) {
                         <Lucide.ArrowRight strokeWidth={1.5} className="w-3.5 h-3.5 -translate-x-2 group-hover:translate-x-0 transition-transform duration-300" />
                       </div>
                     </div>
-                  </motion.div>
+                  </div>
                 )
               })}
-            </AnimatePresence>
-          </motion.div>
+            </>
+          </div>
         )}
       </main>
 

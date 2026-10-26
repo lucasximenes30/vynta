@@ -1,12 +1,11 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Manrope, Sora } from 'next/font/google'
 import { ThemeProvider } from '@/lib/theme'
 import Script from 'next/script'
 import SidebarLayout from '@/components/SidebarLayout'
 import InstallPWA from '@/components/mobile/InstallPWA'
 import { Analytics } from "@vercel/analytics/next"
-import FacebookPixel from '@/components/FacebookPixel'
-import UtmifyPixel from '@/components/UtmifyPixel'
+import MarketingScripts from '@/components/MarketingScripts'
 import './globals.css'
 
 const manrope = Manrope({
@@ -30,13 +29,18 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'black-translucent',
+    // Opaque bar: content starts below it, so sticky headers never slide under the clock.
+    statusBarStyle: 'black',
     title: 'Vynta',
   },
 }
 
-export const viewport = {
+export const viewport: Viewport = {
   themeColor: '#050505',
+  width: 'device-width',
+  initialScale: 1,
+  // Enables env(safe-area-inset-*) so the bottom nav clears the iPhone home indicator.
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({
@@ -65,20 +69,13 @@ export default function RootLayout({
         `}} />
       </head>
       <body className={`${manrope.variable} ${sora.variable} min-h-screen font-sans`}>
-        <Script
-          src="https://cdn.utmify.com.br/scripts/utms/latest.js"
-          data-utmify-prevent-xcod-sck
-          data-utmify-prevent-subids
-          strategy="lazyOnload"
-        />
         <ThemeProvider>
           <SidebarLayout>
             {children}
           </SidebarLayout>
           <InstallPWA />
           <Analytics />
-          <FacebookPixel />
-          <UtmifyPixel />
+          <MarketingScripts />
         </ThemeProvider>
         <Script
           id="microsoft-clarity"

@@ -7,6 +7,7 @@ import { Check, Eye, EyeOff, Loader2 } from 'lucide-react'
 import BrandLogo from '@/components/BrandLogo'
 import { trackFunnelEvent } from '@/lib/funnel'
 import { TRIAL_DAYS, isBillingTier } from '@/lib/plans'
+import { detachPushFromAccount } from '@/lib/push'
 
 export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const router = useRouter()
@@ -21,6 +22,10 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const planParam = searchParams.get('plan')
   const intendedPlan = isBillingTier(planParam) ? planParam : null
   const isRegister = mode === 'register'
+
+  useEffect(() => {
+    detachPushFromAccount().catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (searchParams.get('error') === 'inactive') router.replace('/unlock?state=expired')

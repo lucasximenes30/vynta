@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import * as Lucide from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
 
 export default function TransactionModal({ 
   isOpen, 
@@ -94,23 +93,15 @@ export default function TransactionModal({
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
 
   return (
-    <AnimatePresence>
+    <>
       {isOpen && goal && (
         <div className="fixed inset-0 z-[65] flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+          <div
+            className="animate-in fade-in absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={onClose}
           />
-          <motion.div 
-            initial={{ y: '100%', opacity: 0, scale: 0.95 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: '100%', opacity: 0, scale: 0.95 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="w-full max-w-md bg-surface-50 dark:bg-surface-950 sm:rounded-[2.5rem] rounded-t-[2.5rem] p-1.5 shadow-2xl relative border border-white/10"
+          <div
+            className="animate-in fade-in slide-in-from-bottom w-full max-w-md bg-surface-50 dark:bg-surface-950 sm:rounded-[2.5rem] rounded-t-[2.5rem] p-1.5 shadow-2xl relative border border-white/10"
           >
             <div className="bg-white dark:bg-surface-900 rounded-t-[calc(2.5rem-0.375rem)] sm:rounded-[calc(2.5rem-0.375rem)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] flex flex-col overflow-hidden relative max-h-[85vh]">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-500 z-10 opacity-70" />
@@ -159,18 +150,15 @@ export default function TransactionModal({
               <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 scrollbar-thin">
                 {activeTab === 'form' ? (
                   <form id="tx-form" onSubmit={handleSubmit} className="space-y-6">
-                    <AnimatePresence>
+                    <>
                       {errorMsg && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="p-4 rounded-2xl bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-sm font-semibold border border-red-100 dark:border-red-500/20"
+                        <div
+                          className="animate-in fade-in slide-in-from-top-2 p-4 rounded-2xl bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-sm font-semibold border border-red-100 dark:border-red-500/20"
                         >
                           {errorMsg}
-                        </motion.div>
+                        </div>
                       )}
-                    </AnimatePresence>
+                    </>
 
                     {balance !== null && (
                       <div className="flex justify-between items-center p-3.5 rounded-2xl bg-surface-50 dark:bg-surface-800/50 border border-surface-200 dark:border-surface-700">
@@ -322,9 +310,9 @@ export default function TransactionModal({
                 </div>
               )}
             </div>
-          </motion.div>
+          </div>
         </div>
       )}
-    </AnimatePresence>
+    </>
   )
 }

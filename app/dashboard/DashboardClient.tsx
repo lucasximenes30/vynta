@@ -6,6 +6,9 @@ import * as Lucide from 'lucide-react'
 import OnboardingClient from '@/components/OnboardingClient'
 import FunnelTracker from '@/components/FunnelTracker'
 import { openQuickAdd } from '@/lib/quickAdd'
+import dynamic from 'next/dynamic'
+
+const PushPrompt = dynamic(() => import('@/components/push/PushPrompt'), { ssr: false })
 
 interface Session {
   userId: string
@@ -216,6 +219,8 @@ export default function DashboardClient({
               </button>
             </div>
           )}
+
+          {!isNewUser && <PushPrompt />}
 
           {/* Grid Layout of Pillars */}
           <div className="grid gap-6 md:grid-cols-12">

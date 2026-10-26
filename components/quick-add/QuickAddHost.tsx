@@ -154,7 +154,7 @@ export default function QuickAddHost() {
       {pendingCount > 0 && !openType && (
         <button
           onClick={flushQueue}
-          className="fixed bottom-24 left-1/2 z-[60] flex -translate-x-1/2 items-center gap-2 rounded-full bg-amber-500 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-amber-500/30 active:scale-95 md:bottom-6 md:left-auto md:right-6 md:translate-x-0"
+          className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] left-1/2 z-[60] flex -translate-x-1/2 items-center gap-2 rounded-full bg-amber-500 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-amber-500/30 active:scale-95 md:bottom-6 md:left-auto md:right-6 md:translate-x-0"
         >
           {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <WifiOff className="h-3.5 w-3.5" />}
           {pendingCount} {pendingCount === 1 ? 'lançamento pendente' : 'lançamentos pendentes'} · sincronizar
@@ -162,7 +162,7 @@ export default function QuickAddHost() {
       )}
 
       {toast && (
-        <div className="fixed bottom-24 left-1/2 z-[65] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 animate-in slide-in-from-bottom-4 duration-200 md:bottom-6 md:left-6 md:translate-x-0">
+        <div className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] left-1/2 z-[65] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 animate-in slide-in-from-bottom-4 duration-200 md:bottom-6 md:left-6 md:translate-x-0">
           <div className="flex items-center gap-3 rounded-2xl border border-emerald-500/30 bg-white px-4 py-3 shadow-xl dark:bg-surface-900">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20">
               <Check className="h-4 w-4" />

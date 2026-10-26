@@ -3,14 +3,14 @@ import Link from 'next/link'
 import Image from 'next/image'
 import {
   ArrowRight, Bell, CalendarDays, Check, CreditCard, Dumbbell, FileDown, Flame, Lock,
-  PieChart, RefreshCcw, ShieldCheck, Smartphone, Sparkles, StickyNote, Target, Wallet, X, Zap,
+  PieChart, RefreshCcw, ShieldCheck, Sparkles, StickyNote, Target, Wallet, X, Zap,
 } from 'lucide-react'
 import BrandLogo from '@/components/BrandLogo'
 import FunnelTracker from '@/components/FunnelTracker'
 import TrackedCTA from '@/components/landing/TrackedCTA'
 import ViewTracker from '@/components/landing/ViewTracker'
 import StickyMobileCTA from '@/components/landing/StickyMobileCTA'
-import { AgendaMock, FinanceMock, GoalsMock, HabitsMock, QuickAddMock, WorkoutMock } from '@/components/landing/ProductMocks'
+import { AgendaMock, FinanceMock, GoalsMock, HabitsMock, NotificationsMock, QuickAddMock, WorkoutMock } from '@/components/landing/ProductMocks'
 import {
   PLANS, PLAN_FEATURES, TRIAL_DAYS, YEARLY_DISCOUNT_PERCENT, YEARLY_MONTHLY_EQUIVALENT_CENTS,
   YEARLY_SAVINGS_CENTS, formatBRL,
@@ -18,7 +18,7 @@ import {
 
 export const metadata: Metadata = {
   title: { absolute: 'Vynta — Controle financeiro, hábitos e rotina em um só app' },
-  description: `Saiba pra onde vai cada real, controle cartões e parcelas, mantenha seus hábitos e organize sua semana em um só lugar. Teste ${TRIAL_DAYS} dias grátis, sem cartão.`,
+  description: `Saiba pra onde vai cada real, controle cartões e parcelas e receba um aviso no celular antes de cada conta vencer. Hábitos, agenda e treinos no mesmo app. Teste ${TRIAL_DAYS} dias grátis, sem cartão.`,
   openGraph: {
     title: 'Vynta — Seu dinheiro e sua rotina em um só app',
     description: `Finanças, cartões, metas, hábitos, agenda e treinos num painel só. ${TRIAL_DAYS} dias grátis, sem cartão.`,
@@ -52,18 +52,18 @@ const STEPS = [
   },
   {
     title: 'Anote um gasto em segundos',
-    text: 'Toque no +, digite o valor e o que foi — a categoria é sugerida sozinha. Menos tempo que a fila do caixa.',
+    text: 'Toque no +, digite o valor e o que foi — a categoria entra sozinha. Leva menos tempo que a fila do caixa.',
   },
   {
-    title: 'Enxergue o mês inteiro',
-    text: 'Saldo, fatura, contas a vencer, metas e hábitos do dia em um painel só.',
+    title: 'Deixe o Vynta te lembrar',
+    text: 'Ative as notificações e receba um aviso antes de cada conta vencer, dos compromissos e dos hábitos do dia.',
   },
 ]
 
 const FINANCE_POINTS = [
   { icon: CreditCard, text: 'Cartões com dia de fechamento e vencimento: veja a fatura certa de cada mês' },
   { icon: RefreshCcw, text: 'Parcelas e assinaturas lançadas automaticamente nos meses seguintes' },
-  { icon: Bell, text: 'Alertas de contas e faturas que estão pra vencer' },
+  { icon: Bell, text: 'Aviso no celular quando uma conta ou fatura vence — mesmo com o app fechado' },
   { icon: Sparkles, text: 'Relatórios mensais com insights de IA sobre seus gastos' },
 ]
 
@@ -111,6 +111,10 @@ const FAQ = [
   {
     q: 'O Vynta se conecta com meu banco?',
     a: 'Não. Os lançamentos são manuais e rápidos, e parcelas e assinaturas se repetem sozinhas. Assim você não compartilha a senha do banco com ninguém, e registrar faz você prestar atenção no que gasta.',
+  },
+  {
+    q: 'O Vynta me avisa das contas?',
+    a: 'Sim. Com as notificações ativadas, você recebe no celular (ou no computador) um aviso de manhã quando uma conta ou fatura vence, um resumo dos compromissos do dia e, à noite, um lembrete dos hábitos e dos gastos que faltam anotar — mesmo com o app fechado. Você escolhe o que quer receber.',
   },
   {
     q: 'Funciona no celular?',
@@ -209,7 +213,7 @@ export default function LandingPage() {
 
       {/* Hero */}
       <section className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 pb-16 pt-12 sm:px-6 md:pt-20 lg:grid-cols-[1.05fr_1fr] lg:gap-10 lg:pb-24">
-        <div className="animate-fade-in space-y-7 text-center lg:text-left">
+        <div className="space-y-6 text-center sm:space-y-7 lg:text-left">
           <p className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-surface-300">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
             Finanças, hábitos, agenda e treinos num só lugar
@@ -218,12 +222,12 @@ export default function LandingPage() {
             Chega de terminar o mês sem saber{' '}
             <span className="bg-gradient-to-r from-brand-300 to-violet-300 bg-clip-text text-transparent">pra onde foi o dinheiro.</span>
           </h1>
-          <p className="mx-auto max-w-xl text-lg leading-relaxed text-surface-400 lg:mx-0">
-            O Vynta mostra seu saldo real, a fatura de cada cartão e as contas que estão pra vencer. E ainda organiza seus hábitos, sua agenda e seus treinos no mesmo app.
+          <p className="mx-auto max-w-xl text-base leading-relaxed text-surface-400 sm:text-lg lg:mx-0">
+            Veja seu saldo real e a fatura de cada cartão, e receba um aviso no celular antes de cada conta vencer. <span className="hidden sm:inline">Hábitos, agenda e treinos no mesmo app.</span>
           </p>
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
             <PrimaryButton location="hero" className="w-full sm:w-auto" />
-            <a href="#como-funciona" className="inline-flex items-center justify-center rounded-xl border border-white/10 px-6 py-3.5 text-[15px] font-medium text-surface-200 transition hover:bg-white/5">
+            <a href="#como-funciona" className="inline-flex items-center justify-center rounded-xl px-6 py-2 text-[15px] font-medium text-surface-300 underline-offset-4 transition hover:text-white hover:underline sm:border sm:border-white/10 sm:py-3.5 sm:no-underline sm:hover:bg-white/5">
               Ver como funciona
             </a>
           </div>
@@ -259,7 +263,7 @@ export default function LandingPage() {
           {[
             { icon: ShieldCheck, text: 'Dados protegidos e criptografados' },
             { icon: Lock, text: 'Não pedimos senha do banco' },
-            { icon: Smartphone, text: 'Celular e computador' },
+            { icon: Bell, text: 'Avisos antes de cada conta vencer' },
             { icon: RefreshCcw, text: 'Cancele quando quiser' },
           ].map(({ icon: Icon, text }) => (
             <li key={text} className="flex items-center gap-2.5">
@@ -338,6 +342,43 @@ export default function LandingPage() {
                 </li>
               ))}
             </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Push reminders */}
+      <section className="border-t border-white/[0.06]">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-20 sm:px-6 md:py-28 lg:grid-cols-2 lg:gap-16">
+          <div className="space-y-6">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-500/15">
+              <Bell className="h-5 w-5 text-brand-300" />
+            </div>
+            <SectionTitle
+              title="O Vynta te avisa. Você só aparece pra resolver."
+              subtitle="Juros de atraso e sequência quebrada acontecem por esquecimento, não por falta de dinheiro ou de vontade. As notificações chegam no seu celular mesmo com o app fechado."
+            />
+            <ul className="space-y-4">
+              {[
+                'De manhã: contas e faturas que vencem hoje, amanhã ou atrasaram',
+                'Antes de cada compromisso da agenda, com o horário',
+                'À noite: os hábitos que faltam e os gastos que você ainda não anotou',
+                'Você escolhe o que recebe — e desliga quando quiser',
+              ].map((text) => (
+                <li key={text} className="flex items-start gap-3">
+                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/[0.05]">
+                    <Check className="h-4 w-4 text-emerald-400" strokeWidth={2.5} />
+                  </span>
+                  <span className="leading-relaxed text-surface-300">{text}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-sm text-surface-500">Funciona no Android, no iPhone (com o app na tela de início) e no computador.</p>
+          </div>
+          <div className="relative">
+            <div aria-hidden className="absolute -inset-6 rounded-[2rem] bg-brand-500/15 blur-3xl" />
+            <div className="relative">
+              <NotificationsMock />
+            </div>
           </div>
         </div>
       </section>
@@ -538,7 +579,7 @@ export default function LandingPage() {
               Comece hoje e feche o próximo mês no azul.
             </h2>
             <p className="mx-auto max-w-lg text-brand-100/90">
-              {TRIAL_DAYS} dias grátis, sem cartão e sem CPF. Se não fizer diferença na sua rotina, você não paga nada.
+              {TRIAL_DAYS} dias grátis, sem cartão e sem CPF. Em 1 minuto você anota o primeiro gasto e ativa os lembretes. Se não fizer diferença, você não paga nada.
             </p>
             <TrackedCTA
               href="/register"

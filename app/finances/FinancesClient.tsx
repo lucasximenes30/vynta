@@ -527,7 +527,7 @@ export default function FinancesClient({
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl space-y-6 px-4 sm:px-6 py-6 sm:py-8">
+      <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 sm:px-6 py-6 sm:py-8">
         {/* Balance Card */}
         <div className="rounded-2xl bg-gradient-to-br from-brand-500 via-brand-600 to-brand-800 p-6 sm:p-10 text-white shadow-lg dark:shadow-brand-700/20 border border-white/20 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
@@ -583,11 +583,13 @@ export default function FinancesClient({
           </div>
         </div>
 
-        {/* Monthly Report Section */}
-        <MonthlyReport
-          formatCurrency={formatCurrency}
-          formatConverted={formatConverted}
-        />
+        {/* Monthly Report Section — below the transaction list on phones, where the list is what people open the screen for */}
+        <div className="order-last md:order-none">
+          <MonthlyReport
+            formatCurrency={formatCurrency}
+            formatConverted={formatConverted}
+          />
+        </div>
 
         {!isBRL && rateLoading && (
           <div className="card bg-amber-50 border-amber-200 dark:bg-amber-900/10 dark:border-amber-800/40 py-3">

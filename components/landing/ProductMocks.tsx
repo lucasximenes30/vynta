@@ -230,3 +230,44 @@ export function WorkoutMock() {
     </Frame>
   )
 }
+
+const PUSHES = [
+  { time: '08:02', title: 'Conta vence hoje', body: 'Hoje: Internet, Fatura Nubank' },
+  { time: '13:30', title: 'Reunião com cliente', body: 'Começa às 14:00 — em 30 min' },
+  { time: '20:15', title: 'Gastou algo hoje?', body: 'Anote em 5 segundos e feche o dia no controle.', actions: ['Anotar gasto', 'Anotar entrada'] },
+  { time: '21:40', title: 'Falta 1 hábito hoje: Ler 20 minutos', body: 'Você já fez 3 de 4. Mantenha a sequência.' },
+]
+
+export function NotificationsMock() {
+  return (
+    <div className="relative mx-auto w-full max-w-[340px] overflow-hidden rounded-[2.2rem] border border-white/15 bg-gradient-to-b from-[#1b1f3b] via-[#121428] to-[#07080c] p-4 pb-6 shadow-2xl shadow-black/60">
+      <div className="pt-4 text-center text-white">
+        <p className="text-xs font-medium text-white/60">segunda-feira, 12 de maio</p>
+        <p className="font-display text-6xl font-semibold leading-none tracking-tight">21:41</p>
+      </div>
+      <ul className="mt-6 space-y-2">
+        {PUSHES.map((p) => (
+          <li key={p.title} className="rounded-2xl bg-white/[0.12] p-3 backdrop-blur-md">
+            <div className="flex items-start gap-2.5">
+              <img src="/icons/icon-192.png" alt="" width={28} height={28} className="mt-0.5 h-7 w-7 shrink-0 rounded-lg bg-[#07080c]" loading="lazy" />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="truncate text-[13px] font-semibold text-white">{p.title}</p>
+                  <span className="shrink-0 text-[10px] text-white/50">{p.time}</span>
+                </div>
+                <p className="text-[12px] leading-snug text-white/75">{p.body}</p>
+                {p.actions && (
+                  <div className="mt-2 flex gap-1.5">
+                    {p.actions.map((a) => (
+                      <span key={a} className="rounded-lg bg-white/10 px-2 py-1 text-[11px] font-semibold text-white/90">{a}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}

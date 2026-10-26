@@ -59,7 +59,7 @@ function toStoredPayload(candidate: Notification, paidAt: string | null): Stored
   }
 }
 
-async function getNotificationCandidates(userId: string): Promise<Notification[]> {
+async function getNotificationCandidates(userId: string, today?: Date): Promise<Notification[]> {
   const [transactions, cards] = await Promise.all([
     prisma.transaction.findMany({
       where: { userId },
@@ -116,6 +116,7 @@ async function getNotificationCandidates(userId: string): Promise<Notification[]
       closingDay: card.closingDay,
       limitAmount: card.limitAmount == null ? null : Number(card.limitAmount),
     })),
+    today,
   )
 }
 
@@ -195,8 +196,8 @@ async function syncNotificationRows(userId: string, candidates: Notification[]) 
   return stateById
 }
 
-export async function listUserNotifications(userId: string): Promise<NotificationWithState[]> {
-  const candidates = await getNotificationCandidates(userId)
+export async function listUserNotifications(userId: string, today?: Date): Promise<NotificationWithState[]> {
+  const candidates = await getNotificationCandidates(userId, today)
 
   if (candidates.length === 0) {
     return []

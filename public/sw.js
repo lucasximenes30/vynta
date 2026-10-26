@@ -1,6 +1,6 @@
-/* Vynta service worker: fast shell + graceful offline. User data is never cached. */
-const VERSION = 'vynta-sw-v2'
-const PRECACHE = ['/', '/offline', '/manifest.json', '/icons/icon-192.png', '/icons/icon-maskable-192.png']
+/* Vynta service worker: fast shell, graceful offline and Web Push. User data is never cached. */
+const VERSION = 'vynta-sw-v3'
+const PRECACHE = ['/', '/offline', '/manifest.json', '/icons/icon-192.png', '/icons/icon-maskable-192.png', '/icons/badge-96.png']
 const STATIC_RE = /\.(?:js|css|woff2?|png|jpe?g|webp|svg|ico|gif|avif)$/
 
 self.addEventListener('install', (event) => {
@@ -82,4 +82,75 @@ self.addEventListener('fetch', (event) => {
       }
     })())
   }
+})
+
+// ---- Web Push: works with the app closed, the SW is woken up by the push service ----
+
+self.addEventListener('push', (event) => {
+  let data = {}
+  try { data = event.data ? event.data.json() : {} } catch { data = { body: event.data && event.data.text() } }
+
+  const title = data.title || 'Vynta'
+  const options = {
+    body: data.body || '',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/badge-96.png',
+    tag: data.tag || undefined,
+    renotify: !!data.tag,
+    lang: 'pt-BR',
+    timestamp: Date.now(),
+    data: { url: data.url || '/dashboard', actions: data.actions || [] },
+    actions: (data.actions || []).slice(0, 2).map((a) => ({ action: a.action, title: a.title })),
+  }
+
+  event.waitUntil(Promise.all([
+    self.registration.showNotification(title, options),
+    self.navigator.setAppBadge ? self.navigator.setAppBadge().catch(() => {}) : null,
+  ]))
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const data = event.notification.data || {}
+  const action = (data.actions || []).find((a) => a.action === event.action)
+  const target = new URL((action && action.url) || data.url || '/dashboard', self.location.origin)
+  if (target.origin !== self.location.origin) return
+
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    const sameOrigin = windows.filter((c) => new URL(c.url).origin === self.location.origin)
+    // Screens inside the app shell listen for this message and navigate client-side (instant).
+    const appClient = sameOrigin.find((c) => !/^\/(?:$|login|register|offline|esqueci-a-senha|admin|unlock|sucesso)/.test(new URL(c.url).pathname))
+    if (appClient) {
+      await appClient.focus()
+      appClient.postMessage({ type: 'vynta:navigate', url: target.pathname + target.search })
+      return
+    }
+    const other = sameOrigin[0]
+    if (other) {
+      try {
+        await other.focus()
+        if (await other.navigate(target.href)) return
+      } catch {}
+    }
+    await self.clients.openWindow(target.href)
+  })())
+})
+
+// Browser rotated the subscription (expired keys etc.): re-subscribe and tell the server.
+self.addEventListener('pushsubscriptionchange', (event) => {
+  event.waitUntil((async () => {
+    const options = event.oldSubscription && event.oldSubscription.options
+    if (!options || !options.applicationServerKey) return
+    const sub = event.newSubscription || await self.registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: options.applicationServerKey,
+    })
+    await fetch('/api/push/subscribe', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub.toJSON() }),
+    })
+  })())
 })

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import * as Lucide from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 
 const SLIDES = [
@@ -86,22 +85,12 @@ export default function OnboardingClient() {
   const Icon = slide.icon
 
   return (
-    <AnimatePresence>
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-black/60 backdrop-blur-md"
-        />
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-md animate-in fade-in" />
         
-        <motion.div 
+        <div
           key={currentSlide}
-          initial={{ opacity: 0, y: 20, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -20, scale: 0.95 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="relative w-full max-w-md bg-surface-50 dark:bg-surface-950 rounded-[2.5rem] p-1.5 shadow-2xl border border-white/10 overflow-hidden"
+          className="animate-in fade-in zoom-in-95 slide-in-from-bottom-4 relative w-full max-w-md bg-surface-50 dark:bg-surface-950 rounded-[2.5rem] p-1.5 shadow-2xl border border-white/10 overflow-hidden"
         >
           <div className="bg-white dark:bg-surface-900 rounded-[calc(2.5rem-0.375rem)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] overflow-hidden relative">
             
@@ -169,8 +158,7 @@ export default function OnboardingClient() {
             </div>
 
           </div>
-        </motion.div>
+        </div>
       </div>
-    </AnimatePresence>
   )
 }

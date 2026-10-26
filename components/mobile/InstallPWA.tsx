@@ -80,7 +80,7 @@ export default function InstallPWA() {
   if (isStandalone || !showPrompt || !pathname.startsWith('/dashboard')) return null
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 p-4 animate-auth-fade">
+    <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-0 right-0 z-50 p-4 animate-auth-fade md:bottom-0">
       <div className="bg-surface-900 border border-surface-800 rounded-2xl p-4 shadow-2xl relative">
         <button onClick={handleClose} className="absolute top-2 right-2 p-2 text-surface-400 hover:text-white transition-colors">
           <X className="w-4 h-4" />
@@ -94,11 +94,11 @@ export default function InstallPWA() {
             <h3 className="font-semibold text-white mb-1">Instale o Vynta</h3>
             {isIOS ? (
               <p className="text-sm text-surface-400">
-                Para instalar, toque em <Share className="inline w-4 h-4 mx-1 text-blue-500" /> e depois em <strong className="text-surface-200 font-medium whitespace-nowrap"><PlusSquare className="inline w-4 h-4 mx-1" /> Adicionar à Tela de Início</strong>.
+                Receba lembretes de contas e hábitos e abra em 1 toque. Toque em <Share className="inline w-4 h-4 mx-1 text-blue-500" /> e depois em <strong className="text-surface-200 font-medium whitespace-nowrap"><PlusSquare className="inline w-4 h-4 mx-1" /> Adicionar à Tela de Início</strong>.
               </p>
             ) : (
               <div className="space-y-3">
-                <p className="text-sm text-surface-400">Instale nosso app para ter uma experiência mais rápida e fluida.</p>
+                <p className="text-sm text-surface-400">Abre em 1 toque, funciona sem internet e te avisa de contas e hábitos.</p>
                 <button 
                   onClick={handleInstallClick}
                   className="bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2 px-4 rounded-lg text-sm transition-colors"
