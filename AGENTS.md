@@ -32,6 +32,12 @@
 - Agendamento: `GET /api/cron/push` com `Authorization: Bearer $CRON_SECRET` (Vercel Cron em `vercel.json`, 2x/dia — compatível com o plano Hobby). É idempotente: cada envio é reservado em `push_logs (userId, key)` antes de sair, então pode rodar em qualquer frequência. Com cron a cada 15 min (Pro ou agendador externo) os avisos "compromisso em X min" também passam a funcionar.
 - Janelas no fuso do usuário (`notification_preferences.timezone`): manhã 07–11h (contas, agenda do dia), noite 19–22h (hábitos, "gastou algo hoje?"), trial no último dia.
 - Login/registro desvinculam o aparelho da conta anterior (`detachPushFromAccount`); o app revincula ao abrir (`syncPushSubscription`).
+
+## Agenda externa (iCal / Google)
+- `services/calendarSync.service.ts` importa o feed iCal secreto (`User.icalFeedUrl`, salvo em Ajustes → "Agenda do Google", API `app/api/calendar/feed`). Roda dentro de `GET /api/cron/push` antes dos pushes, então a cada rodada do cron os eventos ficam frescos.
+- Eventos importados têm `CalendarEvent.source = 'ical'` + `externalId` (`uid` ou `uid@dia-hora` para ocorrências de recorrência) sob `@@unique([userId, source, externalId])` — nunca edite/remova esses campos por fora; o sync faz upsert por `externalId` e apaga o que saiu do feed.
+- Expansão de RRULE via `node-ical` (`expandRecurringEvent`) na janela −30d → +180d; eventos únicos entram em qualquer data. Horários convertidos para o fuso de `notification_preferences.timezone` e gravados na convenção do app: `date` = meia-noite UTC do dia local, `startTime` = 'HH:mm'.
+- Somente leitura: o que o usuário cria no Vynta não volta para o Google.
 - Teste local de entrega: endpoint HTTPS falso + `http_ece` para decifrar (web-push exige https). iOS só recebe push com o app instalado na tela de início (16.4+).
 
 ## Navegação / cache do cliente

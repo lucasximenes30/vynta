@@ -40,6 +40,9 @@ model User {
   canUseAgenda          Boolean                @default(false)
   usedUpgradeOffer      Boolean                @default(false)
   hasSeenDashboard      Boolean                @default(false)
+  icalFeedUrl           String?
+  icalSyncedAt          DateTime?
+  icalSyncError         String?
 
   cards                 Card[]
   customCategories      Category[]
@@ -515,11 +518,15 @@ model CalendarEvent {
   isRecurring Boolean @default(false)
   recurrence  String? // DAILY, WEEKLY, MONTHLY
 
+  source     String? // 'ical' for events imported from an external feed
+  externalId String? // stable id from the source (iCal UID, + occurrence for recurring)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   notes     Note[]
 
+  @@unique([userId, source, externalId])
   @@index([userId])
   @@index([userId, date])
   @@map("calendar_events")

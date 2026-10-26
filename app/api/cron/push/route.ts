@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runScheduledPushes } from '@/services/pushScheduler.service'
+import { syncAllCalendarFeeds } from '@/services/calendarSync.service'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -12,6 +13,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const calendar = await syncAllCalendarFeeds()
   const result = await runScheduledPushes()
-  return NextResponse.json(result)
+  return NextResponse.json({ ...result, calendar })
 }

@@ -203,7 +203,7 @@ export async function runScheduledPushes(now = new Date()) {
       if (diff <= 0 || diff > EVENT_WINDOW_MIN) continue
       planned.push({
         userId: user.id,
-        key: `event:${e.id}:${local.day}`,
+        key: `event:${e.id}:${e.startTime}:${local.day}`,
         payload: {
           title: e.title,
           body: diff <= 5 ? `Começa agora (${e.startTime})` : `Começa às ${e.startTime} — em ${diff} min`,

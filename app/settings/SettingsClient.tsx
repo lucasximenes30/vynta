@@ -11,6 +11,11 @@ const NotificationSettings = dynamic(() => import('@/components/push/Notificatio
   loading: () => <div className="card h-48 animate-pulse" />,
 })
 
+const CalendarFeedSettings = dynamic(() => import('@/components/calendar/CalendarFeedSettings'), {
+  ssr: false,
+  loading: () => <div className="card h-40 animate-pulse" />,
+})
+
 interface Session { userId: string; email: string; name: string }
 
 interface SettingsClientProps {
@@ -266,6 +271,8 @@ export default function SettingsClient({ session }: SettingsClientProps) {
           </div>
 
           <NotificationSettings />
+
+          <CalendarFeedSettings />
 
           {/* Profile Card */}
           <div className="card space-y-6">
