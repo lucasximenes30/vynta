@@ -162,7 +162,8 @@ function idxToYearMonth(idx: number): { year: number; month0: number } {
 /** Bill (closing-cycle) month index for a purchase date, honoring the card closing day. */
 export function billMonthIndexForDate(date: Date, card: CardCycleDays): number {
   let m = monthIndex(date.getFullYear(), date.getMonth())
-  if (date.getDate() > card.closingDay) m += 1
+  // A purchase ON the closing day already lands on the next invoice (Nubank behavior)
+  if (date.getDate() >= card.closingDay) m += 1
   return m
 }
 

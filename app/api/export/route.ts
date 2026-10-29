@@ -62,7 +62,7 @@ export async function GET(req: Request) {
         let startYear = pDate.getFullYear()
 
         if (t.card && t.cardId) {
-          if (pDate.getDate() > t.card.closingDay) { startMonth++; if (startMonth > 11) { startMonth = 0; startYear++; } }
+          if (pDate.getDate() >= t.card.closingDay) { startMonth++; if (startMonth > 11) { startMonth = 0; startYear++; } }
           if (t.card.dueDay < t.card.closingDay) { startMonth++; if (startMonth > 11) { startMonth = 0; startYear++; } }
         } else {
           if (pDate.getDate() > dueDay) { startMonth++; if (startMonth > 11) { startMonth = 0; startYear++; } }
@@ -95,7 +95,7 @@ export async function GET(req: Request) {
         let baseYear = sDate.getFullYear()
 
         if (t.card && t.cardId) {
-          if (sDate.getDate() > t.card.closingDay) { baseMonth++; if (baseMonth > 11) { baseMonth = 0; baseYear++; } }
+          if (sDate.getDate() >= t.card.closingDay) { baseMonth++; if (baseMonth > 11) { baseMonth = 0; baseYear++; } }
           if (t.card.dueDay < t.card.closingDay) { baseMonth++; if (baseMonth > 11) { baseMonth = 0; baseYear++; } }
         } else {
           if (sDate.getDate() > rDay) { baseMonth++; if (baseMonth > 11) { baseMonth = 0; baseYear++; } }
@@ -132,7 +132,7 @@ export async function GET(req: Request) {
         if (t.card && t.cardId) {
           let billMonth = tDate.getMonth()
           let billYear = tDate.getFullYear()
-          if (tDate.getDate() > t.card.closingDay) { billMonth++; if (billMonth > 11) { billMonth = 0; billYear++; } }
+          if (tDate.getDate() >= t.card.closingDay) { billMonth++; if (billMonth > 11) { billMonth = 0; billYear++; } }
           let dueMonth = billMonth
           let dueYear = billYear
           if (t.card.dueDay < t.card.closingDay) { dueMonth++; if (dueMonth > 11) { dueMonth = 0; dueYear++; } }
