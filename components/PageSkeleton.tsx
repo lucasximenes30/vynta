@@ -1,6 +1,8 @@
 // Server component: instant placeholder shown while a screen's data streams in.
 // Mirrors each screen's layout so nothing jumps when the real content arrives.
 
+import BrandLogo from './BrandLogo'
+
 type Variant = 'default' | 'dashboard' | 'finances' | 'list'
 
 function Bar({ className = '' }: { className?: string }) {
@@ -12,7 +14,16 @@ export default function PageSkeleton({ variant = 'default' }: { variant?: Varian
     <div className="min-h-screen bg-surface-50 dark:bg-surface-950" aria-busy="true" aria-label="Carregando">
       <div className="border-b border-surface-200/80 bg-white dark:border-surface-800 dark:bg-surface-900">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <Bar className="h-5 w-36" />
+          <div className="flex items-center gap-2.5">
+            <BrandLogo size="sm" showText={false} priority />
+            <span className="font-display text-sm font-semibold tracking-tight text-surface-900 dark:text-surface-100">
+              Vynta
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-500/10 px-2.5 py-0.5 text-[11px] font-medium text-brand-600 dark:text-brand-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-brand-500 animate-pulse" />
+              Abrindo…
+            </span>
+          </div>
           <Bar className="h-9 w-9 rounded-xl" />
         </div>
       </div>
@@ -20,7 +31,13 @@ export default function PageSkeleton({ variant = 'default' }: { variant?: Varian
       <div className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
         {variant === 'dashboard' && (
           <>
-            <div className="h-40 rounded-3xl bg-gradient-to-br from-brand-600/80 via-brand-700/80 to-purple-800/80 sm:h-52" />
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-600 via-brand-700 to-purple-800 p-5 text-white shadow-xl sm:p-8">
+              <div className="space-y-3">
+                <div className="h-4 w-36 rounded-full bg-white/15 animate-pulse" />
+                <div className="h-8 w-56 rounded-xl bg-white/20 animate-pulse sm:h-10 sm:w-72" />
+                <div className="h-11 w-40 rounded-2xl bg-white/25 animate-pulse" />
+              </div>
+            </div>
             <div className="grid gap-6 md:grid-cols-2">
               <Bar className="h-56 rounded-3xl" />
               <Bar className="h-56 rounded-3xl" />

@@ -1,9 +1,11 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
-import { getSession } from '@/lib/auth'
+import { getSession, type JWTPayload } from '@/lib/auth'
 import { getTransactionsByUser, getUserBalance, getMonthlySummary } from '@/services/transaction.service'
 import { getCardsByUser } from '@/services/card.service'
 import { prisma } from '@/lib/prisma'
+import PageSkeleton from '@/components/PageSkeleton'
 import FinancesClient from './FinancesClient'
 
 export const metadata: Metadata = {
@@ -50,6 +52,14 @@ export default async function FinancesPage() {
   const session = await getSession()
   if (!session) redirect('/login')
 
+  return (
+    <Suspense fallback={<PageSkeleton variant="finances" />}>
+      <FinancesContent session={session} />
+    </Suspense>
+  )
+}
+
+async function FinancesContent({ session }: { session: JWTPayload }) {
   // Subscription check and page data are fetched in parallel
   const [user, transactions, balance, monthly, cards] = await Promise.all([
     prisma.user.findUnique({

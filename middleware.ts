@@ -9,6 +9,16 @@ export async function middleware(request: NextRequest) {
   const sessionToken = request.cookies.get('session')?.value
   const path = request.nextUrl.pathname
 
+  // If the user installed the PWA from the landing page ("/") before logging in, iOS bookmarks "/"
+  // as the home screen URL. Redirect authenticated users straight to /dashboard at the edge so cold
+  // starts never render the marketing landing page first.
+  if (path === '/' && sessionToken) {
+    const session = await verifyToken(sessionToken)
+    if (session) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+  }
+
   const isProtectedRoute = protectedRoutes.some((route) => path.startsWith(route))
   const isAdminRoute = path.startsWith('/admin') && !path.startsWith('/admin/login')
   const isForcePasswordRoute = path === '/force-password-change'
@@ -120,5 +130,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/habits/:path*', '/reports/:path*', '/cards/:path*', '/workout/:path*', '/admin/:path*', '/force-password-change', '/goals/:path*', '/notes/:path*', '/calendar/:path*', '/finances/:path*'],
+  matcher: ['/', '/dashboard/:path*', '/habits/:path*', '/reports/:path*', '/cards/:path*', '/workout/:path*', '/admin/:path*', '/force-password-change', '/goals/:path*', '/notes/:path*', '/calendar/:path*', '/finances/:path*'],
 }

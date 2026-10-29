@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { Check, Loader2, Undo2, WifiOff } from 'lucide-react'
 import {
-  QUICK_ADD_OPEN_EVENT, TRANSACTION_CREATED_EVENT, enqueueTransaction, postTransaction,
-  readQueue, syncQueue, type QuickAddType,
+  QUICK_ADD_OPEN_EVENT, TRANSACTION_CREATED_EVENT, OFFLINE_QUEUE_CHANGED_EVENT, enqueueTransaction, postTransaction,
+   getTotalQueuedCount, syncQueue, type QuickAddType,
 } from '@/lib/quickAdd'
 import type { QuickAddSubmit } from './QuickAddSheet'
 import { rememberSuggestion } from './QuickAddSheet'
@@ -44,16 +44,17 @@ export default function QuickAddHost() {
     setSyncing(true)
     try {
       const synced = await syncQueue()
-      const left = readQueue().length
+      const left = getTotalQueuedCount()
       setPendingCount(left)
-      if (synced > 0) showToast(`${synced} ${synced === 1 ? 'lançamento sincronizado' : 'lançamentos sincronizados'} ✔`)
+      if (synced > 0) showToast(`${synced} ${synced === 1 ? 'alteração sincronizada' : 'alterações sincronizadas'} ✔`)
     } finally {
       setSyncing(false)
     }
   }
 
   useEffect(() => {
-    setPendingCount(readQueue().length)
+    const refreshPending = () => setPendingCount(getTotalQueuedCount())
+    refreshPending()
 
     const onOpen = (e: Event) => open((e as CustomEvent).detail?.type === 'INCOME' ? 'INCOME' : 'EXPENSE')
     const onUrlParam = () => {
@@ -76,12 +77,13 @@ export default function QuickAddHost() {
     const onVisibility = () => { if (document.visibilityState === 'visible') flushQueue() }
 
     window.addEventListener(QUICK_ADD_OPEN_EVENT, onOpen)
+    window.addEventListener(OFFLINE_QUEUE_CHANGED_EVENT, refreshPending)
     window.addEventListener('keydown', onKey)
     window.addEventListener('online', onOnline)
     document.addEventListener('visibilitychange', onVisibility)
     onUrlParam()
 
-    if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+    if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => {})
     }
 
@@ -96,6 +98,7 @@ export default function QuickAddHost() {
     return () => {
       if (warmTimer) clearTimeout(warmTimer)
       window.removeEventListener(QUICK_ADD_OPEN_EVENT, onOpen)
+      window.removeEventListener(OFFLINE_QUEUE_CHANGED_EVENT, refreshPending)
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('online', onOnline)
       document.removeEventListener('visibilitychange', onVisibility)
@@ -115,7 +118,7 @@ export default function QuickAddHost() {
       const offline = !navigator.onLine || !err?.status
       if (offline) {
         enqueueTransaction(tx)
-        setPendingCount(readQueue().length)
+        setPendingCount(getTotalQueuedCount())
         setOpenType(null)
         showToast('Sem internet — salvo no aparelho e enviado quando conectar')
       } else {
@@ -157,7 +160,7 @@ export default function QuickAddHost() {
           className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] left-1/2 z-[60] flex -translate-x-1/2 items-center gap-2 rounded-full bg-amber-500 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-amber-500/30 active:scale-95 md:bottom-6 md:left-auto md:right-6 md:translate-x-0"
         >
           {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <WifiOff className="h-3.5 w-3.5" />}
-          {pendingCount} {pendingCount === 1 ? 'lançamento pendente' : 'lançamentos pendentes'} · sincronizar
+          {pendingCount} {pendingCount === 1 ? 'item offline pendente' : 'itens offline pendentes'} · sincronizar
         </button>
       )}
 

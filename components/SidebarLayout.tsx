@@ -27,6 +27,10 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
   )
 
   useEffect(() => {
+    document.documentElement.setAttribute('data-app-ready', '1')
+  }, [])
+
+  useEffect(() => {
     if (!showSidebar) return
     const prefetchAll = () => PREFETCH_ROUTES.forEach((route) => router.prefetch(route))
     if ('requestIdleCallback' in window) {

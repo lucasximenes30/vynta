@@ -23,7 +23,7 @@
 - Lançamento rápido: `openQuickAdd('EXPENSE'|'INCOME')` de `lib/quickAdd.ts` abre a sheet global (host em `SidebarLayout`). Também abre via `?add=expense|income` (shortcuts do manifest), tecla `n` e drawer "Mais".
 - Após criar/apagar uma transação, dispare `vynta:transaction-created` — as telas com dados financeiros escutam e fazem `router.refresh()`.
 - Datas de transação são sempre `<dia local>T12:00:00Z` (ver `todayDateValue`), nunca horário real em UTC.
-- Fila offline: `readQueue/enqueueTransaction/syncQueue` em `lib/quickAdd.ts`; SW em `public/sw.js` (cache só de estáticos e página inicial — nunca `/api/*` nem HTML autenticado).
+- Fila e cache offline (48h): `readQueue/enqueueTransaction/enqueueMutation/syncQueue` em `lib/quickAdd.ts` + interceptação de mutações offline em `components/RouterCacheSync.tsx`; SW em `public/sw.js` mantém cache de estáticos (`STATIC_CACHE`) e cache de páginas/RSC/GETs autenticados com TTL de 48h (`DATA_CACHE`, limpo em `/api/auth/logout|login|register`).
 - Pagamentos: webhook `subscription.completed/renewed` ativa via `activateRecurringSubscription` (idempotente por charge); `subscription.cancelled` via `cancelRecurringSubscription` (acesso até o fim do período pago). Só o `webhookSecret` na URL autentica o evento — o HMAC usa chave pública e serve só de integridade.
 
 ## Notificações push (PWA)

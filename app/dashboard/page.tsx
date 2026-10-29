@@ -1,9 +1,11 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
-import { getSession } from '@/lib/auth'
+import { getSession, type JWTPayload } from '@/lib/auth'
 import { getMonthlySummary } from '@/services/transaction.service'
 import { getActiveWorkoutPlanByUser } from '@/services/workoutPlan.service'
 import { prisma } from '@/lib/prisma'
+import PageSkeleton from '@/components/PageSkeleton'
 import DashboardClient from './DashboardClient'
 
 export const metadata: Metadata = {
@@ -14,6 +16,16 @@ export default async function DashboardPage() {
   const session = await getSession()
   if (!session) redirect('/login')
 
+  // Return a Suspense boundary immediately after verifying the session cookie (no DB wait)
+  // so Next.js flushes the app shell + skeleton in the very first HTML chunk on PWA cold start.
+  return (
+    <Suspense fallback={<PageSkeleton variant="dashboard" />}>
+      <DashboardContent session={session} />
+    </Suspense>
+  )
+}
+
+async function DashboardContent({ session }: { session: JWTPayload }) {
   const now = new Date()
   const startMonth = new Date(now.getFullYear(), now.getMonth(), 1)
   const endMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
