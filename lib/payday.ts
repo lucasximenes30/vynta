@@ -32,3 +32,14 @@ export function effectivePayDay(
   const daysInMonth = new Date(year, month0 + 1, 0).getDate()
   return Math.min(day, daysInMonth)
 }
+
+/**
+ * Month index (year*12+month0) of the first payday on/after `start`.
+ * If `start`'s day already passed this month's payday, the first occurrence
+ * is next month — e.g. salary configured on the 29th with payday on the 15th
+ * only counts from next month, while payday on the 30th still lands this month.
+ */
+export function firstPayMonthIdx(start: Date, payDayType: string | null | undefined, day: number): number {
+  const idx = start.getFullYear() * 12 + start.getMonth()
+  return start.getDate() > effectivePayDay(start.getFullYear(), start.getMonth(), payDayType, day) ? idx + 1 : idx
+}

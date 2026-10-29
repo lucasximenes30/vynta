@@ -57,9 +57,9 @@ export async function setSalaryConfig(userId: string, payments: SalaryPaymentInp
   })
 
   const now = new Date()
-  // Recurring income counts from `date` onward — start of the current month so
-  // the salary the user just configured already applies to this month.
-  const startDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1, 12, 0, 0))
+  // Recurring income counts from the first payday on/after the config date —
+  // a payday that already passed this month is skipped (see recurringStartRef).
+  const startDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0))
   const titles = payments.length === 2 ? ['Salário (1ª quinzena)', 'Salário (2ª quinzena)'] : ['Salário']
 
   await prisma.$transaction(async (tx) => {

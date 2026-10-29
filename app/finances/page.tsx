@@ -31,6 +31,7 @@ function serializeData(transactions: any[], balance: any, monthly: any) {
     salarySlot: t.salarySlot ?? undefined,
     isActive: t.isActive,
     endDate: t.endDate?.toISOString(),
+    createdAt: t.createdAt?.toISOString(),
     cardId: t.cardId ?? undefined,
   }))
 

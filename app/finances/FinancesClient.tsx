@@ -11,10 +11,11 @@ import * as Lucide from 'lucide-react'
 import NotificationDropdown from '@/components/NotificationDropdown'
 import { getInstallmentInfo, formatShortDate, isInstallmentActiveInMonth, getInstallmentForMonth } from '@/lib/installments'
 import { cardTxContributesToMonth, parcelaNumberForDueMonth } from '@/lib/invoice'
+import { firstPayMonthIdx } from '@/lib/payday'
 import { getLocalToday } from '@/lib/dateUtils'
 
 interface Session { userId: string; email: string; name: string }
-interface Transaction { id: string; title: string; amount: string; installmentAmount?: number; type: 'INCOME' | 'EXPENSE'; category: string; date: string; isInstallment?: boolean; totalInstallments?: number; purchaseDate?: string; dueDay?: number; _activeInstallment?: number; isRecurring?: boolean; recurringDay?: number; payDayType?: 'fixed' | 'business_day'; salarySlot?: number; _recurringStatus?: { isRecurring: boolean; day: number | null; status: 'DUE' | 'PAID' | 'UPCOMING'; daysUntil: number | null }; isActive?: boolean; endDate?: string; cardId?: string; paymentMethod?: string }
+interface Transaction { id: string; title: string; amount: string; installmentAmount?: number; type: 'INCOME' | 'EXPENSE'; category: string; date: string; isInstallment?: boolean; totalInstallments?: number; purchaseDate?: string; dueDay?: number; _activeInstallment?: number; isRecurring?: boolean; recurringDay?: number; payDayType?: 'fixed' | 'business_day'; salarySlot?: number; _recurringStatus?: { isRecurring: boolean; day: number | null; status: 'DUE' | 'PAID' | 'UPCOMING'; daysUntil: number | null }; isActive?: boolean; endDate?: string; createdAt?: string; cardId?: string; paymentMethod?: string }
 interface Balance { income: number; expense: number; balance: number }
 interface Monthly { income: number; expense: number; balance: number; transactionCount: number }
 interface Card { id: string; name: string; lastFourDigits: string; dueDay: number; closingDay: number }
@@ -333,14 +334,18 @@ export default function FinancesClient({
         return isInstallmentActiveInMonth(new Date(txn.purchaseDate), txn.totalInstallments, year, month)
       }
 
-      // Recurring — show if isActive and endDate hasn't passed this month
+      // Recurring — counts from the first payday on/after its start reference.
+      // Salary slots anchor on createdAt (config moment), so a payday that
+      // already passed this month is skipped (e.g. configured day 29, payday 15).
       if (txn.isRecurring) {
-        if (!txn.isActive) return false
+        const startRef = txn.salarySlot != null && txn.createdAt ? new Date(txn.createdAt) : new Date(txn.date)
+        const rDay = txn.recurringDay ?? startRef.getDate()
+        if (targetIdx < firstPayMonthIdx(startRef, txn.payDayType, rDay)) return false
         if (txn.endDate) {
           const end = new Date(txn.endDate)
-          return end.getFullYear() > year || (end.getFullYear() === year && end.getMonth() + 1 >= month)
+          return targetIdx <= end.getFullYear() * 12 + end.getMonth()
         }
-        return true
+        return txn.isActive !== false
       }
 
       return false

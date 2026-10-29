@@ -10,7 +10,7 @@ import {
   parcelaNumberForDueMonth,
   postingParcelaIndex,
 } from '@/lib/invoice'
-import { effectivePayDay } from '@/lib/payday'
+import { effectivePayDay, firstPayMonthIdx } from '@/lib/payday'
 import { cache } from 'react'
 
 export interface CreateTransactionInput {
@@ -186,14 +186,13 @@ function monthBounds(year: number, month: number) {
   }
 }
 
-function isRecurringActiveInRange(t: LoadedTransaction, startOfMonth: Date, endOfMonth: Date) {
-  const tDate = new Date(t.date)
-  if (tDate > endOfMonth) return false
-
-  if (t.endDate) {
-    return new Date(t.endDate) >= startOfMonth
-  }
-  return t.isActive
+/**
+ * When a recurring transaction starts counting. Salary slots use `createdAt`
+ * (the moment the user configured it) so a payday that already passed this
+ * month is skipped; ordinary recurring uses the user-chosen `date`.
+ */
+function recurringStartRef(t: { date: Date; createdAt: Date; salarySlot: number | null }): Date {
+  return new Date(t.salarySlot != null ? t.createdAt : t.date)
 }
 
 export const getTransactionsByUser = cache(async (userId: string) => {
@@ -250,7 +249,7 @@ function computeBalance(transactions: LoadedTransaction[], upToDate?: Date) {
       }
 
     } else if (t.isRecurring) {
-      const startDate = new Date(t.date)
+      const startDate = recurringStartRef(t)
       startDate.setHours(0, 0, 0, 0)
       const rDay = t.recurringDay || startDate.getDate()
 
@@ -347,7 +346,16 @@ function txInMonth(t: LoadedTransaction, year: number, month: number): boolean {
       isInstallmentActiveInMonth(new Date(t.purchaseDate!), t.totalInstallments!, year, month)
   }
   if (t.isRecurring) {
-    return isRecurringActiveInRange(t, startOfMonth, endOfMonth)
+    // Counts from the first payday on/after the start reference —
+    // a recurring configured mid-month skips paydays that already passed
+    const startRef = recurringStartRef(t)
+    const rDay = t.recurringDay || startRef.getDate()
+    if (targetIdx < firstPayMonthIdx(startRef, t.payDayType, rDay)) return false
+    if (t.endDate) {
+      const e = new Date(t.endDate)
+      return targetIdx <= e.getFullYear() * 12 + e.getMonth()
+    }
+    return t.isActive
   }
   return t.date >= startOfMonth && t.date <= endOfMonth
 }
