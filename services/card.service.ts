@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { Decimal } from '@prisma/client/runtime/library'
 import { Prisma } from '@prisma/client'
+import { computeCommittedLimit } from '@/lib/invoice'
 import { cache } from 'react'
 
 export interface CreateCardInput {
@@ -288,14 +289,38 @@ export async function importCardInvoice(
   }
 
   // If the user told us their *available* limit in the bank app, the total limit is
-  // available + everything the app counts as used for this card (sum of full amounts).
+  // available + committed — where committed mirrors the bank: only charges on
+  // unpaid invoices (open + already-closed awaiting due + future parcelas).
   let limitAmount: string | null = null
   if (input.availableLimit != null && Number.isFinite(input.availableLimit)) {
-    const agg = await prisma.transaction.aggregate({
+    const allCardTx = await prisma.transaction.findMany({
       where: { cardId: card.id, type: 'EXPENSE' },
-      _sum: { amount: true },
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        amount: true,
+        installmentAmount: true,
+        date: true,
+        purchaseDate: true,
+        isInstallment: true,
+        totalInstallments: true,
+        isRecurring: true,
+        recurringDay: true,
+        isActive: true,
+        endDate: true,
+        cardId: true,
+      },
     })
-    const used = Number(agg._sum.amount ?? 0)
+    const used = computeCommittedLimit(
+      card,
+      allCardTx.map((t) => ({
+        ...t,
+        amount: Number(t.amount),
+        installmentAmount: t.installmentAmount != null ? Number(t.installmentAmount) : null,
+      })),
+      new Date(),
+    )
     const total = Math.round((input.availableLimit + used) * 100) / 100
     const updated = await prisma.card.update({ where: { id: card.id }, data: { limitAmount: total } })
     limitAmount = updated.limitAmount.toString()

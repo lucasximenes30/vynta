@@ -128,17 +128,13 @@ export default function NubankImportModal({ card, onClose, onDone }: Props) {
 
   const included = useMemo(() => rows.filter((r) => r.include), [rows])
   const invoiceTotal = included.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0)
-  const committed = included.reduce(
-    (s, r) =>
-      s +
-      estimateCommittedFromItems([
-        {
-          amount: parseFloat(r.amount) || 0,
-          isInstallment: r.isInstallment,
-          totalInstallments: r.isInstallment ? parseInt(r.totalInstallments) || 2 : null,
-        },
-      ]),
-    0,
+  const committed = estimateCommittedFromItems(
+    included.map((r) => ({
+      amount: parseFloat(r.amount) || 0,
+      isInstallment: r.isInstallment,
+      currentInstallment: r.isInstallment ? parseInt(r.currentInstallment) || 1 : null,
+      totalInstallments: r.isInstallment ? parseInt(r.totalInstallments) || 2 : null,
+    })),
   )
   const available = parseFloat(availableLimit)
   const estimatedLimit = Number.isFinite(available) ? available + committed : null

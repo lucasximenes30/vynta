@@ -41,7 +41,8 @@
 - Teste local de entrega: endpoint HTTPS falso + `http_ece` para decifrar (web-push exige https). iOS só recebe push com o app instalado na tela de início (16.4+).
 
 ## Cartões e faturas
-- `Card.provider` (`'nubank'` | null) marca cartões importáveis. Import: `POST /api/cards/import` → `importCardInvoice` em `services/card.service.ts` (cria o cartão se `card` em vez de `cardId`, deduplica por chave natural título+data+valor+parcela, atualiza `limitAmount = limiteDisponívelInformado + Σ amount` do cartão).
+- `Card.provider` (`'nubank'` | null) marca cartões importáveis. Import: `POST /api/cards/import` → `importCardInvoice` em `services/card.service.ts` (cria o cartão se `card` em vez de `cardId`, deduplica por chave natural título+data+valor+parcela, atualiza `limitAmount = limiteDisponívelInformado + comprometido`).
+- "Limite usado" NUNCA é `Σ amount` das despesas do cartão — use `computeCommittedLimit` (`lib/invoice.ts`): só conta itens de faturas ainda não vencidas (parcelas já pagas liberam limite; recorrente conta 1×). Usado em `CardsClient`, `importCardInvoice` e no alerta `card_limit` de `lib/notifications.ts`.
 - `lib/invoice.ts` é a fonte única da matemática de fatura: parser do CSV Nubank (`date,title,amount`, `" - Parcela X/Y"` no título, negativos/pagamentos ignorados), ciclo de fechamento (`billMonthIndexForDate`: compra após `closingDay` cai no mês seguinte; `dueDay < closingDay` vence no mês seguinte ao fechamento), itens/totais por fatura e status.
 - Lançamentos parcelados importados guardam `date` = data de postagem na fatura e `purchaseDate` = postagem − (parcela atual − 1) meses; `amount` = valor da parcela × total, `installmentAmount` = valor da parcela. Itens marcados "Fixo" viram `isRecurring` + `recurringDay` = dia da postagem (dedupe por título+valor, independente do mês).
 - Visualizador de faturas é inline: `CardInvoicePanel` dentro do tile em `collapse-grid[data-open]` (não é modal).

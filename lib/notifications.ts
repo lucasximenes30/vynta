@@ -1,4 +1,4 @@
-import { getCardInvoiceTotal } from '@/lib/invoice'
+import { computeCommittedLimit, getCardInvoiceTotal } from '@/lib/invoice'
 
 export type NotificationType = 'upcoming' | 'today' | 'late'
 
@@ -261,18 +261,30 @@ export function generateNotifications(
       })
     }
 
-    // 2. Check Limit Usage
+    // 2. Check Limit Usage — committed = charges on unpaid invoices only
+    // (matches what the bank shows as used limit; paid cycles release it)
     const cardLimit = card.limitAmount ? Number(card.limitAmount) : 0
     if (cardLimit > 0) {
-      // Calculate used limit: all pending expenses on this card
-      const usedLimit = transactions
-        .filter(tx => tx.cardId === card.id && tx.type === 'EXPENSE')
-        .reduce((sum, tx) => {
-           // For installments, we count the full amount for limit purposes? 
-           // Or just the remaining installments? 
-           // Standard banking: the full amount of the purchase blocks the limit.
-           return sum + Number(tx.amount || 0)
-        }, 0)
+      const usedLimit = computeCommittedLimit(
+        { id: card.id, closingDay: card.closingDay, dueDay: card.dueDay },
+        transactions.map((tx) => ({
+          id: tx.id,
+          title: tx.title,
+          type: tx.type,
+          amount: tx.amount ?? 0,
+          installmentAmount: tx.installmentAmount ?? null,
+          date: tx.date ?? now,
+          purchaseDate: tx.purchaseDate,
+          isInstallment: tx.isInstallment,
+          totalInstallments: tx.totalInstallments,
+          isRecurring: tx.isRecurring,
+          recurringDay: tx.recurringDay,
+          isActive: tx.isActive,
+          endDate: tx.endDate,
+          cardId: tx.cardId,
+        })),
+        now,
+      )
 
       const usagePercent = (usedLimit / cardLimit) * 100
       if (usagePercent >= 85) {

@@ -8,7 +8,7 @@ import * as Lucide from 'lucide-react'
 import NotificationDropdown from '@/components/NotificationDropdown'
 import NubankImportModal from './NubankImportModal'
 import CardInvoicePanel from './CardInvoicePanel'
-import { billMonthIndexForDate, getCardInvoiceTotal } from '@/lib/invoice'
+import { billMonthIndexForDate, computeCommittedLimit, getCardInvoiceTotal } from '@/lib/invoice'
 
 const PRESET_COLORS = [
   { id: 'blue', label: 'Azul', hex: '#3b82f6', gradient: 'from-blue-500 via-blue-600 to-blue-800' },
@@ -187,8 +187,10 @@ export default function CardsClient({ session, initialCards, transactions = [] }
       // Filter transactions for this card
       const cardTransactions = (transactions || []).filter(t => t.cardId === cardId && t.type === 'EXPENSE')
 
-      // 1. Used Limit (Sum of all expenses/installments)
-      const usedLimit = cardTransactions.reduce((acc, t) => acc + parseFloat(t.amount), 0)
+      // 1. Used Limit — committed amount on unpaid invoices only (mirrors the bank:
+      // installments release limit as each parcela is billed and due, recurring
+      // charges occupy a single posted slot)
+      const usedLimit = computeCommittedLimit(card, cardTransactions, now)
 
       // 2. Current Invoice — bill cycle the open invoice belongs to (installment-aware)
       const billIdx = billMonthIndexForDate(now, card)

@@ -338,14 +338,74 @@ export function invoiceStatus(
 }
 
 /**
- * Estimated committed limit for imported items, matching how the app computes
- * used limit (full purchase amount of every card expense).
+ * Estimated committed limit for imported items: each installment commits only its
+ * REMAINING installments (amount × (total − current + 1)) — already-billed
+ * installments were paid on previous invoices and released the limit.
  */
 export function estimateCommittedFromItems(
-  items: Array<{ amount: number; isInstallment: boolean; totalInstallments: number | null }>,
+  items: Array<{
+    amount: number
+    isInstallment: boolean
+    currentInstallment?: number | null
+    totalInstallments: number | null
+  }>,
 ): number {
   return items.reduce((sum, i) => {
-    if (i.isInstallment && i.totalInstallments) return sum + i.amount * i.totalInstallments
+    if (i.isInstallment && i.totalInstallments) {
+      const remaining = Math.max(i.totalInstallments - (i.currentInstallment ?? 1) + 1, 1)
+      return sum + i.amount * remaining
+    }
     return sum + i.amount
   }, 0)
+}
+
+/**
+ * Credit limit actually committed, mirroring how Nubank computes "limite usado":
+ * charges sitting on invoices not yet paid. An invoice is assumed paid at its due
+ * date, so a charge occupies the limit only while its bill cycle's due date is
+ * still in the future. For installments only the parcelas that haven't been
+ * billed-and-due count; for recurring charges only the latest posted one does.
+ */
+export function computeCommittedLimit(
+  card: CardCycleDays & { id: string },
+  transactions: InvoiceItemLike[],
+  now = new Date(),
+): number {
+  let committed = 0
+
+  for (const t of transactions) {
+    if (t.cardId !== card.id) continue
+    if (t.type && t.type !== 'EXPENSE') continue
+    const date = toDate(t.date)
+    if (!date) continue
+    const amount = Number(t.amount) || 0
+
+    if (t.isInstallment && t.totalInstallments && t.purchaseDate) {
+      const pd = toDate(t.purchaseDate)
+      if (!pd) continue
+      const first = billMonthIndexForDate(pd, card)
+      const instValue = t.installmentAmount != null ? Number(t.installmentAmount) : amount / t.totalInstallments
+      for (let i = 0; i < t.totalInstallments; i++) {
+        const { year, month0 } = idxToYearMonth(first + i)
+        if (invoiceDueDate(card, year, month0) >= now) committed += instValue
+      }
+    } else if (t.isRecurring) {
+      const end = toDate(t.endDate)
+      if (t.isActive === false && !end) continue
+      const first = billMonthIndexForDate(date, card)
+      // Most recent invoice the charge could have landed on
+      const last = Math.min(
+        billMonthIndexForDate(now, card),
+        end ? billMonthIndexForDate(end, card) : Infinity,
+      )
+      if (last < first) continue
+      const { year, month0 } = idxToYearMonth(last)
+      if (invoiceDueDate(card, year, month0) >= now) committed += amount
+    } else {
+      const { year, month0 } = idxToYearMonth(billMonthIndexForDate(date, card))
+      if (invoiceDueDate(card, year, month0) >= now) committed += amount
+    }
+  }
+
+  return Math.round(committed * 100) / 100
 }
