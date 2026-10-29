@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { enqueueMutation, syncQueue } from '@/lib/quickAdd'
 
-const NON_QUEUEABLE_API_RE = /^\/api\/(auth|billing|payments|webhooks|cron|push|track|export|insights|reports|admin)\b/
+const NON_QUEUEABLE_API_RE = /^\/api\/(auth|billing|payments|webhooks|cron|track|export|insights|reports|admin)\b/
 
 /**
  * Synthesizes an optimistic 200 JSON response when the device is offline so client screens
@@ -94,6 +94,19 @@ function buildOptimisticOfflineResponse(pathname: string, method: string, rawBod
         date: parsed.date || nowIso,
       },
     }
+  } else if (pathname === '/api/push/preferences') {
+    payload = {
+      offlineQueued: true,
+      bills: parsed.bills ?? true,
+      agenda: parsed.agenda ?? true,
+      habits: parsed.habits ?? true,
+      dailyLog: parsed.dailyLog ?? true,
+    }
+  } else if (pathname === '/api/notifications') {
+    payload = {
+      success: true,
+      offlineQueued: true,
+    }
   }
 
   return new Response(JSON.stringify(payload), {
@@ -136,7 +149,8 @@ export default function RouterCacheSync() {
         parsedUrl &&
         parsedUrl.origin === window.location.origin &&
         parsedUrl.pathname.startsWith('/api/') &&
-        !NON_QUEUEABLE_API_RE.test(parsedUrl.pathname)
+        !NON_QUEUEABLE_API_RE.test(parsedUrl.pathname) &&
+        !(parsedUrl.pathname.startsWith('/api/push/') && parsedUrl.pathname !== '/api/push/preferences')
 
       const rawBody = typeof init?.body === 'string' ? init.body : undefined
 
@@ -186,6 +200,9 @@ export default function RouterCacheSync() {
         '/goals',
         '/workout',
         `/api/calendar/events?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`,
+        '/api/notifications',
+        '/api/push/preferences',
+        '/api/habits',
         '/api/notes',
         '/api/goals',
         '/api/transactions/suggestions',

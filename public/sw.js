@@ -1,6 +1,6 @@
-/* Vynta service worker: fast shell, 48h offline cache (pages, RSC & GET APIs) and Web Push. */
-const STATIC_CACHE = 'vynta-static-v5'
-const DATA_CACHE = 'vynta-data-v5'
+/* Vynta service worker: fast shell, 48h offline cache (pages, RSC & GET APIs), Web Push and local offline notifications. */
+const STATIC_CACHE = 'vynta-static-v6'
+const DATA_CACHE = 'vynta-data-v6'
 const CACHE_TTL_MS = 48 * 60 * 60 * 1000 // 48 hours
 const PRECACHE = ['/', '/offline', '/manifest.json', '/icons/icon-192.png', '/icons/icon-maskable-192.png', '/icons/badge-96.png']
 const STATIC_RE = /\.(?:js|css|woff2?|png|jpe?g|webp|svg|ico|gif|avif)$/
@@ -48,6 +48,198 @@ function normalizePageKey(url) {
   return u.pathname + u.search
 }
 
+// ---- Local notification evaluation from cached data (works 100% offline) ----
+
+function listNames(names, max = 2) {
+  const shown = names.slice(0, max).join(', ')
+  return names.length > max ? `${shown} e mais ${names.length - max}` : shown
+}
+
+async function readCachedJsonByPrefix(prefix) {
+  try {
+    const cache = await caches.open(DATA_CACHE)
+    const keys = await cache.keys()
+    for (const req of keys) {
+      const u = new URL(req.url)
+      const pathAndQuery = u.pathname + u.search
+      if (pathAndQuery === prefix || pathAndQuery.startsWith(prefix)) {
+        const res = await matchFresh(DATA_CACHE, pathAndQuery)
+        if (res) return await res.json()
+      }
+    }
+  } catch {}
+  return null
+}
+
+async function wasLocalNotifSent(key) {
+  const hit = await matchFresh(DATA_CACHE, `/__local_notif_sent__/${encodeURIComponent(key)}`)
+  return !!hit
+}
+
+async function markLocalNotifSent(key) {
+  await stampAndStore(DATA_CACHE, `/__local_notif_sent__/${encodeURIComponent(key)}`, new Response('1'))
+}
+
+async function showVyntaNotification(payload) {
+  const title = payload.title || 'Vynta'
+  const options = {
+    body: payload.body || '',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/badge-96.png',
+    tag: payload.tag || undefined,
+    renotify: !!payload.tag,
+    lang: 'pt-BR',
+    timestamp: Date.now(),
+    data: { url: payload.url || '/dashboard', actions: payload.actions || [] },
+    actions: (payload.actions || []).slice(0, 2).map((a) => ({ action: a.action, title: a.title })),
+  }
+  await Promise.all([
+    self.registration.showNotification(title, options),
+    self.navigator && self.navigator.setAppBadge ? self.navigator.setAppBadge().catch(() => {}) : null,
+  ])
+}
+
+async function evaluateLocalOfflineNotifications(extraState) {
+  if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') return
+  try {
+    const now = new Date()
+    const yyyy = now.getFullYear()
+    const mm = String(now.getMonth() + 1).padStart(2, '0')
+    const dd = String(now.getDate()).padStart(2, '0')
+    const todayStr = `${yyyy}-${mm}-${dd}`
+    const hour = now.getHours()
+    const minute = now.getMinutes()
+    const nowMin = hour * 60 + minute
+
+    const prefsData = (await readCachedJsonByPrefix('/api/push/preferences')) || {}
+    const prefs = {
+      bills: prefsData.bills !== false,
+      agenda: prefsData.agenda !== false,
+      habits: prefsData.habits !== false,
+      dailyLog: prefsData.dailyLog !== false,
+    }
+
+    const calData = await readCachedJsonByPrefix('/api/calendar/events')
+    const events = (calData && Array.isArray(calData.events) ? calData.events : []).filter(
+      (e) => e && typeof e.date === 'string' && e.date.slice(0, 10) === todayStr
+    )
+
+    const notifData = await readCachedJsonByPrefix('/api/notifications')
+    const bills = (notifData && Array.isArray(notifData.notifications) ? notifData.notifications : []).filter(
+      (n) => n && !n.paidAt && n.sourceType !== 'card_limit' && (n.type === 'today' || (n.type === 'upcoming' && n.days === 1) || (n.type === 'late' && n.days <= 3))
+    )
+
+    // 1) Agenda: upcoming event within the next 60 minutes (06h-23h)
+    if (prefs.agenda && hour >= 6 && hour <= 23 && events.length > 0) {
+      for (const e of events) {
+        if (e.isAllDay || !e.startTime) continue
+        const [eh, em] = String(e.startTime).split(':').map(Number)
+        if (Number.isNaN(eh) || Number.isNaN(em)) continue
+        const diff = eh * 60 + em - nowMin
+        if (diff <= 0 || diff > 60) continue
+        const key = `event:${e.id}:${e.startTime}:${todayStr}`
+        if (await wasLocalNotifSent(key)) continue
+        await markLocalNotifSent(key)
+        await showVyntaNotification({
+          title: e.title,
+          body: diff <= 5 ? `Começa agora (${e.startTime})` : `Começa às ${e.startTime} — em ${diff} min`,
+          url: '/calendar?source=push',
+          tag: `event-${e.id}`,
+        })
+      }
+    }
+
+    // 2) Morning digest (07h-11h): agenda + bills summary once per day
+    if (hour >= 7 && hour <= 11 && (prefs.agenda || prefs.bills)) {
+      const digestKey = `day-digest:${todayStr}`
+      if (!(await wasLocalNotifSent(digestKey))) {
+        const parts = []
+        let nLate = 0
+        let nTodayBills = 0
+        const nEvents = events.length
+
+        if (prefs.agenda) {
+          parts.push(
+            nEvents
+              ? `${nEvents === 1 ? '1 compromisso' : `${nEvents} compromissos`}: ${events
+                  .map((e) => (e.startTime && !e.isAllDay ? `${e.startTime} ${e.title}` : e.title))
+                  .slice(0, 3)
+                  .join(', ')}${nEvents > 3 ? ` e mais ${nEvents - 3}` : ''}`
+              : 'agenda livre'
+          )
+        }
+
+        if (prefs.bills) {
+          const late = bills.filter((b) => b.type === 'late')
+          const todayB = bills.filter((b) => b.type === 'today')
+          const tomorrow = bills.filter((b) => b.type === 'upcoming')
+          nLate = late.length
+          nTodayBills = todayB.length
+          if (late.length) parts.push(`${late.length === 1 ? '1 conta atrasada' : `${late.length} contas atrasadas`}: ${listNames(late.map((b) => b.title))}`)
+          else if (todayB.length) parts.push(`${todayB.length === 1 ? '1 conta vence hoje' : `${todayB.length} contas vencem hoje`}: ${listNames(todayB.map((b) => b.title))}`)
+          else if (tomorrow.length) parts.push(`${tomorrow.length === 1 ? '1 conta vence amanhã' : `${tomorrow.length} contas vencem amanhã`}: ${listNames(tomorrow.map((b) => b.title))}`)
+          else parts.push('nenhuma conta vencendo')
+        }
+
+        if (parts.length > 0) {
+          await markLocalNotifSent(digestKey)
+          await showVyntaNotification({
+            title: nLate
+              ? nLate === 1 ? '1 conta atrasada' : `${nLate} contas atrasadas`
+              : nEvents
+              ? nEvents === 1 ? '1 compromisso hoje' : `${nEvents} compromissos hoje`
+              : nTodayBills
+              ? nTodayBills === 1 ? 'Conta vence hoje' : `${nTodayBills} contas vencem hoje`
+              : 'Dia livre por aqui',
+            body: parts.join(' · '),
+            url: nLate || nTodayBills ? '/finances?source=push' : nEvents ? '/calendar?source=push' : '/dashboard?source=push',
+            tag: 'day-digest',
+          })
+        }
+      }
+    }
+
+    // 3) Evening reminders (19h-22h): pending habits + daily spending log
+    if (hour >= 19 && hour <= 22) {
+      if (prefs.habits && extraState && Array.isArray(extraState.pendingHabitTitles) && extraState.pendingHabitTitles.length > 0) {
+        const habitsKey = `habits:${todayStr}`
+        if (!(await wasLocalNotifSent(habitsKey))) {
+          const pending = extraState.pendingHabitTitles
+          const total = Number(extraState.totalHabits || pending.length)
+          const done = Math.max(0, total - pending.length)
+          await markLocalNotifSent(habitsKey)
+          await showVyntaNotification({
+            title: pending.length === 1 ? `Falta 1 hábito hoje: ${pending[0]}` : `Faltam ${pending.length} hábitos hoje`,
+            body:
+              done > 0
+                ? `Você já fez ${done} de ${total}. ${pending.length === 1 ? 'Marque antes de dormir e mantenha a sequência.' : `Falta: ${listNames(pending)}.`}`
+                : `${listNames(pending)}. Marque antes de dormir e mantenha a sequência.`,
+            url: '/habits?source=push',
+            tag: 'habits',
+          })
+        }
+      }
+
+      if (prefs.dailyLog && extraState && extraState.loggedToday === false) {
+        const logKey = `daily-log:${todayStr}`
+        if (!(await wasLocalNotifSent(logKey))) {
+          await markLocalNotifSent(logKey)
+          await showVyntaNotification({
+            title: 'Gastou algo hoje?',
+            body: 'Anote em 5 segundos e feche o dia sabendo exatamente pra onde foi o dinheiro.',
+            url: '/dashboard?add=expense&source=push',
+            tag: 'daily-log',
+            actions: [
+              { action: 'expense', title: 'Anotar gasto', url: '/dashboard?add=expense&source=push' },
+              { action: 'income', title: 'Anotar entrada', url: '/dashboard?add=income&source=push' },
+            ],
+          })
+        }
+      }
+    }
+  } catch {}
+}
+
 self.addEventListener('install', (event) => {
   self.skipWaiting()
   event.waitUntil(caches.open(STATIC_CACHE).then((c) => c.addAll(PRECACHE).catch(() => {})))
@@ -67,8 +259,15 @@ self.addEventListener('activate', (event) => {
 })
 
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'vynta:clear-user-cache') {
+  const data = event.data
+  if (!data || typeof data !== 'object') return
+
+  if (data.type === 'vynta:clear-user-cache') {
     event.waitUntil(caches.delete(DATA_CACHE))
+  } else if (data.type === 'vynta:show-local-notification' && data.payload) {
+    event.waitUntil(showVyntaNotification(data.payload))
+  } else if (data.type === 'vynta:evaluate-local-notifications') {
+    event.waitUntil(evaluateLocalOfflineNotifications(data.state))
   }
 })
 
@@ -117,7 +316,7 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // GET API calls (calendar events, notes, goals, monthly summaries, etc.):
+  // GET API calls (calendar events, notifications, push preferences, habits, notes, goals, etc.):
   // network-first when online, falling back to 48h cache when offline.
   if (url.pathname.startsWith('/api/')) {
     if (/^\/api\/(auth|billing|webhooks|payments|cron)\b/.test(url.pathname)) return
@@ -167,8 +366,6 @@ self.addEventListener('fetch', (event) => {
       clean.searchParams.delete('source')
       const cleanUrl = clean.pathname + clean.search
       event.respondWith((async () => {
-        // If offline or we already have a fresh (<48h) cached HTML for this screen, serve it
-        // or the instant boot shell; when online, the boot shell shows in <10ms and navigates.
         if (!self.navigator.onLine) {
           const cached = (await matchFresh(DATA_CACHE, `html:${clean.pathname}`)) || (await matchFresh(DATA_CACHE, 'html:/dashboard'))
           if (cached) return cached
@@ -210,23 +407,13 @@ self.addEventListener('push', (event) => {
   let data = {}
   try { data = event.data ? event.data.json() : {} } catch { data = { body: event.data && event.data.text() } }
 
-  const title = data.title || 'Vynta'
-  const options = {
-    body: data.body || '',
-    icon: '/icons/icon-192.png',
-    badge: '/icons/badge-96.png',
-    tag: data.tag || undefined,
-    renotify: !!data.tag,
-    lang: 'pt-BR',
-    timestamp: Date.now(),
-    data: { url: data.url || '/dashboard', actions: data.actions || [] },
-    actions: (data.actions || []).slice(0, 2).map((a) => ({ action: a.action, title: a.title })),
-  }
+  // Mark matching key so the offline evaluator doesn't repeat a notification already delivered via Web Push
+  const todayStr = new Date().toISOString().slice(0, 10)
+  if (data.tag === 'day-digest') event.waitUntil(markLocalNotifSent(`day-digest:${todayStr}`))
+  else if (data.tag === 'habits') event.waitUntil(markLocalNotifSent(`habits:${todayStr}`))
+  else if (data.tag === 'daily-log') event.waitUntil(markLocalNotifSent(`daily-log:${todayStr}`))
 
-  event.waitUntil(Promise.all([
-    self.registration.showNotification(title, options),
-    self.navigator.setAppBadge ? self.navigator.setAppBadge().catch(() => {}) : null,
-  ]))
+  event.waitUntil(showVyntaNotification(data))
 })
 
 self.addEventListener('notificationclick', (event) => {

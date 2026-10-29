@@ -40,8 +40,38 @@ export function usePushState() {
 }
 
 export async function sendTestPush(): Promise<string | null> {
-  const res = await fetch('/api/push/test', { method: 'POST' })
-  if (res.ok) return null
-  const data = await res.json().catch(() => ({}))
-  return data.error || 'Não foi possível enviar o teste.'
+  try {
+    if (!navigator.onLine && 'serviceWorker' in navigator && Notification.permission === 'granted') {
+      const reg = await navigator.serviceWorker.ready
+      reg.active?.postMessage({
+        type: 'vynta:show-local-notification',
+        payload: {
+          title: 'Vynta (modo offline)',
+          body: 'As notificações locais estão ativas neste aparelho mesmo sem internet.',
+          url: '/dashboard',
+          tag: 'vynta-test',
+        },
+      })
+      return null
+    }
+    const res = await fetch('/api/push/test', { method: 'POST' })
+    if (res.ok) return null
+    const data = await res.json().catch(() => ({}))
+    return data.error || 'Não foi possível enviar o teste.'
+  } catch {
+    if ('serviceWorker' in navigator && Notification.permission === 'granted') {
+      const reg = await navigator.serviceWorker.ready
+      reg.active?.postMessage({
+        type: 'vynta:show-local-notification',
+        payload: {
+          title: 'Vynta (modo offline)',
+          body: 'As notificações locais estão ativas neste aparelho mesmo sem internet.',
+          url: '/dashboard',
+          tag: 'vynta-test',
+        },
+      })
+      return null
+    }
+    return 'Não foi possível enviar o teste.'
+  }
 }

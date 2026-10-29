@@ -65,7 +65,7 @@ export default function NotificationDropdown({ transactions, cards = [], isBRL }
 
   const fetchNotifications = useCallback(async () => {
     try {
-      const res = await fetch('/api/notifications', { cache: 'no-store' })
+      const res = await fetch('/api/notifications')
       if (!res.ok) throw new Error('Failed to fetch notifications')
 
       const data = await res.json()
@@ -186,7 +186,8 @@ export default function NotificationDropdown({ transactions, cards = [], isBRL }
     setProcessingId(id)
     try {
       await runNotificationAction({ action: 'register-payment', id })
-      setFeedback('Pagamento registrado com sucesso.')
+      setNotifications((prev) => prev.filter((n) => n.id !== id))
+      setFeedback(navigator.onLine ? 'Pagamento registrado com sucesso.' : 'Pagamento salvo no aparelho — sincroniza ao conectar.')
     } catch {
       setFeedback('Nao foi possivel registrar o pagamento.')
       void fetchNotifications()
