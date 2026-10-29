@@ -13,6 +13,8 @@ export interface PushPayload {
   actions?: Array<{ action: string; title: string; url: string }>
   /** Seconds the push service keeps trying to deliver (phone offline). Default 12h. */
   ttl?: number
+  /** Dedup key the SW marks when this push arrives so the offline evaluator doesn't repeat it. */
+  localKey?: string
 }
 
 export interface PushSubscriptionInput {

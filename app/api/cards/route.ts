@@ -10,6 +10,7 @@ const createCardSchema = z.object({
   closingDay: z.number().int().min(1).max(31),
   color: z.enum(['blue', 'purple', 'pink', 'red', 'orange', 'black', 'gray']),
   limitAmount: z.number().min(0, 'Limit must be positive'),
+  provider: z.enum(['nubank']).optional().nullable(),
 })
 
 export async function GET() {

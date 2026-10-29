@@ -19,6 +19,8 @@ interface Props {
     isActive?: boolean
     endDate?: string | null
     cardId?: string | null
+    date?: string | null
+    installmentAmount?: string | number | null
   }>
   cards?: Array<{
     id: string
@@ -55,6 +57,8 @@ export default function NotificationDropdown({ transactions, cards = [], isBRL }
       endDate: t.endDate ? new Date(t.endDate) : null,
       cardId: t.cardId ?? null,
       amount: t.amount,
+      installmentAmount: t.installmentAmount ?? null,
+      date: t.date ? new Date(t.date) : null,
     }))
     return generateNotifications(tx, cards).map((notification) => ({
       ...notification,

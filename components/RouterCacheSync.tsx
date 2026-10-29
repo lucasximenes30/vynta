@@ -102,6 +102,43 @@ function buildOptimisticOfflineResponse(pathname: string, method: string, rawBod
       habits: parsed.habits ?? true,
       dailyLog: parsed.dailyLog ?? true,
     }
+  } else if (pathname === '/api/cards/import') {
+    payload = {
+      success: true,
+      offlineQueued: true,
+      imported: Array.isArray(parsed.items) ? parsed.items.length : 0,
+      skippedDuplicates: 0,
+      limitAmount: null,
+      card: parsed.card
+        ? {
+            id: parsed.cardId || localId,
+            name: parsed.card.name || 'Cartão',
+            lastFourDigits: parsed.card.lastFourDigits || '0000',
+            dueDay: parsed.card.dueDay || 1,
+            closingDay: parsed.card.closingDay || 1,
+            color: parsed.card.color || 'purple',
+            limitAmount: '0',
+            provider: parsed.card.provider || 'nubank',
+            createdAt: nowIso,
+          }
+        : null,
+    }
+  } else if (pathname.startsWith('/api/cards')) {
+    payload = {
+      success: true,
+      offlineQueued: true,
+      card: {
+        id: parsed.cardId || localId,
+        name: parsed.name || 'Cartão',
+        lastFourDigits: parsed.lastFourDigits || '0000',
+        dueDay: parsed.dueDay || 1,
+        closingDay: parsed.closingDay || 1,
+        color: parsed.color || 'blue',
+        limitAmount: String(parsed.limitAmount ?? 0),
+        provider: parsed.provider ?? null,
+        createdAt: nowIso,
+      },
+    }
   } else if (pathname === '/api/notifications') {
     payload = {
       success: true,
@@ -199,6 +236,7 @@ export default function RouterCacheSync() {
         '/notes',
         '/goals',
         '/workout',
+        '/cards',
         `/api/calendar/events?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`,
         '/api/notifications',
         '/api/push/preferences',

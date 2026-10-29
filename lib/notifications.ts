@@ -1,3 +1,5 @@
+import { getCardInvoiceTotal } from '@/lib/invoice'
+
 export type NotificationType = 'upcoming' | 'today' | 'late'
 
 export type NotificationSourceType = 'recurring' | 'installment' | 'card_bill' | 'card_limit'
@@ -117,6 +119,8 @@ export function generateNotifications(
     endDate: Date | null
     cardId?: string | null
     amount?: number | string | null
+    installmentAmount?: number | string | null
+    date?: Date | string | null
   }>,
   cards: Array<{
     id: string
@@ -203,19 +207,50 @@ export function generateNotifications(
 
   // --- Card Bills (Fatura do Cartão) & Limits ---
   for (const card of cards) {
-    // 1. Check Due Date
+    // 1. Check Due Date — alerts go out 7, 3 and 1 days before, on the due day and while overdue
     const { diff, dueDate } = getDueInfoForDay(now, card.dueDay)
-    const type = diff > 0 && diff <= 5 ? 'upcoming' : diff === 0 ? 'today' : diff < 0 ? 'late' : null
-    
+    const type = diff > 0 && (diff === 7 || diff <= 3) ? 'upcoming' : diff === 0 ? 'today' : diff < 0 ? 'late' : null
+
     if (type) {
       const absDays = Math.abs(diff)
       const sourceType: NotificationSourceType = 'card_bill'
       const notificationKey = getNotificationKey(sourceType, card.id, dueDate)
+
+      // Invoice value tied to this due date: its bill cycle is the due month
+      // (or the previous one when dueDay < closingDay)
+      const dueIdx = dueDate.getFullYear() * 12 + dueDate.getMonth()
+      const billIdx = card.dueDay < card.closingDay ? dueIdx - 1 : dueIdx
+      const billYear = Math.floor(billIdx / 12)
+      const billMonth0 = ((billIdx % 12) + 12) % 12
+      const invoiceTotal = getCardInvoiceTotal(
+        { id: card.id, closingDay: card.closingDay, dueDay: card.dueDay },
+        transactions.map((tx) => ({
+          id: tx.id,
+          title: tx.title,
+          type: tx.type,
+          amount: tx.amount ?? 0,
+          installmentAmount: tx.installmentAmount ?? null,
+          date: tx.date ?? dueDate,
+          purchaseDate: tx.purchaseDate,
+          isInstallment: tx.isInstallment,
+          totalInstallments: tx.totalInstallments,
+          isRecurring: tx.isRecurring,
+          isActive: tx.isActive,
+          endDate: tx.endDate,
+          cardId: tx.cardId,
+        })),
+        billYear,
+        billMonth0,
+      )
+      const valueText = invoiceTotal > 0
+        ? `Fatura de R$ ${invoiceTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} — `
+        : ''
+
       notifications.push({
         id: `cardbill-${card.id}-${formatDateKey(dueDate)}`,
         notificationKey,
         title: `Fatura ${card.name} (**** ${card.lastFourDigits})`,
-        description: getDescription(type, absDays),
+        description: `${valueText}${getDescription(type, absDays)}`,
         type,
         days: absDays,
         sourceTxId: card.id,

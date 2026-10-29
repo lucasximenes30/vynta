@@ -165,6 +165,7 @@ model Card {
   closingDay     Int
   color          String        @default("blue")
   limitAmount    Decimal       @default(0) @db.Decimal(12, 2)
+  provider       String? // 'nubank' = supports CSV invoice import
   createdAt      DateTime      @default(now())
   user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions   Transaction[]

@@ -180,11 +180,36 @@ export async function runScheduledPushes(now = new Date()) {
   // Morning: "resumo do dia" — agenda e contas num único push, uma vez ao dia.
   // Enviado até quando não há nada ("dia livre"), para o usuário saber que o Vynta conferiu.
   const billsByUser = new Map<string, { type: string; title: string }[]>()
+  const invoiceBillsByUser = new Map<string, Awaited<ReturnType<typeof listUserNotifications>>>()
   await mapLimit(morning.filter((c) => c.prefs.bills && c.user.canUseFinance), CONCURRENCY, async ({ user, local }) => {
     const [y, mo, d] = local.day.split('-').map(Number)
-    billsByUser.set(user.id, (await listUserNotifications(user.id, new Date(y, mo - 1, d, 12)))
+    const all = await listUserNotifications(user.id, new Date(y, mo - 1, d, 12))
+    billsByUser.set(user.id, all
       .filter((n) => n.sourceType !== 'card_limit' && (n.type === 'today' || (n.type === 'upcoming' && n.days === 1) || (n.type === 'late' && n.days <= 3))))
+    invoiceBillsByUser.set(user.id, all)
   })
+
+  // Invoice reminders 7/3/1 days before due (+ on the due day): dedicated pushes, one per slot.
+  for (const { user, local } of morning) {
+    for (const n of invoiceBillsByUser.get(user.id) ?? []) {
+      if (n.sourceType !== 'card_bill') continue
+      const d = n.type === 'today' ? 0 : n.type === 'upcoming' ? n.days : null
+      if (d === null || (d !== 0 && d !== 1 && d !== 3 && d !== 7)) continue
+      const dueStr = new Date(n.dueDate).toISOString().slice(0, 10)
+      planned.push({
+        userId: user.id,
+        key: `invoice:${n.sourceTxId}:${dueStr}:${d}`,
+        payload: {
+          title: n.title,
+          body: n.description,
+          url: '/cards?source=push',
+          tag: 'invoice',
+          ttl: 10 * 3600,
+          localKey: `invoice:${n.sourceTxId}:${dueStr}:${d}`,
+        },
+      })
+    }
+  }
 
   for (const { user, local, prefs } of morning) {
     const parts: string[] = []

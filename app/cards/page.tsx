@@ -23,6 +23,7 @@ export default async function CardsPage() {
     id: t.id,
     title: t.title,
     amount: t.amount.toString(),
+    installmentAmount: t.installmentAmount ? t.installmentAmount.toString() : null,
     type: t.type,
     category: t.category,
     date: t.date.toISOString(),

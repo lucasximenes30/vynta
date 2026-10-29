@@ -77,6 +77,8 @@ async function getNotificationCandidates(userId: string, today?: Date): Promise<
         endDate: true,
         cardId: true,
         amount: true,
+        installmentAmount: true,
+        date: true,
       },
     }),
     prisma.card.findMany({
@@ -107,6 +109,8 @@ async function getNotificationCandidates(userId: string, today?: Date): Promise<
       endDate: tx.endDate,
       cardId: tx.cardId,
       amount: Number(tx.amount),
+      installmentAmount: tx.installmentAmount == null ? null : Number(tx.installmentAmount),
+      date: tx.date,
     })),
     cards.map((card) => ({
       id: card.id,

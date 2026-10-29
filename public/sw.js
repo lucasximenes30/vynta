@@ -125,8 +125,14 @@ async function evaluateLocalOfflineNotifications(extraState) {
     )
 
     const notifData = await readCachedJsonByPrefix('/api/notifications')
-    const bills = (notifData && Array.isArray(notifData.notifications) ? notifData.notifications : []).filter(
+    const allNotifs = notifData && Array.isArray(notifData.notifications) ? notifData.notifications : []
+    const bills = allNotifs.filter(
       (n) => n && !n.paidAt && n.sourceType !== 'card_limit' && (n.type === 'today' || (n.type === 'upcoming' && n.days === 1) || (n.type === 'late' && n.days <= 3))
+    )
+    // Fatura do cartão: 7, 3 e 1 dias antes do vencimento (+ no dia) — offline, a partir do cache
+    const invoiceBills = allNotifs.filter(
+      (n) => n && !n.paidAt && n.sourceType === 'card_bill' &&
+        (n.type === 'today' || (n.type === 'upcoming' && (n.days === 1 || n.days === 3 || n.days === 7)))
     )
 
     // 1) Agenda: upcoming event within the next 60 minutes (06h-23h)
@@ -196,6 +202,23 @@ async function evaluateLocalOfflineNotifications(extraState) {
             tag: 'day-digest',
           })
         }
+      }
+    }
+
+    // 2.5) Invoice due reminders (07h-21h): one local notification per slot (7/3/1/0 days)
+    if (prefs.bills && hour >= 7 && hour <= 21) {
+      for (const n of invoiceBills) {
+        const d = n.type === 'today' ? 0 : n.days
+        const dueStr = String(n.dueDate || '').slice(0, 10)
+        const key = `invoice:${n.sourceTxId || n.id}:${dueStr}:${d}`
+        if (await wasLocalNotifSent(key)) continue
+        await markLocalNotifSent(key)
+        await showVyntaNotification({
+          title: n.title,
+          body: n.description || '',
+          url: '/cards?source=push',
+          tag: 'invoice',
+        })
       }
     }
 
@@ -409,7 +432,8 @@ self.addEventListener('push', (event) => {
 
   // Mark matching key so the offline evaluator doesn't repeat a notification already delivered via Web Push
   const todayStr = new Date().toISOString().slice(0, 10)
-  if (data.tag === 'day-digest') event.waitUntil(markLocalNotifSent(`day-digest:${todayStr}`))
+  if (data.localKey) event.waitUntil(markLocalNotifSent(data.localKey))
+  else if (data.tag === 'day-digest') event.waitUntil(markLocalNotifSent(`day-digest:${todayStr}`))
   else if (data.tag === 'habits') event.waitUntil(markLocalNotifSent(`habits:${todayStr}`))
   else if (data.tag === 'daily-log') event.waitUntil(markLocalNotifSent(`daily-log:${todayStr}`))
 

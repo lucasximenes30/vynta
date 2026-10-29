@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation'
 import * as Lucide from 'lucide-react'
 
 import NotificationDropdown from '@/components/NotificationDropdown'
+import NubankImportModal from './NubankImportModal'
+import CardInvoicesSheet from './CardInvoicesSheet'
+import { billMonthIndexForDate, getCardInvoiceTotal } from '@/lib/invoice'
 
 const PRESET_COLORS = [
   { id: 'blue', label: 'Azul', hex: '#3b82f6', gradient: 'from-blue-500 via-blue-600 to-blue-800' },
@@ -28,6 +31,7 @@ interface Card {
   closingDay: number
   color: string
   limitAmount: string
+  provider?: string | null
 }
 
 interface Props {
@@ -42,6 +46,8 @@ export default function CardsClient({ session, initialCards, transactions = [] }
   const isBRL = true;
   const [cards, setCards] = useState<Card[]>(initialCards)
   const [showModal, setShowModal] = useState<{ isOpen: boolean; mode: 'create' | 'edit'; cardId?: string }>({ isOpen: false, mode: 'create' })
+  const [importModal, setImportModal] = useState<{ isOpen: boolean; card?: Card | null }>({ isOpen: false })
+  const [invoiceCard, setInvoiceCard] = useState<Card | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -55,6 +61,7 @@ export default function CardsClient({ session, initialCards, transactions = [] }
   const [closingDay, setClosingDay] = useState('')
   const [limitAmount, setLimitAmount] = useState('')
   const [color, setColor] = useState('blue')
+  const [provider, setProvider] = useState<'' | 'nubank'>('')
 
   const resetForm = () => {
     setName('')
@@ -63,6 +70,7 @@ export default function CardsClient({ session, initialCards, transactions = [] }
     setClosingDay('')
     setLimitAmount('')
     setColor('blue')
+    setProvider('')
   }
 
   const openCreateModal = () => {
@@ -77,6 +85,7 @@ export default function CardsClient({ session, initialCards, transactions = [] }
     setClosingDay(card.closingDay.toString())
     setLimitAmount(card.limitAmount)
     setColor(card.color)
+    setProvider(card.provider === 'nubank' ? 'nubank' : '')
     setShowModal({ isOpen: true, mode: 'edit', cardId: card.id })
   }
 
@@ -102,8 +111,9 @@ export default function CardsClient({ session, initialCards, transactions = [] }
           lastFourDigits,
           dueDay: parseInt(dueDay),
           closingDay: parseInt(closingDay),
-          limitAmount: parseFloat(limitAmount),
+          limitAmount: limitAmount === '' ? 0 : parseFloat(limitAmount),
           color,
+          provider: provider || null,
         }),
       })
 
@@ -114,16 +124,21 @@ export default function CardsClient({ session, initialCards, transactions = [] }
       }
 
       const { card } = await res.json()
-      
+
       if (showModal.mode === 'create') {
         setCards([...cards, card])
       } else {
         setCards(cards.map(c => c.id === card.id ? card : c))
       }
-      
+
       resetForm()
       setShowModal({ isOpen: false, mode: 'create' })
       router.refresh()
+
+      // A Nubank card was just created → go straight to the invoice import wizard
+      if (showModal.mode === 'create' && card.provider === 'nubank') {
+        setImportModal({ isOpen: true, card })
+      }
     } catch {
       setError('Erro de conexão')
     } finally {
@@ -153,8 +168,6 @@ export default function CardsClient({ session, initialCards, transactions = [] }
   // Financial calculations
   const cardCalculations = useMemo(() => {
     const now = new Date()
-    const currentYear = now.getFullYear()
-    const currentMonth = now.getMonth() // 0-11
 
     return cards.map(card => {
       const cardId = card.id
@@ -166,26 +179,11 @@ export default function CardsClient({ session, initialCards, transactions = [] }
       // 1. Used Limit (Sum of all expenses/installments)
       const usedLimit = cardTransactions.reduce((acc, t) => acc + parseFloat(t.amount), 0)
 
-      // 2. Current Invoice
-      let closingDate = new Date(currentYear, currentMonth, card.closingDay)
-      let prevClosingDate = new Date(currentYear, currentMonth - 1, card.closingDay)
-      
-      if (now.getDate() > card.closingDay) {
-        prevClosingDate = new Date(currentYear, currentMonth, card.closingDay)
-        closingDate = new Date(currentYear, currentMonth + 1, card.closingDay)
-      }
-
-      const currentInvoiceTransactions = cardTransactions.filter(t => {
-        const d = new Date(t.date || t.purchaseDate)
-        return d > prevClosingDate && d <= closingDate
-      })
-
-      const currentInvoiceAmount = currentInvoiceTransactions.reduce((acc, t) => {
-        if (t.isInstallment && t.installmentAmount) {
-          return acc + parseFloat(t.installmentAmount)
-        }
-        return acc + parseFloat(t.amount)
-      }, 0)
+      // 2. Current Invoice — bill cycle the open invoice belongs to (installment-aware)
+      const billIdx = billMonthIndexForDate(now, card)
+      const billYear = Math.floor(billIdx / 12)
+      const billMonth0 = ((billIdx % 12) + 12) % 12
+      const currentInvoiceAmount = getCardInvoiceTotal(card, cardTransactions, billYear, billMonth0)
 
       return {
         ...card,
@@ -289,6 +287,39 @@ export default function CardsClient({ session, initialCards, transactions = [] }
             
               <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden min-h-0">
                 <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+              {showModal.mode === 'create' && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-surface-700 dark:text-surface-300">Tipo do cartão</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setProvider('')}
+                      className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition-all ${provider === '' ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-300' : 'border-surface-200 text-surface-500 hover:bg-surface-50 dark:border-surface-700 dark:hover:bg-surface-800'}`}
+                    >
+                      <Lucide.CreditCard className="h-4 w-4" />
+                      Outro cartão
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProvider('nubank')
+                        setColor('purple')
+                        if (!name) setName('Nubank')
+                      }}
+                      className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition-all ${provider === 'nubank' ? 'border-purple-500 bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300' : 'border-surface-200 text-surface-500 hover:bg-surface-50 dark:border-surface-700 dark:hover:bg-surface-800'}`}
+                    >
+                      <Lucide.FileUp className="h-4 w-4" />
+                      Nubank
+                    </button>
+                  </div>
+                  {provider === 'nubank' && (
+                    <p className="text-xs text-surface-500 dark:text-surface-400 flex items-center gap-1.5">
+                      <Lucide.Sparkles className="h-3.5 w-3.5 text-purple-500" />
+                      Permite importar a fatura em CSV — depois de criar, o passo a passo abre automaticamente.
+                    </p>
+                  )}
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-surface-700 dark:text-surface-300">Apelido do Cartão</label>
@@ -342,12 +373,14 @@ export default function CardsClient({ session, initialCards, transactions = [] }
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-surface-700 dark:text-surface-300">Limite do Cartão</label>
+                  <label className="text-sm font-medium text-surface-700 dark:text-surface-300">
+                    {provider === 'nubank' ? 'Limite total (opcional)' : 'Limite do Cartão'}
+                  </label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-400 text-sm">{'R$'}</span>
                     <input
                       type="number"
-                      required
+                      required={provider !== 'nubank'}
                       min={0}
                       step="0.01"
                       value={limitAmount}
@@ -356,6 +389,9 @@ export default function CardsClient({ session, initialCards, transactions = [] }
                       className="input-field pl-9"
                     />
                   </div>
+                  {provider === 'nubank' && (
+                    <p className="text-[11px] text-surface-400">Calculado automaticamente na importação da fatura.</p>
+                  )}
                 </div>
               </div>
 
@@ -390,7 +426,7 @@ export default function CardsClient({ session, initialCards, transactions = [] }
                     </button>
                     <button
                       type="submit"
-                      disabled={submitting || !name || lastFourDigits.length !== 4 || !dueDay || !closingDay || !limitAmount}
+                      disabled={submitting || !name || lastFourDigits.length !== 4 || !dueDay || !closingDay || (provider !== 'nubank' && !limitAmount)}
                       className="btn-primary py-2.5 px-6 rounded-xl shadow-sm hover:shadow-md transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto text-center justify-center flex"
                     >
                       {submitting ? (
@@ -447,6 +483,39 @@ export default function CardsClient({ session, initialCards, transactions = [] }
               </div>
             </div>
           </div>
+        )}
+
+        {/* Nubank invoice import wizard */}
+        {importModal.isOpen && (
+          <NubankImportModal
+            card={importModal.card ?? undefined}
+            onClose={() => setImportModal({ isOpen: false })}
+            onDone={(result) => {
+              setCards((prev) => {
+                const exists = prev.some((c) => c.id === result.card.id)
+                return exists ? prev.map((c) => (c.id === result.card.id ? { ...c, ...result.card } : c)) : [...prev, result.card]
+              })
+              setImportModal({ isOpen: false })
+              router.refresh()
+            }}
+          />
+        )}
+
+        {/* Invoice viewer (Nubank-style, month by month) */}
+        {invoiceCard && (
+          <CardInvoicesSheet
+            card={invoiceCard}
+            transactions={transactions}
+            onClose={() => setInvoiceCard(null)}
+            onImport={
+              invoiceCard.provider === 'nubank'
+                ? () => {
+                    setInvoiceCard(null)
+                    setImportModal({ isOpen: true, card: invoiceCard })
+                  }
+                : undefined
+            }
+          />
         )}
 
         {/* Analytics Section */}
@@ -552,9 +621,12 @@ export default function CardsClient({ session, initialCards, transactions = [] }
                       
                       <div className="relative z-10 flex flex-col h-full">
                         <div className="flex justify-between items-start mb-4">
-                          <div className="flex items-center gap-2 font-medium text-white/95">
-                             <Lucide.CreditCard className="h-5 w-5 opacity-90" />
+                          <div className="flex items-center gap-2 font-medium text-white/95 min-w-0">
+                             <Lucide.CreditCard className="h-5 w-5 opacity-90 shrink-0" />
                              <span className="truncate max-w-[120px]">{card.name}</span>
+                             {card.provider === 'nubank' && (
+                               <span className="text-[9px] font-bold uppercase tracking-widest bg-white/20 rounded-full px-1.5 py-0.5 shrink-0">nu</span>
+                             )}
                           </div>
                           
                           <div className="flex items-center gap-1">
@@ -621,6 +693,27 @@ export default function CardsClient({ session, initialCards, transactions = [] }
                           <span className="text-surface-400 dark:text-surface-500">{'Disponível'}: <strong className="font-semibold text-surface-600 dark:text-surface-300">{'R$'}{card.availableLimit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></span>
                           <span className="text-surface-400 dark:text-surface-500">{'Total'}: <strong className="font-semibold text-surface-600 dark:text-surface-300">{'R$'}{card.totalLimit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></span>
                         </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => setInvoiceCard(card)}
+                          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-surface-200 dark:border-surface-700 px-3 py-2 text-xs font-medium text-surface-600 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800 transition-colors"
+                        >
+                          <Lucide.ReceiptText className="h-3.5 w-3.5" />
+                          Faturas
+                        </button>
+                        {card.provider === 'nubank' && (
+                          <button
+                            type="button"
+                            onClick={() => setImportModal({ isOpen: true, card })}
+                            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-purple-600 px-3 py-2 text-xs font-medium text-white hover:bg-purple-700 transition-colors shadow-sm"
+                          >
+                            <Lucide.FileUp className="h-3.5 w-3.5" />
+                            Importar CSV
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
