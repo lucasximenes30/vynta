@@ -43,8 +43,8 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
   }
 }
 
-export async function setSession(payload: JWTPayload) {
-  const token = await signToken(payload)
+export async function setSession(payload: JWTPayload, preSignedToken?: string) {
+  const token = preSignedToken ?? (await signToken(payload))
   const cookieStore = await cookies()
 
   const isSecure = process.env.NODE_ENV === 'production' && process.env.ALLOW_INSECURE_COOKIES !== 'true';

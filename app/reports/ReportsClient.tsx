@@ -440,10 +440,13 @@ export default function ReportsClient({
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/50 to-transparent dark:from-emerald-900/10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="relative">
               <p className="text-xs font-medium text-surface-500 dark:text-surface-400 uppercase tracking-wider mb-2">
-                {'Receita'}
+                {'Receita do Mês'}
               </p>
               <p className="text-2xl font-semibold text-emerald-600 dark:text-emerald-400">
                 +{formatCurrency(displaySummary.income)}
+              </p>
+              <p className="text-xs text-surface-400 dark:text-surface-500 mt-1.5">
+                Total acumulado: +{formatCurrency(balance.income)}
               </p>
             </div>
           </div>
@@ -451,10 +454,13 @@ export default function ReportsClient({
             <div className="absolute inset-0 bg-gradient-to-br from-rose-50/50 to-transparent dark:from-rose-900/10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="relative">
               <p className="text-xs font-medium text-surface-500 dark:text-surface-400 uppercase tracking-wider mb-2">
-                {'Despesas'}
+                {'Despesas do Mês'}
               </p>
               <p className="text-2xl font-semibold text-rose-600 dark:text-rose-400">
                 -{formatCurrency(displaySummary.expense)}
+              </p>
+              <p className="text-xs text-surface-400 dark:text-surface-500 mt-1.5">
+                Total acumulado: -{formatCurrency(balance.expense)}
               </p>
             </div>
           </div>
@@ -462,10 +468,13 @@ export default function ReportsClient({
             <div className={`absolute inset-0 bg-gradient-to-br transition-opacity pointer-events-none opacity-0 group-hover:opacity-100 ${displaySummary.balance >= 0 ? 'from-brand-50/50 to-transparent dark:from-brand-900/10' : 'from-rose-50/50 to-transparent dark:from-rose-900/10'}`} />
             <div className="relative">
               <p className="text-xs font-medium text-surface-500 dark:text-surface-400 uppercase tracking-wider mb-2">
-                {'Saldo'}
+                {'Saldo Acumulado'}
               </p>
               <p className={`text-2xl font-semibold ${displaySummary.balance >= 0 ? 'text-brand-600 dark:text-brand-400' : 'text-rose-600 dark:text-rose-400'}`}>
                 {formatCurrency(displaySummary.balance)}
+              </p>
+              <p className="text-xs text-surface-400 dark:text-surface-500 mt-1.5">
+                Saldo do mês: {formatCurrency(displaySummary.income - displaySummary.expense)}
               </p>
             </div>
           </div>

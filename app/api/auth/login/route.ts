@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     // The middleware will block dashboard access based on subscriptionStatus
     // The frontend will redirect inactive users to the unlock screen
     console.log(`[Auth/Login] Setting session for user ${result.user.email}`)
-    await setSession(result.session)
+    await setSession(result.session, result.token)
 
     // If user is inactive and not privileged, return inactive status
     // Frontend will redirect them to unlock screen instead of dashboard

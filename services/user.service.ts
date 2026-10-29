@@ -134,6 +134,14 @@ export async function loginUser(input: LoginInput) {
     throw new Error('Invalid email or password')
   }
 
+  // Upgrade legacy bcrypt cost=12 hashes to SALT_ROUNDS (10) in the background so future logins are ~4x faster
+  const costMatch = user.password.match(/^\$2[aby]\$(\d+)\$/)
+  if (costMatch && parseInt(costMatch[1], 10) > SALT_ROUNDS) {
+    hash(input.password, SALT_ROUNDS)
+      .then((newHash) => prisma.user.update({ where: { id: user.id }, data: { password: newHash } }))
+      .catch(() => {})
+  }
+
   const payload = sessionPayloadFromUser(user)
   const token = await signToken(payload)
 

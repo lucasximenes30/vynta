@@ -1,8 +1,7 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
-import { getUserBalance } from '@/services/transaction.service'
-import { getHabitsByUser } from '@/services/habit.service'
+import { getMonthlySummary } from '@/services/transaction.service'
 import { getActiveWorkoutPlanByUser } from '@/services/workoutPlan.service'
 import { prisma } from '@/lib/prisma'
 import DashboardClient from './DashboardClient'
@@ -18,6 +17,7 @@ export default async function DashboardPage() {
   const now = new Date()
   const startMonth = new Date(now.getFullYear(), now.getMonth(), 1)
   const endMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 
   // Subscription check and dashboard data are fetched in parallel
   const [user, balance, habits, workoutPlan, events, weekCheckins] = await Promise.all([
@@ -33,8 +33,12 @@ export default async function DashboardPage() {
         hasSeenDashboard: true,
       },
     }),
-    getUserBalance(session.userId).catch(() => ({ income: 0, expense: 0, balance: 0 })),
-    getHabitsByUser(session.userId).catch(() => []),
+    getMonthlySummary(session.userId).catch(() => ({ income: 0, expense: 0, balance: 0, transactionCount: 0 })),
+    prisma.habit.findMany({
+      where: { userId: session.userId, isActive: true },
+      select: { id: true, title: true, color: true },
+      orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
+    }).catch(() => []),
     getActiveWorkoutPlanByUser(session.userId).catch(() => null),
     prisma.calendarEvent.findMany({
       where: {
@@ -44,10 +48,8 @@ export default async function DashboardPage() {
       orderBy: { date: 'asc' }
     }).catch(() => []),
     prisma.habitCheckin.findMany({
-      where: { habit: { userId: session.userId, isActive: true } },
-      orderBy: { date: 'desc' },
+      where: { date: todayStr, completed: true, habit: { userId: session.userId, isActive: true } },
       select: { habitId: true, date: true, completed: true },
-      take: 500 // Enough for the last week or two for active habits
     }).catch(() => [])
   ])
 
@@ -83,11 +85,11 @@ export default async function DashboardPage() {
   const isNewUser = !user.hasSeenDashboard
 
   if (isNewUser) {
-    // Marcar como visto para que nas próximas vezes não dispare mais
-    await prisma.user.update({
+    // Marcar como visto em background para não bloquear o carregamento inicial
+    prisma.user.update({
       where: { id: session.userId },
       data: { hasSeenDashboard: true }
-    })
+    }).catch(() => {})
   }
 
   return (

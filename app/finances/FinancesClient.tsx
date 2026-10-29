@@ -548,11 +548,11 @@ export default function FinancesClient({
               <div className="mt-4 sm:mt-6 flex flex-wrap gap-6 md:gap-8">
                 <div className="space-y-0.5">
                   <p className="text-xs/5 font-medium text-white/60">{"Receitas"}</p>
-                  <p className="text-lg font-semibold text-white/90">{formatCurrency(balance.income)}</p>
+                  <p className="text-lg font-semibold text-white/90">{formatCurrency(monthly.income)}</p>
                 </div>
                 <div className="space-y-0.5">
                   <p className="text-xs/5 font-medium text-white/60">{"Despesas"}</p>
-                  <p className="text-lg font-semibold text-white/90">{formatCurrency(balance.expense)}</p>
+                  <p className="text-lg font-semibold text-white/90">{formatCurrency(monthly.expense)}</p>
                 </div>
               </div>
             </div>

@@ -18,6 +18,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [redirecting, setRedirecting] = useState(false)
 
   const planParam = searchParams.get('plan')
   const intendedPlan = isBillingTier(planParam) ? planParam : null
@@ -25,7 +26,8 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
 
   useEffect(() => {
     detachPushFromAccount().catch(() => {})
-  }, [])
+    router.prefetch('/dashboard')
+  }, [router])
 
   useEffect(() => {
     if (searchParams.get('error') === 'inactive') router.replace('/unlock?state=expired')
@@ -55,21 +57,22 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
 
       if (!res.ok) {
         setError(translateError(data.error))
+        setLoading(false)
         return
       }
 
       if (isRegister) trackFunnelEvent('signup_completed', intendedPlan ? { planTier: intendedPlan } : undefined)
 
+      setRedirecting(true)
+
       if (data.status === 'inactive') {
-        router.push('/unlock?state=expired')
+        router.replace('/unlock?state=expired')
         return
       }
 
-      router.push(isRegister && intendedPlan ? `/subscription?plan=${intendedPlan}&welcome=1` : '/dashboard')
-      router.refresh()
+      router.replace(isRegister && intendedPlan ? `/subscription?plan=${intendedPlan}&welcome=1` : '/dashboard')
     } catch {
       setError('Erro de conexão. Verifique sua internet e tente novamente.')
-    } finally {
       setLoading(false)
     }
   }
@@ -165,13 +168,22 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || redirecting}
             className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand-500 text-[15px] font-semibold text-white shadow-[0_10px_40px_-12px_rgba(66,88,249,0.9)] transition hover:bg-brand-400 active:scale-[0.99] disabled:opacity-70"
           >
-            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {loading
-              ? isRegister ? 'Criando sua conta...' : 'Entrando...'
-              : isRegister ? 'Criar conta grátis' : 'Entrar'}
+            {redirecting ? (
+              <>
+                <Check className="h-4 w-4 text-emerald-300" strokeWidth={2.5} />
+                Preparando seu painel...
+              </>
+            ) : (
+              <>
+                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                {loading
+                  ? isRegister ? 'Criando sua conta...' : 'Entrando...'
+                  : isRegister ? 'Criar conta grátis' : 'Entrar'}
+              </>
+            )}
           </button>
 
           {isRegister && (
@@ -196,6 +208,28 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
           </Link>
         </p>
       </div>
+
+      {redirecting && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#07080c]/90 backdrop-blur-md animate-in fade-in"
+        >
+          <div className="flex flex-col items-center gap-4 animate-in zoom-in-95 slide-in-from-bottom-2">
+            <div className="relative flex h-16 w-16 items-center justify-center">
+              <span className="absolute inset-0 rounded-full border-2 border-brand-500/20" />
+              <span className="absolute inset-0 rounded-full border-2 border-transparent border-t-brand-400 animate-spin" />
+              <Check className="h-6 w-6 text-brand-300" strokeWidth={2.5} />
+            </div>
+            <div className="text-center">
+              <p className="font-display text-base font-semibold text-white">
+                {isRegister ? 'Conta criada! Abrindo seu painel...' : 'Entrando no seu painel...'}
+              </p>
+              <p className="mt-1 text-xs text-surface-400">Carregando seus dados</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
