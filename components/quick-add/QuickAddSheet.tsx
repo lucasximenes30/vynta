@@ -232,6 +232,7 @@ export default function QuickAddSheet({ initialType, onClose, onSubmit }: {
       >
       <form
         onSubmit={submit}
+        noValidate
         style={{
           transform: closing ? 'translate3d(0, 100%, 0)' : `translate3d(0, ${dragY}px, 0)`,
           transition: dragStart.current !== null ? 'none' : `transform ${closing ? CLOSE_MS : 220}ms cubic-bezier(0.2, 0.8, 0.2, 1)`,
@@ -270,7 +271,6 @@ export default function QuickAddSheet({ initialType, onClose, onSubmit }: {
             ref={amountRef}
             type="text"
             inputMode="numeric"
-            pattern="[0-9]*"
             enterKeyHint="next"
             autoComplete="off"
             value={brl(cents)}
