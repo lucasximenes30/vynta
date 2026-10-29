@@ -139,6 +139,9 @@ export function generateNotifications(
 
   for (const tx of transactions) {
     if (tx.type !== 'EXPENSE') continue
+    // Card transactions are billed through the invoice — the card_bill
+    // notification already covers them, so no per-item reminders.
+    if (tx.cardId) continue
 
     // --- Recurring transactions ---
     if (tx.isRecurring) {

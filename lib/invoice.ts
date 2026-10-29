@@ -284,6 +284,108 @@ export function getCardInvoiceTotal(
   return getCardInvoiceItems(card, transactions, billYear, billMonth0).reduce((s, i) => s + i.amount, 0)
 }
 
+// ---------- Month attribution: a card charge counts in the month its invoice is paid ----------
+
+/** 0-based month index (year*12+month0) in which a bill-cycle index is paid. */
+export function dueMonthIndexForBillIdx(billIdx: number, card: CardCycleDays): number {
+  return dueMonthIndexForBill(billIdx, card)
+}
+
+function billDueDate(card: CardCycleDays, billIdx: number): Date {
+  const { year, month0 } = idxToYearMonth(dueMonthIndexForBill(billIdx, card))
+  return new Date(year, month0, card.dueDay)
+}
+
+/** Bill-cycle index the tx's posting date (`t.date`) belongs to. */
+export function postingBillIndex(t: { date: Date | string }, card: CardCycleDays): number {
+  return billMonthIndexForDate(toDate(t.date)!, card)
+}
+
+/**
+ * Index of the parcela that lands on the invoice containing `t.date` (1-based).
+ * For imported items this is the parcela from which the app starts counting —
+ * earlier parcelas were billed (and paid) on invoices the user never imported.
+ */
+export function postingParcelaIndex(
+  t: { date: Date | string; purchaseDate: Date | string | null },
+  card: CardCycleDays,
+): number {
+  const pd = toDate(t.purchaseDate)!
+  return postingBillIndex(t, card) - billMonthIndexForDate(pd, card) + 1
+}
+
+/** Which parcela (1-based) is paid in `targetIdx` (year*12+month0), or null. */
+export function parcelaNumberForDueMonth(
+  t: { purchaseDate: Date | string | null; totalInstallments: number },
+  card: CardCycleDays,
+  targetIdx: number,
+): number | null {
+  const pd = toDate(t.purchaseDate)
+  if (!pd) return null
+  const first = billMonthIndexForDate(pd, card)
+  // Parcela n bills at first+n-1 and pays at dueMonthIndexForBill(first+n-1)
+  const shift = dueMonthIndexForBill(first, card) - first // 0 or 1, constant
+  const n = targetIdx - shift - first + 1
+  return n >= 1 && n <= t.totalInstallments ? n : null
+}
+
+/**
+ * Whether a CARD transaction contributes to the expenses of `targetIdx`
+ * (year*12+month0). Card charges only hit the books in the month their invoice
+ * is due — and installments/recurring imported mid-stream only count from the
+ * invoice that contained them (posting bill) onward.
+ */
+export function cardTxContributesToMonth(
+  t: {
+    date: Date | string
+    purchaseDate?: Date | string | null
+    isInstallment?: boolean | null
+    totalInstallments?: number | null
+    isRecurring?: boolean | null
+    isActive?: boolean | null
+    endDate?: Date | string | null
+  },
+  card: CardCycleDays,
+  targetIdx: number,
+): boolean {
+  const date = toDate(t.date)
+  if (!date) return false
+  const postBill = billMonthIndexForDate(date, card)
+
+  if (t.isInstallment && t.totalInstallments && t.purchaseDate) {
+    const n = parcelaNumberForDueMonth({ purchaseDate: t.purchaseDate, totalInstallments: t.totalInstallments }, card, targetIdx)
+    if (n == null) return false
+    // Only parcelas on the posting invoice or later count
+    return billMonthIndexForDate(toDate(t.purchaseDate)!, card) + n - 1 >= postBill
+  }
+
+  if (t.isRecurring) {
+    if (t.isActive === false && !t.endDate) return false
+    const end = toDate(t.endDate)
+    const lastBill = end ? billMonthIndexForDate(end, card) : Infinity
+    const firstDue = dueMonthIndexForBill(postBill, card)
+    const lastDue = end ? dueMonthIndexForBill(lastBill, card) : Infinity
+    return targetIdx >= firstDue && targetIdx <= lastDue
+  }
+
+  return dueMonthIndexForBill(postBill, card) === targetIdx
+}
+
+/** Due-date of the invoice containing parcela `n` (1-based) — used to know when the expense materializes. */
+export function parcelaDueDate(
+  t: { purchaseDate: Date | string | null; totalInstallments: number },
+  card: CardCycleDays,
+  n: number,
+): Date {
+  const first = billMonthIndexForDate(toDate(t.purchaseDate)!, card)
+  return billDueDate(card, first + n - 1)
+}
+
+/** Due-date of the invoice for bill-cycle index `billIdx`. */
+export function invoiceDueDateForBill(card: CardCycleDays, billIdx: number): Date {
+  return billDueDate(card, billIdx)
+}
+
 /** Sorted bill-cycle indices ({year, month0}) that contain any item, plus the open invoice. */
 export function listInvoiceMonths(
   card: CardCycleDays & { id: string },

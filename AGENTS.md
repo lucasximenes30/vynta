@@ -46,7 +46,12 @@
 - `lib/invoice.ts` é a fonte única da matemática de fatura: parser do CSV Nubank (`date,title,amount`, `" - Parcela X/Y"` no título, negativos/pagamentos ignorados), ciclo de fechamento (`billMonthIndexForDate`: compra após `closingDay` cai no mês seguinte; `dueDay < closingDay` vence no mês seguinte ao fechamento), itens/totais por fatura e status.
 - Lançamentos parcelados importados guardam `date` = data de postagem na fatura e `purchaseDate` = postagem − (parcela atual − 1) meses; `amount` = valor da parcela × total, `installmentAmount` = valor da parcela. Itens marcados "Fixo" viram `isRecurring` + `recurringDay` = dia da postagem (dedupe por título+valor, independente do mês).
 - Visualizador de faturas é inline: `CardInvoicePanel` dentro do tile em `collapse-grid[data-open]` (não é modal).
-- Sininho + push + avaliador offline do SW alertam `card_bill` 7/3/1 dias antes e no vencimento (`lib/notifications.ts`, `pushScheduler` chave `invoice:{cardId}:{due}:{d}`, SW `invoiceBills` + dedupe via `localKey`).
+- Sininho + push + avaliador offline do SW alertam `card_bill` 7/3/1 dias antes e no vencimento (`lib/notifications.ts`, `pushScheduler` chave `invoice:{cardId}:{due}:{d}`, SW `invoiceBills` + dedupe via `localKey`). Transações com `cardId` NUNCA geram notificação própria — só a fatura única avisa.
+- Atribuição mensal: gastos de cartão pertencem ao mês de VENCIMENTO da fatura (postagem em out → fatura de nov → conta em nov), não ao mês da postagem. `txInMonth`/`cardTxContributesToMonth` e `computeBalance` em `services/transaction.service.ts` implementam isso — parcelas/recorrentes importados só contam a partir da fatura de postagem (`postingParcelaIndex`), nunca retroativo.
+
+## Salário
+- Config em Finanças → botão "Salário" (`app/finances/SalaryModal.tsx` → `POST|DELETE /api/salary` → `services/salary.service.ts`).
+- Salário = transação(ões) INCOME recorrentes com `salarySlot` 1 (mensal ou 1ª quinzena) e 2 (2ª quinzena). `payDayType` `'fixed'` (dia do mês) ou `'business_day'` (`recurringDay` = N-ésimo dia útil — ver `lib/payday.ts`, `effectivePayDay`). `date` = 1º dia do mês da configuração, então só conta do mês atual em diante.
 
 ## Navegação / cache do cliente
 - `experimental.staleTimes.dynamic = 30` (next.config): telas visitadas são reaproveitadas por 30s. `components/RouterCacheSync.tsx` marca o cache como sujo após qualquer `fetch` não-GET bem-sucedido para `/api/*` e faz `router.refresh()` na próxima troca de tela. Mutações novas via `fetch('/api/...')` já ficam cobertas.

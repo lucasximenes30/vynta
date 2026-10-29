@@ -5,14 +5,16 @@ import { useRouter } from 'next/navigation'
 
 import MonthlyReport from '@/components/MonthlyReport'
 import EditTransactionModal from '@/components/EditTransactionModal'
+import SalaryModal from './SalaryModal'
 import CategorySelect from '@/components/CategorySelect'
 import * as Lucide from 'lucide-react'
 import NotificationDropdown from '@/components/NotificationDropdown'
 import { getInstallmentInfo, formatShortDate, isInstallmentActiveInMonth, getInstallmentForMonth } from '@/lib/installments'
+import { cardTxContributesToMonth, parcelaNumberForDueMonth } from '@/lib/invoice'
 import { getLocalToday } from '@/lib/dateUtils'
 
 interface Session { userId: string; email: string; name: string }
-interface Transaction { id: string; title: string; amount: string; installmentAmount?: number; type: 'INCOME' | 'EXPENSE'; category: string; date: string; isInstallment?: boolean; totalInstallments?: number; purchaseDate?: string; dueDay?: number; _activeInstallment?: number; isRecurring?: boolean; recurringDay?: number; _recurringStatus?: { isRecurring: boolean; day: number | null; status: 'DUE' | 'PAID' | 'UPCOMING'; daysUntil: number | null }; isActive?: boolean; endDate?: string; cardId?: string; paymentMethod?: string }
+interface Transaction { id: string; title: string; amount: string; installmentAmount?: number; type: 'INCOME' | 'EXPENSE'; category: string; date: string; isInstallment?: boolean; totalInstallments?: number; purchaseDate?: string; dueDay?: number; _activeInstallment?: number; isRecurring?: boolean; recurringDay?: number; payDayType?: 'fixed' | 'business_day'; salarySlot?: number; _recurringStatus?: { isRecurring: boolean; day: number | null; status: 'DUE' | 'PAID' | 'UPCOMING'; daysUntil: number | null }; isActive?: boolean; endDate?: string; cardId?: string; paymentMethod?: string }
 interface Balance { income: number; expense: number; balance: number }
 interface Monthly { income: number; expense: number; balance: number; transactionCount: number }
 interface Card { id: string; name: string; lastFourDigits: string; dueDay: number; closingDay: number }
@@ -310,7 +312,16 @@ export default function FinancesClient({
     const year = parseInt(yStr)
     const month = parseInt(mStr)
 
+    const cardMap = new Map(cards.map((c) => [c.id, c]))
+    const targetIdx = year * 12 + (month - 1)
+
     return transactions.filter((txn) => {
+      // Card charges belong to the month their invoice is due, not the posting month
+      const card = txn.cardId ? cardMap.get(txn.cardId) : undefined
+      if (card) {
+        return cardTxContributesToMonth(txn, card, targetIdx)
+      }
+
       // Normal transactions — date must be within month
       if (!txn.isInstallment && !txn.isRecurring) {
         const d = new Date(txn.date)
@@ -340,14 +351,18 @@ export default function FinancesClient({
     }).map((txn) => {
       // Inject _activeInstallment for the selected month
       if (txn.isInstallment && txn.totalInstallments && txn.purchaseDate) {
+        const card = txn.cardId ? cardMap.get(txn.cardId) : undefined
+        const parcela = card
+          ? parcelaNumberForDueMonth({ purchaseDate: txn.purchaseDate, totalInstallments: txn.totalInstallments }, card, targetIdx)
+          : null
         return {
           ...txn,
-          _activeInstallment: getInstallmentForMonth(new Date(txn.purchaseDate), txn.totalInstallments, year, month),
+          _activeInstallment: parcela ?? getInstallmentForMonth(new Date(txn.purchaseDate), txn.totalInstallments, year, month),
         }
       }
       return txn
     })
-  }, [transactions, selectedMonth, sortDesc])
+  }, [transactions, selectedMonth, sortDesc, cards])
 
   const displayedTransactions = useMemo(() => {
     return filteredMonthTransactions.filter((txn) => {
@@ -383,6 +398,21 @@ export default function FinancesClient({
     }
     return opts
   }, [isBRL])
+
+  // Salary config — recurring INCOME transactions flagged with salarySlot
+  const [salaryModalOpen, setSalaryModalOpen] = useState(false)
+  const salaryPayments = useMemo(
+    () =>
+      transactions
+        .filter((t) => t.salarySlot != null)
+        .sort((a, b) => (a.salarySlot ?? 0) - (b.salarySlot ?? 0))
+        .map((t) => ({
+          amount: parseFloat(t.amount),
+          day: t.recurringDay ?? 1,
+          payDayType: t.payDayType === 'business_day' ? 'business_day' as const : 'fixed' as const,
+        })),
+    [transactions],
+  )
 
   // Cancel recurring
   const [cancelRecurringId, setCancelRecurringId] = useState<string | null>(null)
@@ -569,6 +599,12 @@ export default function FinancesClient({
                 className="flex-1 md:flex-none md:w-48 rounded-xl bg-white/12 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-sm border border-white/10 transition-all duration-250 hover:bg-white/22 hover:scale-[1.025] hover:border-white/20 hover:shadow-lg hover:shadow-black/12 active:scale-[0.975]"
               >
                 {'Ver relatórios'}
+              </button>
+              <button
+                onClick={() => setSalaryModalOpen(true)}
+                className="flex-1 md:flex-none md:w-48 rounded-xl bg-white/12 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-sm border border-white/10 transition-all duration-250 hover:bg-white/22 hover:scale-[1.025] hover:border-white/20 hover:shadow-lg hover:shadow-black/12 active:scale-[0.975]"
+              >
+                {salaryPayments.length > 0 ? 'Salário' : 'Configurar salário'}
               </button>
               <button
                 onClick={() => {
@@ -1202,7 +1238,7 @@ export default function FinancesClient({
                               <>
                                 <Lucide.Repeat className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                                 <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                                  {`Todo dia ${txn.recurringDay || '?'}`}
+                                  {txn.payDayType === 'business_day' ? `${txn.recurringDay || '?'}º dia útil` : `Todo dia ${txn.recurringDay || '?'}`}
                                 </span>
                                 {txn._recurringStatus?.daysUntil && (
                                   <span className="text-[10px] font-medium text-emerald-600/70 dark:text-emerald-400/60 uppercase ml-1">
@@ -1386,6 +1422,19 @@ export default function FinancesClient({
           formatCurrency={formatCurrency}
           cards={cards}
         />
+      )}
+
+      {/* Salary config modal — remounted on each open so it prefills the current config */}
+      {salaryModalOpen && (
+      <SalaryModal
+        open={salaryModalOpen}
+        onClose={() => setSalaryModalOpen(false)}
+        initial={salaryPayments}
+        onSaved={() => {
+          refresh()
+          window.dispatchEvent(new Event('vynta:transaction-created'))
+        }}
+      />
       )}
 
       {/* Cancel Recurring Confirmation Modal */}

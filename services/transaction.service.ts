@@ -1,6 +1,16 @@
 import { prisma } from '@/lib/prisma'
 import { Decimal } from '@prisma/client/runtime/library'
 import { isInstallmentActiveInMonth, getInstallmentForMonth, getRecurringStatusForMonth } from '@/lib/installments'
+import {
+  billMonthIndexForDate,
+  cardTxContributesToMonth,
+  dueMonthIndexForBill,
+  invoiceDueDateForBill,
+  parcelaDueDate,
+  parcelaNumberForDueMonth,
+  postingParcelaIndex,
+} from '@/lib/invoice'
+import { effectivePayDay } from '@/lib/payday'
 import { cache } from 'react'
 
 export interface CreateTransactionInput {
@@ -176,10 +186,6 @@ function monthBounds(year: number, month: number) {
   }
 }
 
-function isPlainInMonth(t: LoadedTransaction, startOfMonth: Date, endOfMonth: Date) {
-  return !t.isInstallment && !t.isRecurring && t.date >= startOfMonth && t.date <= endOfMonth
-}
-
 function isRecurringActiveInRange(t: LoadedTransaction, startOfMonth: Date, endOfMonth: Date) {
   const tDate = new Date(t.date)
   if (tDate > endOfMonth) return false
@@ -206,91 +212,90 @@ function computeBalance(transactions: LoadedTransaction[], upToDate?: Date) {
     let effectiveAmount = 0
 
     if (t.isInstallment && t.totalInstallments && t.purchaseDate) {
-      const pDate = new Date(t.purchaseDate)
-      pDate.setHours(0, 0, 0, 0)
-      const dueDay = t.dueDay || pDate.getDate()
-
-      let startMonth = pDate.getMonth()
-      let startYear = pDate.getFullYear()
-
       if (t.card && t.cardId) {
-        if (pDate.getDate() > t.card.closingDay) {
-          startMonth++
-          if (startMonth > 11) {
-            startMonth = 0
-            startYear++
-          }
+        // Card installment: parcela n is paid on the due date of its bill cycle.
+        // Only count parcelas on/after the posting invoice — ones billed before
+        // the card was imported were already settled outside the app.
+        const firstCounted = Math.max(1, postingParcelaIndex(t, t.card))
+        const instValue = t.installmentAmount != null ? Number(t.installmentAmount) : Number(t.amount) / t.totalInstallments
+        let paidCount = 0
+        for (let n = firstCounted; n <= t.totalInstallments; n++) {
+          if (parcelaDueDate({ purchaseDate: t.purchaseDate, totalInstallments: t.totalInstallments }, t.card, n) <= today) paidCount++
         }
-        if (t.card.dueDay < t.card.closingDay) {
-          startMonth++
-          if (startMonth > 11) {
-            startMonth = 0
-            startYear++
-          }
-        }
+        effectiveAmount = instValue * paidCount
       } else {
-        if (pDate.getDate() > dueDay) {
-           startMonth++
-           if (startMonth > 11) {
-             startMonth = 0
-             startYear++
-           }
-        }
-      }
+        const pDate = new Date(t.purchaseDate)
+        pDate.setHours(0, 0, 0, 0)
+        const dueDay = t.dueDay || pDate.getDate()
 
-      let paidCount = 0
-      for (let i = 0; i < t.totalInstallments; i++) {
-        const instDate = new Date(startYear, startMonth + i, dueDay)
-        if (instDate <= today) {
-          paidCount++
+        let startMonth = pDate.getMonth()
+        let startYear = pDate.getFullYear()
+
+        if (pDate.getDate() > dueDay) {
+          startMonth++
+          if (startMonth > 11) {
+            startMonth = 0
+            startYear++
+          }
         }
+
+        let paidCount = 0
+        for (let i = 0; i < t.totalInstallments; i++) {
+          const instDate = new Date(startYear, startMonth + i, dueDay)
+          if (instDate <= today) {
+            paidCount++
+          }
+        }
+        effectiveAmount = Number(t.installmentAmount) * paidCount
       }
-      effectiveAmount = Number(t.installmentAmount) * paidCount
 
     } else if (t.isRecurring) {
       const startDate = new Date(t.date)
       startDate.setHours(0, 0, 0, 0)
       const rDay = t.recurringDay || startDate.getDate()
-      
-      let baseMonth = startDate.getMonth()
-      let baseYear = startDate.getFullYear()
 
       if (t.card && t.cardId) {
-        if (startDate.getDate() > t.card.closingDay) {
-          baseMonth++
-          if (baseMonth > 11) {
-            baseMonth = 0
-            baseYear++
-          }
+        // Card recurring: each cycle posts on a bill and is paid on that bill's due date
+        const firstBill = billMonthIndexForDate(startDate, t.card)
+        const lastBill = t.endDate
+          ? billMonthIndexForDate(new Date(t.endDate), t.card)
+          : t.isActive
+            ? Infinity
+            : -1
+        let cycleCount = 0
+        for (let b = firstBill; b <= lastBill; b++) {
+          if (invoiceDueDateForBill(t.card, b) > today) break
+          cycleCount++
         }
-        if (t.card.dueDay < t.card.closingDay) {
-          baseMonth++
-          if (baseMonth > 11) {
-            baseMonth = 0
-            baseYear++
-          }
-        }
+        effectiveAmount = Number(t.amount) * cycleCount
       } else {
-        if (startDate.getDate() > rDay) {
-           baseMonth++
-           if (baseMonth > 11) {
-             baseMonth = 0
-             baseYear++
-           }
+        let baseMonth = startDate.getMonth()
+        let baseYear = startDate.getFullYear()
+
+        if (startDate.getDate() > effectivePayDay(baseYear, baseMonth, t.payDayType, rDay)) {
+          baseMonth++
+          if (baseMonth > 11) {
+            baseMonth = 0
+            baseYear++
+          }
         }
-      }
 
-      const endLimit = t.endDate ? new Date(t.endDate) : today
-      const upperLimit = endLimit < today ? endLimit : today
+        const endLimit = t.endDate ? new Date(t.endDate) : today
+        const upperLimit = !t.isActive && !t.endDate ? null : endLimit < today ? endLimit : today
 
-      let current = new Date(baseYear, baseMonth, rDay)
-      
-      let cycleCount = 0
-      while (current <= upperLimit) {
-        cycleCount++
-        current = new Date(current.getFullYear(), current.getMonth() + 1, rDay)
+        let y = baseYear
+        let m = baseMonth
+        let cycleCount = 0
+        while (upperLimit && new Date(y, m, effectivePayDay(y, m, t.payDayType, rDay)) <= upperLimit) {
+          cycleCount++
+          m++
+          if (m > 11) {
+            m = 0
+            y++
+          }
+        }
+        effectiveAmount = Number(t.amount) * cycleCount
       }
-      effectiveAmount = Number(t.amount) * cycleCount
 
     } else {
       const tDate = new Date(t.date)
@@ -299,28 +304,7 @@ function computeBalance(transactions: LoadedTransaction[], upToDate?: Date) {
       let effectiveDate = tDate
 
       if (t.card && t.cardId) {
-        let billMonth = tDate.getMonth()
-        let billYear = tDate.getFullYear()
-
-        if (tDate.getDate() > t.card.closingDay) {
-          billMonth++
-          if (billMonth > 11) {
-            billMonth = 0
-            billYear++
-          }
-        }
-        
-        let dueMonth = billMonth
-        let dueYear = billYear
-        
-        if (t.card.dueDay < t.card.closingDay) {
-          dueMonth++
-          if (dueMonth > 11) {
-            dueMonth = 0
-            dueYear++
-          }
-        }
-        effectiveDate = new Date(dueYear, dueMonth, t.card.dueDay)
+        effectiveDate = invoiceDueDateForBill(t.card, billMonthIndexForDate(tDate, t.card))
       }
 
       if (effectiveDate <= today) {
@@ -347,65 +331,75 @@ export const getMonthlySummary = cache(async (userId: string) => {
   return getMonthSummary(userId, now.getFullYear(), now.getMonth() + 1)
 })
 
+/**
+ * Whether a transaction belongs to the target month for summary/listing purposes.
+ * Card transactions belong to the month their invoice is DUE (not the posting month),
+ * and installments/recurring imported mid-stream only count from the posting invoice.
+ */
+function txInMonth(t: LoadedTransaction, year: number, month: number): boolean {
+  const targetIdx = year * 12 + (month - 1)
+  if (t.card && t.cardId) {
+    return cardTxContributesToMonth(t, t.card, targetIdx)
+  }
+  const { startOfMonth, endOfMonth } = monthBounds(year, month)
+  if (t.isInstallment) {
+    return !!(t.totalInstallments && t.purchaseDate) &&
+      isInstallmentActiveInMonth(new Date(t.purchaseDate!), t.totalInstallments!, year, month)
+  }
+  if (t.isRecurring) {
+    return isRecurringActiveInRange(t, startOfMonth, endOfMonth)
+  }
+  return t.date >= startOfMonth && t.date <= endOfMonth
+}
+
 // 🆕 Get transactions for a specific month (installment + recurring aware)
 export const getTransactionsByMonth = cache(async (userId: string, year: number, month: number) => {
-  const { startOfMonth, endOfMonth } = monthBounds(year, month)
-  const transactions = (await loadUserTransactions(userId)).map(stripCard)
+  const targetIdx = year * 12 + (month - 1)
+  const transactions = (await loadUserTransactions(userId)).filter((t) => txInMonth(t, year, month))
 
-  // Non-installment, non-recurring transactions for the target month
-  const nonInstallments = transactions.filter(
-    (t) => !t.isInstallment && !t.isRecurring && t.date >= startOfMonth && t.date <= endOfMonth,
-  )
-
-  // Installment transactions
-  const activeInstallments = transactions.filter((t) =>
-    t.isInstallment && t.totalInstallments && t.purchaseDate
-      ? isInstallmentActiveInMonth(new Date(t.purchaseDate), t.totalInstallments, year, month)
-      : false,
-  )
-
-  // Recurring transactions — always included if active or endDate covers this month
-  const activeRecurring = transactions.filter((t) => {
-    if (!t.isRecurring) return false
-    const tDate = new Date(t.date)
-    if (tDate > endOfMonth) return false
-    
-    if (t.endDate) {
-      return new Date(t.endDate) >= startOfMonth
-    }
-    return t.isActive
-  })
-
-  // Merge and mark with current installment info
-  const enrichedActiveInstallments = activeInstallments.map((t) => ({
-    ...t,
-    _activeInstallment: getInstallmentForMonth(
-      new Date(t.purchaseDate!),
-      t.totalInstallments!,
-      year,
-      month,
-    ),
+  return transactions.map((t) => ({
+    ...stripCard(t),
+    ...(t.isInstallment && t.totalInstallments && t.purchaseDate
+      ? {
+          _activeInstallment: t.card
+            ? parcelaNumberForDueMonth(
+                { purchaseDate: t.purchaseDate, totalInstallments: t.totalInstallments },
+                t.card,
+                targetIdx,
+              ) ?? getInstallmentForMonth(new Date(t.purchaseDate), t.totalInstallments, year, month)
+            : getInstallmentForMonth(new Date(t.purchaseDate), t.totalInstallments, year, month),
+        }
+      : {}),
+    ...(t.isRecurring
+      ? {
+          _recurringStatus: getRecurringStatusForMonth(
+            t.recurringDay != null ? effectivePayDay(year, month - 1, t.payDayType, t.recurringDay) : null,
+            year,
+            month,
+          ),
+        }
+      : {}),
   }))
-
-  // Enrich recurring with payment status for the month
-  const enrichedRecurring = activeRecurring.map((t) => ({
-    ...t,
-    _recurringStatus: getRecurringStatusForMonth(t.recurringDay, year, month),
-  }))
-
-  return [...enrichedActiveInstallments, ...nonInstallments, ...enrichedRecurring]
 })
 
 function computeMonthTotals(transactions: LoadedTransaction[], year: number, month: number) {
-  const { startOfMonth, endOfMonth } = monthBounds(year, month)
+  let income = 0
+  let expense = 0
+  let count = 0
 
-  const nonInstallments = transactions.filter((t) => isPlainInMonth(t, startOfMonth, endOfMonth))
-  const installments = transactions.filter((t) => t.isInstallment)
-  const activeRecurring = transactions.filter(
-    (t) => t.isRecurring && isRecurringActiveInRange(t, startOfMonth, endOfMonth),
-  )
+  for (const t of transactions) {
+    if (!txInMonth(t, year, month)) continue
+    // Installments contribute their per-installment amount; everything else the full amount
+    const value = t.isInstallment && t.installmentAmount ? Number(t.installmentAmount) : Number(t.amount)
+    if (t.type === 'INCOME') {
+      income += value
+    } else {
+      expense += value
+    }
+    count++
+  }
 
-  return computeMonthSummary(installments, nonInstallments, year, month, activeRecurring)
+  return { income, expense, balance: income - expense, transactionCount: count }
 }
 
 function computeMonthSummaryWithBalance(transactions: LoadedTransaction[], year: number, month: number) {
@@ -418,60 +412,6 @@ function computeMonthSummaryWithBalance(transactions: LoadedTransaction[], year:
 export const getMonthSummary = cache(async (userId: string, year: number, month: number) => {
   return computeMonthSummaryWithBalance(await loadUserTransactions(userId), year, month)
 })
-
-// Pure function to compute a month's summary from transaction lists
-function computeMonthSummary(
-  installments: Array<{ type: string; installmentAmount: Decimal | null; isInstallment: boolean; totalInstallments: number | null; purchaseDate: Date | null }>,
-  nonInstallments: Array<{ type: string; amount: Decimal }>,
-  year: number,
-  month: number, // 1-12
-  recurring?: Array<{ type: string; amount: Decimal }>,
-) {
-  let income = 0
-  let expense = 0
-  let count = 0
-
-  // Active installments for this month contribute their per-installment amount
-  for (const t of installments) {
-    if (t.isInstallment && t.totalInstallments && t.purchaseDate) {
-      if (isInstallmentActiveInMonth(new Date(t.purchaseDate), t.totalInstallments, year, month)) {
-        const value = t.installmentAmount ? Number(t.installmentAmount) : 0
-        if (t.type === 'INCOME') {
-          income += value
-        } else {
-          expense += value
-        }
-        count++
-      }
-    }
-  }
-
-  // Non-installment transactions from the target month
-  for (const t of nonInstallments) {
-    const value = Number(t.amount)
-    if (t.type === 'INCOME') {
-      income += value
-    } else {
-      expense += value
-    }
-    count++
-  }
-
-  // Recurring transactions — always included with full amount
-  if (recurring) {
-    for (const t of recurring) {
-      const value = Number(t.amount)
-      if (t.type === 'INCOME') {
-        income += value
-      } else {
-        expense += value
-      }
-      count++
-    }
-  }
-
-  return { income, expense, balance: income - expense, transactionCount: count }
-}
 
 // 🆕 Get comparison between selected month and previous month (installment-aware)
 export const getMonthComparison = cache(async (userId: string, refYear: number, refMonth: number) => {
@@ -519,8 +459,14 @@ export const getAvailableMonths = cache(async (userId: string) => {
   // Add months from regular (non-installment, non-recurring) transactions
   transactions.forEach((t) => {
     if (!t.isInstallment && !t.isRecurring) {
-      const year = t.date.getFullYear()
-      const month = t.date.getMonth() + 1
+      let year = t.date.getFullYear()
+      let month = t.date.getMonth() + 1
+      // Card charges belong to the month their invoice is paid
+      if (t.card && t.cardId) {
+        const dueIdx = dueMonthIndexForBill(billMonthIndexForDate(t.date, t.card), t.card)
+        year = Math.floor(dueIdx / 12)
+        month = (dueIdx % 12) + 1
+      }
       months.add(`${year}-${String(month).padStart(2, '0')}`)
     }
   })
@@ -528,6 +474,16 @@ export const getAvailableMonths = cache(async (userId: string) => {
   // Expand installment transactions to cover all months in their timeline
   for (const t of transactions) {
     if (t.isInstallment && t.totalInstallments && t.purchaseDate) {
+      if (t.card && t.cardId) {
+        // Card parcelas land in the due month of each bill cycle, from the posting invoice on
+        const firstN = Math.max(1, postingParcelaIndex(t, t.card))
+        for (let n = firstN; n <= t.totalInstallments; n++) {
+          const first = billMonthIndexForDate(new Date(t.purchaseDate), t.card)
+          const dueIdx = dueMonthIndexForBill(first + n - 1, t.card)
+          months.add(`${Math.floor(dueIdx / 12)}-${String((dueIdx % 12) + 1).padStart(2, '0')}`)
+        }
+        continue
+      }
       const pd = new Date(t.purchaseDate)
       const firstYear = pd.getFullYear()
       const firstMonth = pd.getMonth() + 1
@@ -556,44 +512,14 @@ export const getAvailableMonths = cache(async (userId: string) => {
 
 // 🆕 Get expenses by category for a specific month (installment + recurring aware)
 export const getExpensesByCategory = cache(async (userId: string, year: number, month: number) => {
-  const { startOfMonth, endOfMonth } = monthBounds(year, month)
   const transactions = await loadUserTransactions(userId)
-
-  const nonInstallments = transactions.filter(
-    (t) => t.type === 'EXPENSE' && isPlainInMonth(t, startOfMonth, endOfMonth),
-  )
-  const installments = transactions.filter((t) => t.isInstallment)
-  const recurring = transactions.filter((t) => t.isRecurring && t.type === 'EXPENSE')
-
   const categoryMap = new Map<string, number>()
 
-  for (const t of nonInstallments) {
+  for (const t of transactions) {
+    if (t.type !== 'EXPENSE' || !txInMonth(t, year, month)) continue
+    const value = t.isInstallment && t.installmentAmount ? Number(t.installmentAmount) : Number(t.amount)
     const current = categoryMap.get(t.category) ?? 0
-    categoryMap.set(t.category, current + Number(t.amount))
-  }
-
-  for (const t of installments) {
-    if (t.totalInstallments && t.purchaseDate) {
-      if (isInstallmentActiveInMonth(new Date(t.purchaseDate), t.totalInstallments, year, month)) {
-        const value = t.installmentAmount ? Number(t.installmentAmount) : 0
-        const current = categoryMap.get(t.category) ?? 0
-        categoryMap.set(t.category, current + value)
-      }
-    }
-  }
-
-  // Add active recurring expenses
-  const activeRecurring = recurring.filter((t) => {
-    if (!t.isActive) return false
-    if (t.endDate) {
-      return t.endDate >= startOfMonth
-    }
-    return true
-  })
-
-  for (const t of activeRecurring) {
-    const current = categoryMap.get(t.category) ?? 0
-    categoryMap.set(t.category, current + Number(t.amount))
+    categoryMap.set(t.category, current + value)
   }
 
   return Array.from(categoryMap.entries())

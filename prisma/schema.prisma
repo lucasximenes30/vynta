@@ -138,6 +138,8 @@ model Transaction {
   dueDay            Int?
   isRecurring       Boolean         @default(false)
   recurringDay      Int?
+  payDayType        String? // 'business_day' = paid on the Nth business day (salary); null/'fixed' = calendar day
+  salarySlot        Int? // 1|2 marks recurring incomes managed by the salary config (quinzena = 2)
   isActive          Boolean         @default(true)
   endDate           DateTime?
   cardId            String?

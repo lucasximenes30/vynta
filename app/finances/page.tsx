@@ -27,6 +27,8 @@ function serializeData(transactions: any[], balance: any, monthly: any) {
     dueDay: t.dueDay,
     isRecurring: t.isRecurring,
     recurringDay: t.recurringDay,
+    payDayType: t.payDayType ?? undefined,
+    salarySlot: t.salarySlot ?? undefined,
     isActive: t.isActive,
     endDate: t.endDate?.toISOString(),
     cardId: t.cardId ?? undefined,
