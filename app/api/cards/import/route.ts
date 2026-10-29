@@ -11,6 +11,7 @@ const itemSchema = z.object({
   isInstallment: z.boolean().optional(),
   currentInstallment: z.number().int().min(1).max(99).optional().nullable(),
   totalInstallments: z.number().int().min(2).max(99).optional().nullable(),
+  isRecurring: z.boolean().optional(),
 })
 
 const importSchema = z.object({

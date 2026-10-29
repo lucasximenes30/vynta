@@ -120,6 +120,7 @@ export interface ImportInvoiceItem {
   isInstallment?: boolean
   currentInstallment?: number | null
   totalInstallments?: number | null
+  isRecurring?: boolean
 }
 
 export interface ImportInvoiceResult {
@@ -159,8 +160,12 @@ function itemKey(t: {
   isInstallment: boolean
   purchaseDate: Date | null
   totalInstallments: number | null
+  isRecurring?: boolean
 }): string {
   const norm = t.title.trim().toLowerCase().replace(/\s+/g, ' ')
+  // Recurring charges are date-independent: importing another month's CSV with the
+  // same subscription doesn't create a second recurring transaction.
+  if (t.isRecurring) return `rec|${norm}|${t.amount.toFixed(2)}`
   if (t.isInstallment && t.purchaseDate) {
     return `inst|${norm}|${ym(t.purchaseDate)}|${t.amount.toFixed(2)}|${t.totalInstallments ?? 0}`
   }
@@ -209,6 +214,7 @@ export async function importCardInvoice(
       isInstallment: true,
       purchaseDate: true,
       totalInstallments: true,
+      isRecurring: true,
     },
   })
 
@@ -221,6 +227,7 @@ export async function importCardInvoice(
       isInstallment: t.isInstallment,
       purchaseDate: t.purchaseDate,
       totalInstallments: t.totalInstallments,
+      isRecurring: t.isRecurring,
     })
     seen.set(key, (seen.get(key) ?? 0) + 1)
   }
@@ -230,6 +237,7 @@ export async function importCardInvoice(
 
   for (const item of input.items) {
     const isInst = !!item.isInstallment && !!item.totalInstallments && item.totalInstallments > 1
+    const isRec = !!item.isRecurring && !isInst
     const postingDate = localDate(item.date)
     const installmentValue = Math.round(item.amount * 100) / 100
     const purchaseDate = isInst && item.currentInstallment
@@ -247,6 +255,7 @@ export async function importCardInvoice(
       isInstallment: isInst,
       purchaseDate,
       totalInstallments: isInst ? item.totalInstallments! : null,
+      isRecurring: isRec,
     })
     const count = seen.get(key) ?? 0
     if (count > 0) {
@@ -267,6 +276,8 @@ export async function importCardInvoice(
       isInstallment: isInst,
       totalInstallments: isInst ? item.totalInstallments! : null,
       purchaseDate,
+      isRecurring: isRec,
+      recurringDay: isRec ? postingDate.getDate() : null,
       dueDay: card.dueDay,
       paymentMethod: 'credit_card',
     })

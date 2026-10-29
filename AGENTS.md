@@ -43,7 +43,8 @@
 ## Cartões e faturas
 - `Card.provider` (`'nubank'` | null) marca cartões importáveis. Import: `POST /api/cards/import` → `importCardInvoice` em `services/card.service.ts` (cria o cartão se `card` em vez de `cardId`, deduplica por chave natural título+data+valor+parcela, atualiza `limitAmount = limiteDisponívelInformado + Σ amount` do cartão).
 - `lib/invoice.ts` é a fonte única da matemática de fatura: parser do CSV Nubank (`date,title,amount`, `" - Parcela X/Y"` no título, negativos/pagamentos ignorados), ciclo de fechamento (`billMonthIndexForDate`: compra após `closingDay` cai no mês seguinte; `dueDay < closingDay` vence no mês seguinte ao fechamento), itens/totais por fatura e status.
-- Lançamentos parcelados importados guardam `date` = data de postagem na fatura e `purchaseDate` = postagem − (parcela atual − 1) meses; `amount` = valor da parcela × total, `installmentAmount` = valor da parcela.
+- Lançamentos parcelados importados guardam `date` = data de postagem na fatura e `purchaseDate` = postagem − (parcela atual − 1) meses; `amount` = valor da parcela × total, `installmentAmount` = valor da parcela. Itens marcados "Fixo" viram `isRecurring` + `recurringDay` = dia da postagem (dedupe por título+valor, independente do mês).
+- Visualizador de faturas é inline: `CardInvoicePanel` dentro do tile em `collapse-grid[data-open]` (não é modal).
 - Sininho + push + avaliador offline do SW alertam `card_bill` 7/3/1 dias antes e no vencimento (`lib/notifications.ts`, `pushScheduler` chave `invoice:{cardId}:{due}:{d}`, SW `invoiceBills` + dedupe via `localKey`).
 
 ## Navegação / cache do cliente

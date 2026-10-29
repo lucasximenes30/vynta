@@ -7,7 +7,7 @@ import * as Lucide from 'lucide-react'
 
 import NotificationDropdown from '@/components/NotificationDropdown'
 import NubankImportModal from './NubankImportModal'
-import CardInvoicesSheet from './CardInvoicesSheet'
+import CardInvoicePanel from './CardInvoicePanel'
 import { billMonthIndexForDate, getCardInvoiceTotal } from '@/lib/invoice'
 
 const PRESET_COLORS = [
@@ -47,7 +47,18 @@ export default function CardsClient({ session, initialCards, transactions = [] }
   const [cards, setCards] = useState<Card[]>(initialCards)
   const [showModal, setShowModal] = useState<{ isOpen: boolean; mode: 'create' | 'edit'; cardId?: string }>({ isOpen: false, mode: 'create' })
   const [importModal, setImportModal] = useState<{ isOpen: boolean; card?: Card | null }>({ isOpen: false })
-  const [invoiceCard, setInvoiceCard] = useState<Card | null>(null)
+  const [openInvoiceCardId, setOpenInvoiceCardId] = useState<string | null>(null)
+
+  const toggleInvoicePanel = (cardId: string) => {
+    const next = openInvoiceCardId === cardId ? null : cardId
+    setOpenInvoiceCardId(next)
+    if (next) {
+      // Keep the freshly opened invoice section in view on small screens
+      setTimeout(() => {
+        document.getElementById(`invoice-panel-${cardId}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      }, 120)
+    }
+  }
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -491,32 +502,20 @@ export default function CardsClient({ session, initialCards, transactions = [] }
             card={importModal.card ?? undefined}
             onClose={() => setImportModal({ isOpen: false })}
             onDone={(result) => {
-              setCards((prev) => {
-                const exists = prev.some((c) => c.id === result.card.id)
-                return exists ? prev.map((c) => (c.id === result.card.id ? { ...c, ...result.card } : c)) : [...prev, result.card]
-              })
+              // Offline-queued responses may not include the card — just refresh in that case
+              if (result.card) {
+                setCards((prev) => {
+                  const exists = prev.some((c) => c.id === result.card.id)
+                  return exists ? prev.map((c) => (c.id === result.card.id ? { ...c, ...result.card } : c)) : [...prev, result.card]
+                })
+              }
               setImportModal({ isOpen: false })
               router.refresh()
             }}
           />
         )}
 
-        {/* Invoice viewer (Nubank-style, month by month) */}
-        {invoiceCard && (
-          <CardInvoicesSheet
-            card={invoiceCard}
-            transactions={transactions}
-            onClose={() => setInvoiceCard(null)}
-            onImport={
-              invoiceCard.provider === 'nubank'
-                ? () => {
-                    setInvoiceCard(null)
-                    setImportModal({ isOpen: true, card: invoiceCard })
-                  }
-                : undefined
-            }
-          />
-        )}
+        {/* Invoice viewer is inline inside each card tile (collapse-grid accordion) */}
 
         {/* Analytics Section */}
         {cards.length > 0 && (
@@ -592,15 +591,15 @@ export default function CardsClient({ session, initialCards, transactions = [] }
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="flex items-center justify-between pb-2 border-b border-surface-200/50 dark:border-surface-800/50">
-              <h2 className="text-xl font-bold text-surface-900 dark:text-surface-100 flex items-center gap-2">
-                <Lucide.CreditCard className="h-5 w-5 text-surface-500" />
-                Seus Cartões Atuais
+            <div className="flex items-center justify-between gap-3 pb-2 border-b border-surface-200/50 dark:border-surface-800/50">
+              <h2 className="text-lg sm:text-xl font-bold text-surface-900 dark:text-surface-100 flex items-center gap-2 min-w-0">
+                <Lucide.CreditCard className="h-5 w-5 text-surface-500 shrink-0" />
+                <span className="truncate">Seus Cartões Atuais</span>
               </h2>
               {!showModal.isOpen && (
                 <button
                   onClick={openCreateModal}
-                  className="btn-primary py-2 px-4 shadow-sm hover:shadow-md transition-all flex items-center gap-2"
+                  className="btn-primary py-2 px-3 sm:px-4 text-sm shadow-sm hover:shadow-md transition-all flex items-center gap-1.5 shrink-0"
                 >
                   <Lucide.Plus className="w-4 h-4" />
                   Novo Cartão
@@ -630,16 +629,16 @@ export default function CardsClient({ session, initialCards, transactions = [] }
                           </div>
                           
                           <div className="flex items-center gap-1">
-                            <button 
+                            <button
                               onClick={() => openEditModal(card)}
-                              className="text-white/60 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-lg p-1.5 opacity-0 group-hover:opacity-100 focus:opacity-100 outline-none backdrop-blur-sm"
+                              className="text-white/60 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-lg p-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 outline-none backdrop-blur-sm"
                               title="Editar cartão"
                             >
                               <Lucide.Pen className="h-3.5 w-3.5" />
                             </button>
-                            <button 
+                            <button
                               onClick={() => handleDeleteClick(card.id)}
-                              className="text-white/60 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-lg p-1.5 opacity-0 group-hover:opacity-100 focus:opacity-100 outline-none backdrop-blur-sm"
+                              className="text-white/60 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-lg p-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 outline-none backdrop-blur-sm"
                               title="Excluir cartão"
                             >
                               <Lucide.Trash2 className="h-3.5 w-3.5" />
@@ -698,11 +697,13 @@ export default function CardsClient({ session, initialCards, transactions = [] }
                       <div className="flex items-center gap-2 pt-1">
                         <button
                           type="button"
-                          onClick={() => setInvoiceCard(card)}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-surface-200 dark:border-surface-700 px-3 py-2 text-xs font-medium text-surface-600 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800 transition-colors"
+                          onClick={() => toggleInvoicePanel(card.id)}
+                          aria-expanded={openInvoiceCardId === card.id}
+                          className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-medium transition-colors ${openInvoiceCardId === card.id ? 'border-brand-400 bg-brand-50 text-brand-700 dark:border-brand-700 dark:bg-brand-950/40 dark:text-brand-300' : 'border-surface-200 dark:border-surface-700 text-surface-600 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800'}`}
                         >
                           <Lucide.ReceiptText className="h-3.5 w-3.5" />
                           Faturas
+                          <Lucide.ChevronDown className={`h-3.5 w-3.5 transition-transform duration-300 ${openInvoiceCardId === card.id ? 'rotate-180' : ''}`} />
                         </button>
                         {card.provider === 'nubank' && (
                           <button
@@ -714,6 +715,21 @@ export default function CardsClient({ session, initialCards, transactions = [] }
                             Importar CSV
                           </button>
                         )}
+                      </div>
+
+                      {/* Inline invoice viewer — slides open under the card */}
+                      <div className="collapse-grid" data-open={openInvoiceCardId === card.id}>
+                        <div>
+                          <CardInvoicePanel
+                            card={card}
+                            transactions={transactions}
+                            onImport={
+                              card.provider === 'nubank'
+                                ? () => setImportModal({ isOpen: true, card })
+                                : undefined
+                            }
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>

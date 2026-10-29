@@ -24,10 +24,15 @@ interface ReviewRow {
   title: string
   amount: string
   isInstallment: boolean
+  isRecurring: boolean
   currentInstallment: string
   totalInstallments: string
   category: string
 }
+
+// Assinaturas/serviços que quase sempre são cobrança fixa mensal no cartão
+const SUBSCRIPTION_RE =
+  /netflix|spotify|hbo ?max|hbomax|disney|prime ?video|amazon ?prime|amazonprime|amazonmusic|youtube ?(premium|music)|apple|icloud|google ?(one|storage|play)|deezer|globoplay|paramount|crunchyroll|meli ?mais|melimais|smart ?fit|bluefit|chatgpt|openai|microsoft|office ?365|adobe|dropbox|tinder|audible|kindle|xbox|playstation|nintendo|lastpass|1password|canva|duolingo|claude|github/i
 
 interface ImportResult {
   card: {
@@ -86,6 +91,7 @@ export default function NubankImportModal({ card, onClose, onDone }: Props) {
     title: item.title,
     amount: item.amount.toFixed(2),
     isInstallment: item.isInstallment,
+    isRecurring: !item.isInstallment && SUBSCRIPTION_RE.test(item.title),
     currentInstallment: item.currentInstallment?.toString() ?? '',
     totalInstallments: item.totalInstallments?.toString() ?? '',
     category: guessCategory(item.title, 'EXPENSE') ?? 'General',
@@ -171,6 +177,7 @@ export default function NubankImportModal({ card, onClose, onDone }: Props) {
             isInstallment: r.isInstallment,
             currentInstallment: r.isInstallment ? parseInt(r.currentInstallment) || 1 : null,
             totalInstallments: r.isInstallment ? parseInt(r.totalInstallments) || 2 : null,
+            isRecurring: r.isRecurring,
           })),
         }),
       })
@@ -288,12 +295,12 @@ export default function NubankImportModal({ card, onClose, onDone }: Props) {
           {step === 'review' && (
             <div className="space-y-5">
               {!card && (
-                <div className="grid grid-cols-2 gap-3 rounded-2xl border border-surface-200 dark:border-surface-700/60 p-4">
-                  <div className="col-span-2 sm:col-span-1 space-y-1.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-2xl border border-surface-200 dark:border-surface-700/60 p-4">
+                  <div className="space-y-1.5">
                     <label className="text-xs font-medium text-surface-600 dark:text-surface-300">Apelido</label>
                     <input type="text" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} className="input-field" />
                   </div>
-                  <div className="col-span-2 sm:col-span-1 space-y-1.5">
+                  <div className="space-y-1.5">
                     <label className="text-xs font-medium text-surface-600 dark:text-surface-300">Últimos 4 dígitos</label>
                     <input
                       type="text"
@@ -313,7 +320,7 @@ export default function NubankImportModal({ card, onClose, onDone }: Props) {
                     <label className="text-xs font-medium text-surface-600 dark:text-surface-300">Vencimento (dia)</label>
                     <input type="number" min={1} max={31} value={dueDay} onChange={(e) => setDueDay(e.target.value)} className="input-field" />
                   </div>
-                  <p className="col-span-2 text-[11px] text-surface-400">
+                  <p className="sm:col-span-2 text-[11px] text-surface-400">
                     Sugeridos a partir do arquivo — ajuste se estiver diferente no app do Nubank.
                   </p>
                 </div>
@@ -357,35 +364,35 @@ export default function NubankImportModal({ card, onClose, onDone }: Props) {
                 <div className="divide-y divide-surface-100 dark:divide-surface-800/60">
                   {rows.map((r, i) => (
                     <div key={i} className={`p-3.5 space-y-2.5 transition-opacity ${r.include ? '' : 'opacity-45'}`}>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2.5 sm:gap-3">
                         <input
                           type="checkbox"
                           checked={r.include}
                           onChange={(e) => updateRow(i, { include: e.target.checked })}
                           className="h-4 w-4 rounded accent-purple-600 shrink-0"
                         />
-                        <span className="text-[11px] font-semibold text-surface-400 uppercase tracking-wide w-14 shrink-0">
-                          {monthName(r.date)}
-                        </span>
                         <input
                           type="text"
                           value={r.title}
                           onChange={(e) => updateRow(i, { title: e.target.value })}
                           className="flex-1 min-w-0 bg-transparent text-sm font-medium text-surface-800 dark:text-surface-100 border-b border-transparent focus:border-purple-400 focus:outline-none py-0.5"
                         />
-                        <div className="relative shrink-0 w-28">
-                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-surface-400 text-xs">R$</span>
+                        <div className="relative shrink-0 w-24 sm:w-28">
+                          <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-surface-400 text-xs">R$</span>
                           <input
                             type="number"
                             min={0}
                             step="0.01"
                             value={r.amount}
                             onChange={(e) => updateRow(i, { amount: e.target.value })}
-                            className="w-full bg-transparent text-sm font-semibold text-right text-surface-800 dark:text-surface-100 border-b border-transparent focus:border-purple-400 focus:outline-none py-0.5 pl-6"
+                            className="w-full bg-transparent text-sm font-semibold text-right text-surface-800 dark:text-surface-100 border-b border-transparent focus:border-purple-400 focus:outline-none py-0.5 pl-5"
                           />
                         </div>
                       </div>
                       <div className="flex items-center gap-2 pl-7 flex-wrap">
+                        <span className="text-[11px] font-semibold text-surface-400 uppercase tracking-wide shrink-0">
+                          {monthName(r.date)}
+                        </span>
                         <select
                           value={r.category}
                           onChange={(e) => updateRow(i, { category: e.target.value })}
@@ -399,7 +406,7 @@ export default function NubankImportModal({ card, onClose, onDone }: Props) {
                           <input
                             type="checkbox"
                             checked={r.isInstallment}
-                            onChange={(e) => updateRow(i, { isInstallment: e.target.checked })}
+                            onChange={(e) => updateRow(i, { isInstallment: e.target.checked, isRecurring: e.target.checked ? false : r.isRecurring })}
                             className="h-3.5 w-3.5 accent-purple-600"
                           />
                           Parcelado
@@ -424,6 +431,21 @@ export default function NubankImportModal({ card, onClose, onDone }: Props) {
                               className="w-10 text-center rounded-md border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 px-1 py-0.5"
                             />
                             parcelas
+                          </span>
+                        )}
+                        <label className="flex items-center gap-1.5 text-[11px] text-surface-500 dark:text-surface-400">
+                          <input
+                            type="checkbox"
+                            checked={r.isRecurring}
+                            onChange={(e) => updateRow(i, { isRecurring: e.target.checked, isInstallment: e.target.checked ? false : r.isInstallment })}
+                            className="h-3.5 w-3.5 accent-emerald-600"
+                          />
+                          Fixo (todo mês)
+                        </label>
+                        {r.isRecurring && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 rounded-full px-1.5 py-0.5">
+                            <Lucide.Repeat className="h-3 w-3" />
+                            Assinatura
                           </span>
                         )}
                       </div>

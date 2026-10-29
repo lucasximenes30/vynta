@@ -191,6 +191,7 @@ export interface InvoiceItemLike {
   isInstallment?: boolean | null
   totalInstallments?: number | null
   isRecurring?: boolean | null
+  recurringDay?: number | null
   isActive?: boolean | null
   endDate?: Date | string | null
   cardId?: string | null
@@ -251,7 +252,7 @@ export function getCardInvoiceItems(
         key: t.id,
         title: t.title,
         amount,
-        day: Math.min(start.getDate(), card.closingDay),
+        day: t.recurringDay ?? start.getDate(),
         date: start,
         installment: null,
         recurring: true,
