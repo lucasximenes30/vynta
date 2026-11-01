@@ -40,6 +40,8 @@ model User {
   canUseAgenda          Boolean                @default(false)
   usedUpgradeOffer      Boolean                @default(false)
   hasSeenDashboard      Boolean                @default(false)
+  /// Guided first-steps tour finished or skipped (null = show it on the next dashboard visit).
+  tourCompletedAt       DateTime?
   icalFeedUrl           String?
   icalSyncedAt          DateTime?
   icalSyncError         String?

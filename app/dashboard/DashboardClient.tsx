@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import * as Lucide from 'lucide-react'
-import OnboardingClient from '@/components/OnboardingClient'
+import { persistTourCompleted, readTour, startTour } from '@/lib/tour'
 import FunnelTracker from '@/components/FunnelTracker'
 import { openQuickAdd } from '@/lib/quickAdd'
 import dynamic from 'next/dynamic'
@@ -54,6 +54,8 @@ interface DashboardClientProps {
   plan: string
   subscriptionExpiresAt: string | null
   isNewUser?: boolean
+  /** Account hasn't finished/skipped the guided first-steps tour yet. */
+  showTour?: boolean
 }
 
 export default function DashboardClient({
@@ -66,6 +68,7 @@ export default function DashboardClient({
   plan,
   subscriptionExpiresAt,
   isNewUser,
+  showTour,
 }: DashboardClientProps) {
   const router = useRouter()
   const [profileName, setProfileName] = useState(session.name)
@@ -83,6 +86,14 @@ export default function DashboardClient({
       }
     }
   }, [plan, subscriptionExpiresAt])
+
+  // Guided first-steps tour: new accounts and anyone who hasn't seen it yet (saved per account)
+  useEffect(() => {
+    if (!showTour) return
+    const local = readTour()
+    if (!local) startTour()
+    else if (!local.active) persistTourCompleted() // finished here but the save didn't reach the server
+  }, [showTour])
 
   // New entries from the quick-add sheet (or undo) update the balance module
   useEffect(() => {
@@ -121,7 +132,6 @@ export default function DashboardClient({
 
   return (
     <>
-      <OnboardingClient />
       {isNewUser && <FunnelTracker eventName="dashboard_first_view" onceKey="dashboard_first_view" />}
       <div className="min-h-screen bg-surface-50 dark:bg-surface-950 transition-colors duration-300 animate-dashboard-fade">
         

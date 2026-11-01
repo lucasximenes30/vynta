@@ -173,20 +173,31 @@ export async function POST(req: Request) {
       // Send Funnel event and CAPI on initial purchase completion (only for real production payments, never devMode test sales)
       const isDevEvent = Boolean(event.devMode || subscription?.devMode || checkout?.devMode || process.env.ABACATEPAY_API_KEY?.startsWith('abc_dev_'))
       if (activatedUser && eventType === 'subscription.completed') {
-        if (sessionId && sessionId !== 'none' && !isDevEvent) {
-          await prisma.funnelEvent.create({
-            data: {
-              sessionId,
+        const effectiveSessionId = sessionId && sessionId !== 'none' ? sessionId : userId
+        if (effectiveSessionId && !isDevEvent) {
+          const recentDuplicate = await prisma.funnelEvent.findFirst({
+            where: {
               userId,
               eventName: 'purchase',
-              metadata: {
-                subscriptionId,
-                chargeId,
-                amount: amountCents / 100,
-                tier,
-              },
+              createdAt: { gte: new Date(Date.now() - 5 * 60 * 1000) },
             },
-          }).catch((err) => console.error('[AbacatePay Webhook] Funnel event error:', err))
+            select: { id: true },
+          }).catch(() => null)
+          if (!recentDuplicate) {
+            await prisma.funnelEvent.create({
+              data: {
+                sessionId: effectiveSessionId,
+                userId,
+                eventName: 'purchase',
+                metadata: {
+                  subscriptionId,
+                  chargeId,
+                  amount: amountCents / 100,
+                  tier,
+                },
+              },
+            }).catch((err) => console.error('[AbacatePay Webhook] Funnel event error:', err))
+          }
         }
 
         if (!isDevEvent) {
@@ -265,15 +276,27 @@ export async function POST(req: Request) {
           })
         }
 
-        if (sessionId) {
-          await prisma.funnelEvent.create({
-            data: {
-              sessionId,
+        const isDevCheckout = Boolean(event.devMode || checkout?.devMode || process.env.ABACATEPAY_API_KEY?.startsWith('abc_dev_'))
+        const effectiveSessionId = sessionId && sessionId !== 'none' ? sessionId : userId
+        if (effectiveSessionId && !isDevCheckout) {
+          const recentDuplicate = await prisma.funnelEvent.findFirst({
+            where: {
               userId,
               eventName: 'purchase',
-              metadata: { checkoutId, amount: amountCents / 100, tier },
+              createdAt: { gte: new Date(Date.now() - 5 * 60 * 1000) },
             },
-          }).catch(() => {})
+            select: { id: true },
+          }).catch(() => null)
+          if (!recentDuplicate) {
+            await prisma.funnelEvent.create({
+              data: {
+                sessionId: effectiveSessionId,
+                userId,
+                eventName: 'purchase',
+                metadata: { checkoutId, amount: amountCents / 100, tier },
+              },
+            }).catch(() => {})
+          }
         }
       }
 

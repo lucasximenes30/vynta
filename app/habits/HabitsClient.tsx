@@ -5,6 +5,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import * as Lucide from 'lucide-react'
 import { getIconByName } from '@/lib/icons'
+import { useTourAction } from '@/lib/tour'
 
 const HabitsRadarChart = dynamic(() => import('./HabitsRadarChart'), { ssr: false })
 
@@ -352,6 +353,7 @@ export default function HabitsClient({
     setShowModal(true)
   }
   
+  useTourAction('habit', () => openCreateModal())
   const openEditModal = (habit: HabitDTO) => {
     setEditingHabit(habit)
     setFormTitle(habit.title)

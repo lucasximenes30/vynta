@@ -8,6 +8,11 @@ import QuickAddHost from './quick-add/QuickAddHost'
 import PushBridge from './push/PushBridge'
 import RouterCacheSync from './RouterCacheSync'
 import { openQuickAdd } from '@/lib/quickAdd'
+import { startTour } from '@/lib/tour'
+import dynamic from 'next/dynamic'
+
+// Guided first-steps tour (only rendered while active; loaded lazily to keep the shell light)
+const TourHost = dynamic(() => import('./tour/TourHost'), { ssr: false })
 import * as Lucide from 'lucide-react'
 
 // Routes where the sidebar/bottom nav should NOT appear
@@ -66,6 +71,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
       <QuickAddHost />
       <PushBridge />
       <RouterCacheSync />
+      <TourHost />
 
       {/* Quick Actions Overlay (Mobile) */}
       {showQuickActions && (
@@ -98,6 +104,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
                 { label: 'Relatórios', icon: Lucide.BarChart3, color: 'text-violet-500', bg: 'bg-violet-50 dark:bg-violet-500/10', href: '/reports' },
                 { label: 'Cartões', icon: Lucide.CreditCard, color: 'text-cyan-500', bg: 'bg-cyan-50 dark:bg-cyan-500/10', href: '/cards' },
                 { label: 'Ajustes', icon: Lucide.Settings, color: 'text-surface-500', bg: 'bg-surface-100 dark:bg-surface-800', href: '/settings' },
+                { label: 'Tutorial', icon: Lucide.GraduationCap, color: 'text-brand-600 dark:text-brand-400', bg: 'bg-brand-50 dark:bg-brand-500/10', action: () => { setShowQuickActions(false); startTour() } },
               ].map((action, i) => (
                 'action' in action && action.action ? (
                   <button

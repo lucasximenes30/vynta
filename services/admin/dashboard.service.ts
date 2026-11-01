@@ -4,37 +4,67 @@ import { startOfDay, endOfDay, addDays } from 'date-fns'
 import { UserPlan } from '@prisma/client'
 
 export const getDashboardStats = cache(async () => {
+  const now = new Date()
+
   const [totalUsers, activeVip, activePro, activeProYearly, pendingPayments, expiredSubs, trialUsers, upgradeConversions] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({
-      where: { plan: 'VIP', subscriptionStatus: 'ACTIVE' },
+      where: { plan: 'VIP', subscriptionStatus: 'ACTIVE', role: { notIn: ['ADMIN', 'COURTESY'] } },
     }),
     prisma.user.count({
-      where: { plan: 'PRO', subscriptionStatus: 'ACTIVE' },
+      where: { plan: 'PRO', subscriptionStatus: 'ACTIVE', role: { notIn: ['ADMIN', 'COURTESY'] } },
     }),
     prisma.user.count({
-      where: { plan: 'PRO_YEARLY', subscriptionStatus: 'ACTIVE' },
-    }),
-    prisma.user.count({
-      where: {
-        plan: { in: ['VIP', 'PRO', 'PRO_YEARLY'] },
-        subscriptionStatus: { in: ['INACTIVE', 'PENDING'] },
-      },
+      where: { plan: 'PRO_YEARLY', subscriptionStatus: 'ACTIVE', role: { notIn: ['ADMIN', 'COURTESY'] } },
     }),
     prisma.user.count({
       where: {
-        plan: { in: ['VIP', 'PRO', 'PRO_YEARLY'] },
         OR: [
-          { subscriptionStatus: { in: ['PAST_DUE', 'CANCELED'] } },
-          { subscriptionEndDate: { lt: new Date() } }
-        ]
+          {
+            plan: { in: ['VIP', 'PRO', 'PRO_YEARLY'] },
+            subscriptionStatus: { in: ['INACTIVE', 'PENDING'] },
+          },
+          {
+            paymentTransactions: { some: { status: 'PENDING' } },
+            subscriptionStatus: { not: 'ACTIVE' },
+          },
+        ],
       },
     }),
     prisma.user.count({
-      where: { plan: 'FREE_TRIAL' },
+      where: {
+        role: { notIn: ['ADMIN', 'COURTESY'] },
+        OR: [
+          {
+            plan: { in: ['VIP', 'PRO', 'PRO_YEARLY'] },
+            OR: [
+              { subscriptionStatus: { in: ['PAST_DUE', 'CANCELED'] } },
+              { subscriptionEndDate: { lt: now } },
+            ],
+          },
+          {
+            plan: 'FREE_TRIAL',
+            subscriptionExpiresAt: { lte: now },
+          },
+        ],
+      },
     }),
     prisma.user.count({
-      where: { usedUpgradeOffer: true },
+      where: {
+        plan: 'FREE_TRIAL',
+        subscriptionStatus: 'ACTIVE',
+        OR: [
+          { subscriptionExpiresAt: null },
+          { subscriptionExpiresAt: { gt: now } },
+        ],
+      },
+    }),
+    prisma.user.count({
+      where: {
+        role: { notIn: ['ADMIN', 'COURTESY'] },
+        plan: { in: ['PRO', 'PRO_YEARLY', 'VIP'] },
+        subscriptionStatus: 'ACTIVE',
+      },
     }),
   ])
 
@@ -62,7 +92,7 @@ export const getExpiringUsers = cache(async () => {
   const in7DaysEnd = endOfDay(addDays(now, 7))
 
   const baseWhere = {
-    plan: { in: ['VIP', 'PRO', 'PRO_YEARLY'] as UserPlan[] },
+    plan: { in: ['VIP', 'PRO', 'PRO_YEARLY', 'FREE_TRIAL'] as UserPlan[] },
     role: { notIn: ['ADMIN', 'COURTESY'] as any },
     subscriptionStatus: 'ACTIVE' as const,
   }
@@ -176,25 +206,28 @@ export const getUsersGrowth = cache(async (days: number = 30) => {
 
 export const getUsersDistribution = cache(async () => {
   const users = await prisma.user.findMany({
-    select: { role: true, plan: true },
+    select: { role: true, plan: true, subscriptionStatus: true, subscriptionExpiresAt: true },
   })
 
-    const dist = { VIP: 0, PRO: 0, PRO_YEARLY: 0, COURTESY: 0, ADMIN: 0, FREE: 0 }
+  const now = new Date()
+  const dist = { VIP: 0, PRO: 0, PRO_YEARLY: 0, TRIAL: 0, COURTESY: 0, ADMIN: 0, EXPIRED: 0 }
   users.forEach((u) => {
     if (u.role === 'ADMIN') dist.ADMIN++
     else if (u.role === 'COURTESY') dist.COURTESY++
-    else if (u.plan === 'VIP') dist.VIP++
-    else if (u.plan === 'PRO') dist.PRO++
-    else if (u.plan === 'PRO_YEARLY') dist.PRO_YEARLY++
-    else dist.FREE++
+    else if (u.plan === 'VIP' && u.subscriptionStatus === 'ACTIVE') dist.VIP++
+    else if (u.plan === 'PRO' && u.subscriptionStatus === 'ACTIVE') dist.PRO++
+    else if (u.plan === 'PRO_YEARLY' && u.subscriptionStatus === 'ACTIVE') dist.PRO_YEARLY++
+    else if (u.plan === 'FREE_TRIAL' && u.subscriptionStatus === 'ACTIVE' && (!u.subscriptionExpiresAt || u.subscriptionExpiresAt > now)) dist.TRIAL++
+    else dist.EXPIRED++
   })
 
   return [
-    { name: 'VIP', value: dist.VIP, color: '#3b82f6' }, // blue-500
-    { name: 'PRO', value: dist.PRO, color: '#10b981' }, // emerald-500
-    { name: 'PRO Anual', value: dist.PRO_YEARLY, color: '#f59e0b' }, // amber-500
-    { name: 'Cortesia', value: dist.COURTESY, color: '#8b5cf6' }, // violet-500
-    { name: 'Admin', value: dist.ADMIN, color: '#ef4444' }, // red-500
-    { name: 'Free', value: dist.FREE, color: '#64748b' }, // slate-500
+    { name: 'PRO Mensal', value: dist.PRO, color: '#10b981' },
+    { name: 'PRO Anual', value: dist.PRO_YEARLY, color: '#f59e0b' },
+    { name: 'Trial Ativo', value: dist.TRIAL, color: '#3b82f6' },
+    { name: 'VIP', value: dist.VIP, color: '#06b6d4' },
+    { name: 'Cortesia', value: dist.COURTESY, color: '#8b5cf6' },
+    { name: 'Admin', value: dist.ADMIN, color: '#ef4444' },
+    { name: 'Expirado / Inativo', value: dist.EXPIRED, color: '#64748b' },
   ].filter((item) => item.value > 0)
 })

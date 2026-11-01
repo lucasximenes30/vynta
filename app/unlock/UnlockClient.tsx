@@ -3,7 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import BrandLogo from '@/components/BrandLogo'
+import FunnelTracker from '@/components/FunnelTracker'
 import { event as fbEvent } from '@/components/FacebookPixel'
+import { trackFunnelEvent, getOrCreateSessionId } from '@/lib/funnel'
 import { CheckCircle2, ArrowRight, ShieldCheck, Zap } from 'lucide-react'
 import { JWTPayload } from '@/lib/auth'
 import {
@@ -28,6 +30,8 @@ export default function UnlockClient({ session, state, feature }: UnlockClientPr
   const [error, setError] = useState('')
 
   const handleUnlock = async (tier: BillingTier) => {
+    trackFunnelEvent('checkout_started', { planTier: tier, source: 'unlock' })
+    trackFunnelEvent('payment_attempted', { planTier: tier, source: 'unlock' })
     fbEvent('InitiateCheckout', { value: PLANS[tier].priceCents / 100, currency: 'BRL', content_name: tier })
     setLoading(true)
     setError('')
@@ -35,7 +39,7 @@ export default function UnlockClient({ session, state, feature }: UnlockClientPr
       const res = await fetch('/api/payments/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planTier: tier }),
+        body: JSON.stringify({ planTier: tier, sessionId: getOrCreateSessionId() }),
       })
       const data = await res.json()
 
@@ -148,6 +152,7 @@ export default function UnlockClient({ session, state, feature }: UnlockClientPr
     <div className="relative min-h-dvh bg-[#050505] text-surface-200 selection:bg-brand-500/30 overflow-x-hidden font-sans flex flex-col items-center justify-center px-4 py-12">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(66,88,249,0.15),transparent_40%),radial-gradient(circle_at_bottom,rgba(17,31,171,0.1),transparent_30%)]" />
 
+      <FunnelTracker eventName="plan_viewed" onceKey="plan_viewed" />
       <div className="relative z-10 w-full max-w-5xl space-y-10 animate-auth-fade">
         {state === 'payment_pending' ? (
           <div className="text-center space-y-4">

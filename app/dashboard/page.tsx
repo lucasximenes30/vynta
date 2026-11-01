@@ -43,6 +43,7 @@ async function DashboardContent({ session }: { session: JWTPayload }) {
         plan: true,
         createdAt: true,
         hasSeenDashboard: true,
+        tourCompletedAt: true,
       },
     }),
     getMonthlySummary(session.userId).catch(() => ({ income: 0, expense: 0, balance: 0, transactionCount: 0 })),
@@ -119,6 +120,7 @@ async function DashboardContent({ session }: { session: JWTPayload }) {
       plan={user.plan}
       subscriptionExpiresAt={user.subscriptionExpiresAt ? user.subscriptionExpiresAt.toISOString() : null}
       isNewUser={isNewUser}
+      showTour={!user.tourCompletedAt}
     />
   )
 }

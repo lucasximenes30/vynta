@@ -9,6 +9,7 @@ import NotificationDropdown from '@/components/NotificationDropdown'
 import NubankImportModal from './NubankImportModal'
 import CardInvoicePanel from './CardInvoicePanel'
 import { billMonthIndexForDate, computeCommittedLimit, getCardInvoiceTotal } from '@/lib/invoice'
+import { useTourAction } from '@/lib/tour'
 
 const PRESET_COLORS = [
   { id: 'blue', label: 'Azul', hex: '#3b82f6', gradient: 'from-blue-500 via-blue-600 to-blue-800' },
@@ -88,6 +89,8 @@ export default function CardsClient({ session, initialCards, transactions = [] }
     resetForm()
     setShowModal({ isOpen: true, mode: 'create' })
   }
+
+  useTourAction('card', openCreateModal)
 
   const openEditModal = (card: Card) => {
     setName(card.name)

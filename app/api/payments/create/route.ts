@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     }
 
     let rawTier: unknown = 'pro'
-    let sessionId: string | null = null
+    let sessionId: string | null = req.cookies.get('vynta_session_id')?.value ?? null
 
     try {
       const body = await req.json()

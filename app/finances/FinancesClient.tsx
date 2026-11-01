@@ -13,6 +13,7 @@ import { getInstallmentInfo, formatShortDate, isInstallmentActiveInMonth, getIns
 import { cardTxContributesToMonth, parcelaNumberForDueMonth } from '@/lib/invoice'
 import { firstPayMonthIdx } from '@/lib/payday'
 import { getLocalToday } from '@/lib/dateUtils'
+import { useTourAction } from '@/lib/tour'
 
 interface Session { userId: string; email: string; name: string }
 interface Transaction { id: string; title: string; amount: string; installmentAmount?: number; type: 'INCOME' | 'EXPENSE'; category: string; date: string; isInstallment?: boolean; totalInstallments?: number; purchaseDate?: string; dueDay?: number; _activeInstallment?: number; isRecurring?: boolean; recurringDay?: number; payDayType?: 'fixed' | 'business_day'; salarySlot?: number; _recurringStatus?: { isRecurring: boolean; day: number | null; status: 'DUE' | 'PAID' | 'UPCOMING'; daysUntil: number | null }; isActive?: boolean; endDate?: string; createdAt?: string; cardId?: string; paymentMethod?: string }
@@ -406,6 +407,7 @@ export default function FinancesClient({
 
   // Salary config — recurring INCOME transactions flagged with salarySlot
   const [salaryModalOpen, setSalaryModalOpen] = useState(false)
+  useTourAction('salary', () => setSalaryModalOpen(true))
   const salaryPayments = useMemo(
     () =>
       transactions

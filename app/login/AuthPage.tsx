@@ -9,6 +9,7 @@ import { event as fbEvent } from '@/components/FacebookPixel'
 import { trackFunnelEvent } from '@/lib/funnel'
 import { TRIAL_DAYS, isBillingTier } from '@/lib/plans'
 import { detachPushFromAccount } from '@/lib/push'
+import { clearLocalTour } from '@/lib/tour'
 
 export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const router = useRouter()
@@ -27,7 +28,9 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
 
   useEffect(() => {
     detachPushFromAccount().catch(() => {})
-    router.prefetch('/dashboard')
+    clearLocalTour()
+    // No router.prefetch('/dashboard') here: prefetching while logged out caches the middleware's
+    // redirect to /login, and the post-login navigation would reuse it and hang on this screen.
   }, [router])
 
   useEffect(() => {
@@ -74,7 +77,11 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
         return
       }
 
-      router.replace(isRegister && intendedPlan ? `/subscription?plan=${intendedPlan}&welcome=1` : '/dashboard')
+      // Full page load (not router.replace): the session cookie was just set, so the client router
+      // cache / middleware redirects computed while logged out must not be reused.
+      // After signup, give the browser pixel a moment to flush CompleteRegistration before unloading.
+      if (isRegister) await new Promise((r) => setTimeout(r, 300))
+      window.location.replace(isRegister && intendedPlan ? `/subscription?plan=${intendedPlan}&welcome=1` : '/dashboard')
     } catch {
       setError('Erro de conexão. Verifique sua internet e tente novamente.')
       setLoading(false)

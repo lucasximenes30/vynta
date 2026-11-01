@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import * as Lucide from 'lucide-react'
+import { useTourAction } from '@/lib/tour'
 
 
 interface WorkoutPlanDTO {
@@ -1024,6 +1025,7 @@ export default function WorkoutClient({
     requestAnimationFrame(() => setCreatePlanModalVisible(true))
   }
 
+  useTourAction('workout', () => openCreateModal())
   const closeCreateModal = () => {
     setCreatePlanModalVisible(false)
     window.setTimeout(() => setShowCreateModal(false), 200)

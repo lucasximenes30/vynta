@@ -183,7 +183,7 @@ function PrimaryButton({ location, children = PRIMARY_CTA, className = '' }: { l
 export default function LandingPage() {
   return (
     <main className="relative min-h-[100dvh] overflow-x-hidden bg-[#07080c] font-sans text-surface-200 selection:bg-brand-500/30">
-      <FunnelTracker eventName="landing_view" />
+      <FunnelTracker eventName="landing_view" onceKey="landing_view" />
 
       {/* Covers the iOS status bar / bottom toolbar areas, where Safari shows the light body bg */}
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 bg-[#07080c]" />

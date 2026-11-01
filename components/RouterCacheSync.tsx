@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { enqueueMutation, syncQueue } from '@/lib/quickAdd'
+import { API_MUTATION_EVENT } from '@/lib/tour'
 
 const NON_QUEUEABLE_API_RE = /^\/api\/(auth|billing|payments|webhooks|cron|track|export|insights|reports|admin)\b/
 
@@ -200,6 +201,9 @@ export default function RouterCacheSync() {
       try {
         const res = await originalFetch(input, init)
         if (method !== 'GET' && method !== 'HEAD' && res.ok && parsedUrl) {
+          if (parsedUrl.origin === window.location.origin) {
+            window.dispatchEvent(new CustomEvent(API_MUTATION_EVENT, { detail: { path: parsedUrl.pathname, method } }))
+          }
           if (parsedUrl.origin === window.location.origin && parsedUrl.pathname.startsWith('/api/') && !/^\/api\/(track|push)\b/.test(parsedUrl.pathname)) {
             dirty.current = true
           }

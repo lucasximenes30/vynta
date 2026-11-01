@@ -1,49 +1,45 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { cookies } from 'next/headers';
-import * as jose from 'jose';
+import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { getSession } from '@/lib/auth'
 
-async function getUserIdFromToken() {
-  try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('vynta_token')?.value;
-    
-    if (!token) return null;
-
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback_secret_for_dev');
-    const { payload } = await jose.jwtVerify(token, secret);
-    
-    return payload.userId as string || payload.id as string || null;
-  } catch (error) {
-    return null;
-  }
-}
+const BOT_UA_RE = /bot|crawler|spider|prerender|headless|facebookexternalhit|facebot|whatsapp|telegrambot|slackbot|discordbot|linkedinbot|uptimerobot|pingdom|gtmetrix|lighthouse|pagespeed|vercel-screenshot/i
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { sessionId, eventName, metadata } = body;
-
-    if (!sessionId || !eventName) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    const ua = req.headers.get('user-agent') || ''
+    if (BOT_UA_RE.test(ua)) {
+      return NextResponse.json({ success: true, ignored: 'bot' })
     }
 
-    // Try to attach user ID if authenticated
-    const userId = await getUserIdFromToken();
+    const body = await req.json()
+    const { sessionId, eventName, metadata } = body
+
+    if (!sessionId || !eventName || typeof sessionId !== 'string' || typeof eventName !== 'string') {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+
+    // Attach authenticated userId from the real 'session' cookie; skip ADMIN sessions so admin testing doesn't pollute funnel metrics
+    const session = await getSession()
+    if (session?.role === 'ADMIN') {
+      return NextResponse.json({ success: true, ignored: 'admin' })
+    }
+
+    const userId = session?.userId && UUID_RE.test(session.userId) ? session.userId : null
 
     await prisma.funnelEvent.create({
       data: {
-        sessionId,
-        eventName,
+        sessionId: sessionId.slice(0, 128),
+        eventName: eventName.slice(0, 64),
         userId,
         metadata: metadata || {},
       },
-    });
+    })
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true })
   } catch (error) {
     // Return 200 even on error so we don't break the client with fire-and-forget
-    console.error('[Funnel Tracking Error]', error);
-    return NextResponse.json({ success: false });
+    console.error('[Funnel Tracking Error]', error)
+    return NextResponse.json({ success: false })
   }
 }

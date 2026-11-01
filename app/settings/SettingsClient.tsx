@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import * as Lucide from 'lucide-react'
 import { useTheme } from '@/lib/theme'
+import { startTour } from '@/lib/tour'
 import dynamic from 'next/dynamic'
 
 const NotificationSettings = dynamic(() => import('@/components/push/NotificationSettings'), {
@@ -455,6 +456,24 @@ export default function SettingsClient({ session }: SettingsClientProps) {
                 <span className="text-[10px] uppercase tracking-wider font-semibold text-surface-500 dark:text-surface-400">Privacidade & Segurança Garantidas</span>
               </div>
             </div>
+          </div>
+
+          {/* Guided First-Steps Tutorial Card */}
+          <div className="card space-y-4 border-brand-500/20 bg-brand-500/5">
+            <h3 className="font-display text-base font-semibold flex items-center gap-2">
+              <Lucide.GraduationCap className="w-4 h-4 text-brand-500" />
+              <span>Tutorial de Primeiros Passos</span>
+            </h3>
+            <p className="text-sm text-surface-500 dark:text-surface-400 leading-relaxed">
+              Reveja o passo a passo rápido para configurar salário, primeiro gasto, gasto rápido, cartão, hábito e treino.
+            </p>
+            <button
+              onClick={() => startTour()}
+              className="btn-primary w-full h-10 text-xs font-bold shadow-md shadow-brand-500/10 flex items-center justify-center gap-2"
+            >
+              <Lucide.Sparkles className="w-4 h-4" />
+              Refazer tutorial
+            </button>
           </div>
 
           {/* App Installation Card */}

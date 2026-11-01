@@ -12,6 +12,7 @@ export type AdminAction =
   | 'PLAN_CHANGED'
   | 'WHATSAPP_OPENED'
   | 'PAYMENT_STATUS_UPDATED'
+  | 'FUNNEL_RESET'
 
 export interface CreateAdminLogInput {
   adminId: string

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { BellRing, Loader2, Send } from 'lucide-react'
 import { sendTestPush, usePushState } from './usePushState'
+import { syncPushSubscription } from '@/lib/push'
 
 type Prefs = { bills: boolean; agenda: boolean; habits: boolean; dailyLog: boolean }
 
@@ -47,6 +48,12 @@ export default function NotificationSettings() {
   useEffect(() => { loadPrefs() }, [])
 
   const subscribed = !!state?.subscribed
+
+  // Make sure this device is really registered on the server (it may have been pruned or linked
+  // to another account), so "Enviar teste" reaches this computer/phone too — not only the others.
+  useEffect(() => {
+    if (subscribed) syncPushSubscription(true).then(loadPrefs)
+  }, [subscribed])
 
   const toggleDevice = async (on: boolean) => {
     setMessage('')
@@ -131,6 +138,9 @@ export default function NotificationSettings() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-surface-100 pt-4 dark:border-surface-800">
           <span className="text-xs text-surface-500 dark:text-surface-400">
             Ativo em {devices} {devices === 1 ? 'aparelho' : 'aparelhos'}
+            {state?.support === 'supported' && (
+              <> · neste aparelho: <strong className={subscribed ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>{subscribed ? 'ativo' : 'desligado'}</strong></>
+            )}
           </span>
           <button onClick={test} disabled={testing} className="btn-secondary inline-flex h-9 items-center gap-2 px-3 text-xs font-bold disabled:opacity-50">
             {testing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}

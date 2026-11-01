@@ -31,6 +31,7 @@ const ACTION_CONFIG: Record<string, { label: string; icon: string; color: string
   PLAN_CHANGED: { label: 'Plano Alterado', icon: 'Crown', color: 'brand' },
   WHATSAPP_OPENED: { label: 'WhatsApp Aberto', icon: 'MessageCircle', color: 'emerald' },
   PAYMENT_STATUS_UPDATED: { label: 'Pagamento Atualizado', icon: 'CreditCard', color: 'blue' },
+  FUNNEL_RESET: { label: 'Funil Zerado', icon: 'RefreshCw', color: 'amber' },
 }
 
 const COLOR_CLASSES: Record<string, string> = {

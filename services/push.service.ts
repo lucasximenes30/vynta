@@ -35,6 +35,9 @@ export function isPushConfigured(): boolean {
   return configured
 }
 
+/** Devices (browsers/phones) per account that receive pushes. Generous on purpose: phone + PC + tablet + work PC... */
+export const MAX_DEVICES_PER_USER = 10
+
 export async function savePushSubscription(userId: string, sub: PushSubscriptionInput, userAgent?: string | null) {
   // An endpoint belongs to one browser profile: if another account logs in on it, it moves over.
   await prisma.pushSubscription.upsert({
@@ -42,6 +45,16 @@ export async function savePushSubscription(userId: string, sub: PushSubscription
     create: { userId, endpoint: sub.endpoint, p256dh: sub.keys.p256dh, auth: sub.keys.auth, userAgent: userAgent?.slice(0, 300) },
     update: { userId, p256dh: sub.keys.p256dh, auth: sub.keys.auth, userAgent: userAgent?.slice(0, 300) },
   })
+
+  // Every device of the account receives pushes (phone, computer, tablet...). Only very old
+  // extras beyond MAX_DEVICES_PER_USER are dropped, keeping the most recently registered ones.
+  const extra = await prisma.pushSubscription.findMany({
+    where: { userId },
+    orderBy: { updatedAt: 'desc' },
+    skip: MAX_DEVICES_PER_USER,
+    select: { id: true },
+  })
+  if (extra.length) await prisma.pushSubscription.deleteMany({ where: { id: { in: extra.map((s) => s.id) } } })
 }
 
 export async function deletePushSubscription(endpoint: string) {
