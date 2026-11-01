@@ -149,10 +149,13 @@ export async function POST(req: Request) {
 
       // Determine tier
       let tier: BillingTier = 'pro'
+      const rawCycle = typeof subscription?.frequency === 'string'
+        ? subscription.frequency
+        : subscription?.frequency?.cycle ?? subscription?.cycle
       if (checkout?.metadata?.tier) {
         tier = normalizeTier(checkout.metadata.tier)
-      } else if (subscription?.frequency) {
-        tier = tierFromCycle(subscription.frequency) || 'pro'
+      } else if (rawCycle) {
+        tier = tierFromCycle(rawCycle) || 'pro'
       } else {
         tier = tierFromAmount(amountCents)
       }

@@ -9,8 +9,13 @@ export default async function SubscriptionPage() {
     redirect('/login')
   }
 
-  // Se já for PRO ou ADMIN, não precisa de upgrade, redireciona pro dashboard
-  if (session.plan === 'PRO' || session.role === 'ADMIN' || session.role === 'COURTESY') {
+  // Se já for PRO, PRO_YEARLY ou ADMIN/COURTESY, não precisa de upgrade, redireciona pro dashboard
+  if (
+    session.plan === 'PRO' ||
+    session.plan === 'PRO_YEARLY' ||
+    session.role === 'ADMIN' ||
+    session.role === 'COURTESY'
+  ) {
     redirect('/dashboard')
   }
 

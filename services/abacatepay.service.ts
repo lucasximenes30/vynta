@@ -1,3 +1,4 @@
+import { AbacatePay } from '@abacatepay/sdk'
 import { prisma } from '@/lib/prisma'
 import { PLANS, PLAN_NAME, type BillingTier } from '@/lib/plans'
 
@@ -7,6 +8,10 @@ function apiKey(): string {
   const key = process.env.ABACATEPAY_API_KEY
   if (!key) throw new Error('ABACATEPAY_API_KEY is not set')
   return key
+}
+
+export function createAbacateClient() {
+  return AbacatePay({ secret: apiKey() })
 }
 
 async function abacateRequest<T>(path: string, init?: { method?: 'GET' | 'POST'; body?: unknown; query?: Record<string, string> }): Promise<T> {
@@ -39,7 +44,8 @@ export interface AbacateSubscription {
   customerId?: string | null
   amount: number
   status: string
-  frequency?: string | null
+  frequency?: string | { cycle?: string } | null
+  cycle?: string | null
 }
 
 /**
@@ -85,19 +91,33 @@ export async function createSubscriptionCheckout({ userId, tier, appUrl, session
     prisma.user.findUnique({ where: { id: userId }, select: { billingCustomerId: true } }),
   ])
 
-  const checkout = await abacateRequest<AbacateCheckout>('/subscriptions/create', {
-    method: 'POST',
-    body: {
-      items: [{ id: productId, quantity: 1 }],
-      ...(user?.billingCustomerId ? { customerId: user.billingCustomerId } : {}),
-      externalId: `${userId}_${Date.now()}_${sessionId || 'none'}`,
-      returnUrl: `${appUrl}/subscription`,
-      completionUrl: `${appUrl}/payment/return`,
-      methods: ['PIX', 'CARD'],
-      retryPolicy: { maxRetry: 3, retryEvery: 2 },
-      metadata: { userId, tier },
-    },
-  })
+  const basePayload = {
+    items: [{ id: productId, quantity: 1 }],
+    ...(user?.billingCustomerId ? { customerId: user.billingCustomerId } : {}),
+    externalId: `${userId}_${Date.now()}_${sessionId || 'none'}`,
+    returnUrl: `${appUrl}/subscription`,
+    completionUrl: `${appUrl}/payment/return`,
+    retryPolicy: { maxRetry: 3, retryEvery: 2 },
+    metadata: { userId, tier },
+  }
+
+  let checkout: AbacateCheckout
+  try {
+    checkout = await abacateRequest<AbacateCheckout>('/subscriptions/create', {
+      method: 'POST',
+      body: { ...basePayload, methods: ['PIX', 'CARD'] },
+    })
+  } catch (err: any) {
+    // Fallback to CARD-only if PIX Automático is not yet enabled on the store (e.g., dev mode)
+    if (String(err?.message || '').toLowerCase().includes('pix')) {
+      checkout = await abacateRequest<AbacateCheckout>('/subscriptions/create', {
+        method: 'POST',
+        body: { ...basePayload, methods: ['CARD'] },
+      })
+    } else {
+      throw err
+    }
+  }
 
   await prisma.paymentTransaction.create({
     data: {
@@ -142,4 +162,3 @@ export async function cancelAbacateSubscription(subscriptionId: string) {
     body: { id: subscriptionId },
   })
 }
-
