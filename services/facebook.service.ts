@@ -1,5 +1,18 @@
 import * as bizSdk from 'facebook-nodejs-business-sdk';
 
+export interface FacebookEventData {
+  email?: string;
+  phone?: string;
+  externalId?: string;
+  clientIpAddress?: string;
+  clientUserAgent?: string;
+  fbp?: string;
+  fbc?: string;
+  currency?: string;
+  value?: number;
+  eventId?: string;
+}
+
 export class FacebookService {
   private static isInitialized = false;
 
@@ -17,15 +30,15 @@ export class FacebookService {
   }
 
   /**
-   * Sends a standard or custom event to the Facebook Conversions API
-   * @param eventName Name of the event (e.g., 'PageView', 'Lead', 'CompleteRegistration')
-   * @param eventData Additional data for the event (e.g., email, phone, IP)
-   * @param sourceUrl The URL where the event occurred
+   * Sends a standard or custom event to the Facebook Conversions API (CAPI)
+   * @param eventName Name of the event (e.g., 'PageView', 'CompleteRegistration', 'InitiateCheckout', 'Purchase')
+   * @param eventData User and custom data for the event
+   * @param sourceUrl The public URL where the event occurred
    */
-  static async sendEvent(eventName: string, eventData: any = {}, sourceUrl?: string) {
+  static async sendEvent(eventName: string, eventData: FacebookEventData = {}, sourceUrl?: string) {
     this.initialize();
 
-    const pixelId = process.env.FACEBOOK_PIXEL_ID;
+    const pixelId = process.env.FACEBOOK_PIXEL_ID || process.env.NEXT_PUBLIC_FACEBOOK_PIXEL_ID;
     if (!pixelId || !this.isInitialized) {
       console.warn('Facebook Pixel ID or Access Token is missing. Event will not be sent.');
       return;
@@ -33,27 +46,61 @@ export class FacebookService {
 
     const { ServerEvent, EventRequest, UserData, CustomData } = bizSdk;
 
-    const userData = new UserData()
-      .setEmails([eventData.email])
-      .setPhones([eventData.phone])
-      // Em um ambiente real, você deve passar o IP e User Agent reais do cliente
-      .setClientIpAddress(eventData.clientIpAddress || '127.0.0.1')
-      .setClientUserAgent(eventData.clientUserAgent || 'Mozilla/5.0');
+    const userData = new UserData();
 
-    if (eventData.fbp) userData.setFbp(eventData.fbp);
-    if (eventData.fbc) userData.setFbc(eventData.fbc);
+    if (eventData.email) {
+      userData.setEmails([eventData.email.trim().toLowerCase()]);
+    }
+    if (eventData.phone) {
+      userData.setPhones([eventData.phone.replace(/\D/g, '')]);
+    }
+    if (eventData.externalId) {
+      userData.setExternalIds([String(eventData.externalId)]);
+    }
+    if (eventData.clientIpAddress) {
+      userData.setClientIpAddress(eventData.clientIpAddress);
+    }
+    if (eventData.clientUserAgent) {
+      userData.setClientUserAgent(eventData.clientUserAgent);
+    }
+    if (eventData.fbp) {
+      userData.setFbp(eventData.fbp);
+    }
+    if (eventData.fbc) {
+      userData.setFbc(eventData.fbc);
+    }
 
-    const customData = new CustomData()
-      .setCurrency(eventData.currency || 'BRL')
-      .setValue(eventData.value || 0.0);
+    // Never leak internal webhook secrets or API paths in event_source_url
+    let cleanSourceUrl = 'https://www.vynta.digital';
+    if (sourceUrl) {
+      try {
+        const parsed = new URL(sourceUrl);
+        parsed.searchParams.delete('webhookSecret');
+        cleanSourceUrl = parsed.pathname.startsWith('/api/')
+          ? `${parsed.origin}/`
+          : parsed.toString();
+      } catch {
+        cleanSourceUrl = 'https://www.vynta.digital';
+      }
+    }
 
     const serverEvent = new ServerEvent()
       .setEventName(eventName)
-      .setEventTime(Math.floor(new Date().getTime() / 1000))
+      .setEventTime(Math.floor(Date.now() / 1000))
       .setUserData(userData)
-      .setCustomData(customData)
-      .setEventSourceUrl(sourceUrl || 'https://sua-url-padrao.com')
+      .setEventSourceUrl(cleanSourceUrl)
       .setActionSource('website');
+
+    if (eventData.eventId) {
+      serverEvent.setEventId(eventData.eventId);
+    }
+
+    if (typeof eventData.value === 'number') {
+      const customData = new CustomData()
+        .setCurrency(eventData.currency || 'BRL')
+        .setValue(eventData.value);
+      serverEvent.setCustomData(customData);
+    }
 
     const eventsData = [serverEvent];
     const accessToken = process.env.FACEBOOK_ACCESS_TOKEN as string;

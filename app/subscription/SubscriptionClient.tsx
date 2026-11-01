@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, ArrowRight, Check, ShieldCheck, Zap } from 'lucide-react'
 import { JWTPayload } from '@/lib/auth'
 import FunnelTracker from '@/components/FunnelTracker'
+import { event as fbEvent } from '@/components/FacebookPixel'
 import { trackFunnelEvent, getOrCreateSessionId } from '@/lib/funnel'
 import {
   PLANS,
@@ -27,6 +28,7 @@ export default function SubscriptionClient({ session }: SubscriptionClientProps)
 
   const handleUpgrade = async (tier: BillingTier) => {
     trackFunnelEvent('checkout_started', { planTier: tier })
+    fbEvent('InitiateCheckout', { value: PLANS[tier].priceCents / 100, currency: 'BRL', content_name: tier })
     setLoading(true)
     setError('')
 

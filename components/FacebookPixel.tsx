@@ -19,9 +19,13 @@ export const pageview = () => {
   }
 }
 
-export const event = (name: string, options = {}) => {
+export const event = (name: string, options: Record<string, any> = {}, eventID?: string) => {
   if (typeof window !== 'undefined' && window.fbq) {
-    window.fbq('track', name, options)
+    if (eventID) {
+      window.fbq('track', name, options, { eventID })
+    } else {
+      window.fbq('track', name, options)
+    }
   }
 }
 
@@ -56,7 +60,7 @@ export default function FacebookPixel() {
             t.src=v;s=b.getElementsByTagName(e)[0];
             s.parentNode.insertBefore(t,s)}(window, document,'script',
             'https://connect.facebook.net/en_US/fbevents.js');
-            fbq('init', '${FB_PIXEL_ID}'); // Descomentado para inicializar o pixel
+            fbq('init', '${FB_PIXEL_ID}');
           `,
         }}
       />

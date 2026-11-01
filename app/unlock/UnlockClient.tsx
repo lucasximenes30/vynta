@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import BrandLogo from '@/components/BrandLogo'
+import { event as fbEvent } from '@/components/FacebookPixel'
 import { CheckCircle2, ArrowRight, ShieldCheck, Zap } from 'lucide-react'
 import { JWTPayload } from '@/lib/auth'
 import {
@@ -27,6 +28,7 @@ export default function UnlockClient({ session, state, feature }: UnlockClientPr
   const [error, setError] = useState('')
 
   const handleUnlock = async (tier: BillingTier) => {
+    fbEvent('InitiateCheckout', { value: PLANS[tier].priceCents / 100, currency: 'BRL', content_name: tier })
     setLoading(true)
     setError('')
     try {

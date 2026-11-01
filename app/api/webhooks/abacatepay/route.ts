@@ -170,9 +170,10 @@ export async function POST(req: Request) {
         amountCents,
       })
 
-      // Send Funnel event and CAPI on initial purchase completion
+      // Send Funnel event and CAPI on initial purchase completion (only for real production payments, never devMode test sales)
+      const isDevEvent = Boolean(event.devMode || subscription?.devMode || checkout?.devMode || process.env.ABACATEPAY_API_KEY?.startsWith('abc_dev_'))
       if (activatedUser && eventType === 'subscription.completed') {
-        if (sessionId && sessionId !== 'none') {
+        if (sessionId && sessionId !== 'none' && !isDevEvent) {
           await prisma.funnelEvent.create({
             data: {
               sessionId,
@@ -188,19 +189,25 @@ export async function POST(req: Request) {
           }).catch((err) => console.error('[AbacatePay Webhook] Funnel event error:', err))
         }
 
-        try {
-          const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? req.headers.get('x-real-ip') ?? undefined
-          const userAgent = req.headers.get('user-agent') ?? undefined
+        if (!isDevEvent) {
+          try {
+            const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? req.headers.get('x-real-ip') ?? undefined
+            const userAgent = req.headers.get('user-agent') ?? undefined
 
-          await FacebookService.sendEvent('Purchase', {
-            email: activatedUser.email,
-            value: amountCents / 100,
-            currency: 'BRL',
-            clientIpAddress: ip,
-            clientUserAgent: userAgent,
-          }, req.url)
-        } catch (e) {
-          console.error('[AbacatePay Webhook] Meta CAPI Purchase error:', e)
+            await FacebookService.sendEvent('Purchase', {
+              email: activatedUser.email,
+              externalId: userId,
+              value: amountCents / 100,
+              currency: 'BRL',
+              eventId: `purchase_${chargeId}`,
+              clientIpAddress: ip,
+              clientUserAgent: userAgent,
+            }, 'https://www.vynta.digital/payment/return')
+          } catch (e) {
+            console.error('[AbacatePay Webhook] Meta CAPI Purchase error:', e)
+          }
+        } else {
+          console.log(`[AbacatePay Webhook] Skipping Meta CAPI Purchase event (devMode test transaction: ${chargeId})`)
         }
       }
 

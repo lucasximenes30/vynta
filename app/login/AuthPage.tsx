@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Check, Eye, EyeOff, Loader2 } from 'lucide-react'
 import BrandLogo from '@/components/BrandLogo'
+import { event as fbEvent } from '@/components/FacebookPixel'
 import { trackFunnelEvent } from '@/lib/funnel'
 import { TRIAL_DAYS, isBillingTier } from '@/lib/plans'
 import { detachPushFromAccount } from '@/lib/push'
@@ -61,7 +62,10 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
         return
       }
 
-      if (isRegister) trackFunnelEvent('signup_completed', intendedPlan ? { planTier: intendedPlan } : undefined)
+      if (isRegister) {
+        trackFunnelEvent('signup_completed', intendedPlan ? { planTier: intendedPlan } : undefined)
+        fbEvent('CompleteRegistration', {}, data.eventId)
+      }
 
       setRedirecting(true)
 

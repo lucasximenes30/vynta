@@ -19,17 +19,25 @@ export async function POST(request: NextRequest) {
 
     // Every new account starts on the free trial; plan choice/payment happens inside the app.
     const result = await registerUser({ name, email, password, document, planTier: 'trial' })
-    
+    const eventId = `reg_${result.user.id}`
+
     // Dispara o evento de CompleteRegistration no CAPI após a resposta (não bloqueia o fluxo)
     const capiIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? request.headers.get('x-real-ip') ?? undefined
     const userAgent = request.headers.get('user-agent') ?? undefined
+    const fbp = request.cookies.get('_fbp')?.value
+    const fbc = request.cookies.get('_fbc')?.value
+
     after(async () => {
       try {
         await FacebookService.sendEvent('CompleteRegistration', {
           email: result.user.email,
+          externalId: result.user.id,
+          eventId,
           clientIpAddress: capiIp,
           clientUserAgent: userAgent,
-        }, request.url)
+          fbp,
+          fbc,
+        }, 'https://www.vynta.digital/register')
       } catch (e) {
         console.error('[Auth/Register] Falha ao enviar evento pro Meta CAPI:', e)
       }
@@ -56,7 +64,7 @@ export async function POST(request: NextRequest) {
     await setSession(result.session, result.token)
 
     // User has access (ACTIVE or privileged) - safe to redirect to dashboard
-    return NextResponse.json({ success: true, user: result.user })
+    return NextResponse.json({ success: true, user: result.user, eventId })
   } catch (error: any) {
     const message = error instanceof z.ZodError
       ? error.errors[0]?.message ?? 'Invalid input'
