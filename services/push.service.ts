@@ -1,5 +1,6 @@
 import webpush from 'web-push'
 import { prisma } from '@/lib/prisma'
+import { PLANS, formatBRL, type BillingTier } from '@/lib/plans'
 
 // Server-only module (no 'use server'): every caller must already know the userId is trusted.
 
@@ -102,6 +103,76 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
     select: { id: true, endpoint: true, p256dh: true, auth: true },
   })
   return sendToSubscriptions(subs, payload)
+}
+
+/**
+ * Sends a Web Push notification to all devices registered by users with role === 'ADMIN'.
+ * Wrapped in try/catch so admin notifications never block or fail customer flows.
+ */
+export async function sendPushToAdmins(payload: PushPayload): Promise<number> {
+  if (!isPushConfigured()) return 0
+  try {
+    const subs = await prisma.pushSubscription.findMany({
+      where: { user: { role: 'ADMIN' } },
+      select: { id: true, endpoint: true, p256dh: true, auth: true },
+    })
+    if (subs.length === 0) return 0
+    return await sendToSubscriptions(subs, payload)
+  } catch (err: any) {
+    console.error('[push] sendPushToAdmins failed:', err?.message || err)
+    return 0
+  }
+}
+
+export async function notifyAdminsNewAccount(params: {
+  userId: string
+  name: string
+  email: string
+}): Promise<number> {
+  return sendPushToAdmins({
+    title: '🎉 Nova conta criada no Vynta!',
+    body: `${params.name} (${params.email}) acabou de criar uma conta (7 dias grátis).`,
+    url: '/admin/users',
+    tag: `admin-signup-${params.userId}`,
+  })
+}
+
+export async function notifyAdminsPendingSale(params: {
+  checkoutId: string
+  name: string
+  email: string
+  tier: BillingTier
+  amountCents?: number
+}): Promise<number> {
+  const plan = PLANS[params.tier] ?? PLANS.pro
+  const planLabel = params.tier === 'pro_yearly' ? 'Plano Anual' : 'Plano Mensal'
+  const fullValue = formatBRL(params.amountCents && params.amountCents > 0 ? params.amountCents : plan.priceCents)
+
+  return sendPushToAdmins({
+    title: `⏳ Venda Pendente — ${planLabel} (${fullValue})`,
+    body: `${params.name} (${params.email}) gerou um checkout do ${planLabel} no valor cheio de ${fullValue}.`,
+    url: '/admin/payments',
+    tag: `admin-pending-${params.checkoutId}`,
+  })
+}
+
+export async function notifyAdminsApprovedSale(params: {
+  chargeId: string
+  name: string
+  email: string
+  tier: BillingTier
+  amountCents?: number
+}): Promise<number> {
+  const plan = PLANS[params.tier] ?? PLANS.pro
+  const planLabel = params.tier === 'pro_yearly' ? 'Plano Anual' : 'Plano Mensal'
+  const fullValue = formatBRL(params.amountCents && params.amountCents > 0 ? params.amountCents : plan.priceCents)
+
+  return sendPushToAdmins({
+    title: `💰 Venda Aprovada! ${planLabel} (${fullValue})`,
+    body: `${params.name} (${params.email}) assinou o ${planLabel} — valor cheio de ${fullValue} pago!`,
+    url: '/admin/payments',
+    tag: `admin-sale-${params.chargeId}`,
+  })
 }
 
 export const DEFAULT_PREFERENCES = { bills: true, agenda: true, habits: true, dailyLog: true, timezone: 'America/Sao_Paulo' }

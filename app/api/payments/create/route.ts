@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createSubscriptionCheckout } from '@/services/abacatepay.service'
-import { normalizeTier } from '@/lib/plans'
+import { normalizeTier, PLANS } from '@/lib/plans'
+import { notifyAdminsPendingSale } from '@/services/push.service'
 
 export async function POST(req: NextRequest) {
   try {
@@ -49,6 +50,20 @@ export async function POST(req: NextRequest) {
     })
 
     console.log('[Payments/Create] ✓ Subscription checkout created:', checkout.id)
+
+    after(async () => {
+      try {
+        await notifyAdminsPendingSale({
+          checkoutId: checkout.id,
+          name: user.name,
+          email: user.email,
+          tier,
+          amountCents: PLANS[tier].priceCents,
+        })
+      } catch (e) {
+        console.error('[Payments/Create] Falha ao enviar push admin:', e)
+      }
+    })
 
     return NextResponse.json({
       ok: true,

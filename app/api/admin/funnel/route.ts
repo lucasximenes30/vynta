@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { buildFunnelPayload } from '@/services/admin/funnel.admin.service'
+import { createAdminLog } from '@/services/admin/admin.log.service'
+import { buildFunnelPayload, FUNNEL_RESET_EVENT } from '@/services/admin/funnel.admin.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,12 +31,20 @@ export async function DELETE(req: NextRequest) {
   if (target === 'funnel' || target === 'everything') {
     const deleted = await prisma.funnelEvent.deleteMany({})
     results.funnelEventsDeleted = deleted.count
-    await prisma.adminActionLog.create({
+
+    // Store reset marker inside funnel_events (no FK dependency on virtual 'admin-system' user)
+    await prisma.funnelEvent.create({
       data: {
-        adminId: session.userId,
-        action: 'FUNNEL_RESET',
-        description: `Zerou os dados do funil (${deleted.count} eventos removidos).`,
+        sessionId: '__system__',
+        eventName: FUNNEL_RESET_EVENT,
+        metadata: { resetBy: session.email || 'admin' },
       },
+    })
+
+    await createAdminLog({
+      adminId: session.userId,
+      action: 'FUNNEL_RESET',
+      description: `Zerou os dados do funil (${deleted.count} eventos removidos).`,
     })
   }
 
@@ -46,31 +55,27 @@ export async function DELETE(req: NextRequest) {
       },
     })
     results.paymentsDeleted = deleted.count
-    await prisma.adminActionLog.create({
-      data: {
-        adminId: session.userId,
-        action: 'PAYMENT_STATUS_UPDATED',
-        description: `Limpou ${deleted.count} transação(ões) pendentes/expiradas/falhas.`,
-      },
+
+    await createAdminLog({
+      adminId: session.userId,
+      action: 'PAYMENT_STATUS_UPDATED',
+      description: `Limpou ${deleted.count} transação(ões) pendentes/expiradas/falhas.`,
     })
   }
 
   if (target === 'all_payments') {
     const deleted = await prisma.paymentTransaction.deleteMany({})
     results.paymentsDeleted = deleted.count
-    await prisma.adminActionLog.create({
-      data: {
-        adminId: session.userId,
-        action: 'PAYMENT_STATUS_UPDATED',
-        description: `Zerou todo o histórico de transações de pagamento (${deleted.count} removidas).`,
-      },
+
+    await createAdminLog({
+      adminId: session.userId,
+      action: 'PAYMENT_STATUS_UPDATED',
+      description: `Zerou todo o histórico de transações de pagamento (${deleted.count} removidas).`,
     })
   }
 
   if (target === 'logs' || target === 'everything') {
-    const deleted = await prisma.adminActionLog.deleteMany({
-      where: target === 'everything' ? { action: { not: 'FUNNEL_RESET' } } : {},
-    })
+    const deleted = await prisma.adminActionLog.deleteMany({})
     results.logsDeleted = deleted.count
   }
 

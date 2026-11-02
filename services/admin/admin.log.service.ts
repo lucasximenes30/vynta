@@ -22,6 +22,19 @@ export interface CreateAdminLogInput {
   metadata?: Record<string, unknown>
 }
 
+async function resolveValidAdminUserId(adminId: string): Promise<string | null> {
+  if (adminId && adminId !== 'admin-system') {
+    const exists = await prisma.user.findUnique({ where: { id: adminId }, select: { id: true } })
+    if (exists) return exists.id
+  }
+  // Fallback to any real ADMIN user in the database so virtual 'admin-system' session doesn't violate FK
+  const adminUser = await prisma.user.findFirst({
+    where: { role: 'ADMIN' },
+    select: { id: true },
+  })
+  return adminUser?.id ?? null
+}
+
 export async function createAdminLog({
   adminId,
   action,
@@ -30,9 +43,12 @@ export async function createAdminLog({
   metadata,
 }: CreateAdminLogInput) {
   try {
+    const resolvedAdminId = await resolveValidAdminUserId(adminId)
+    if (!resolvedAdminId) return
+
     await prisma.adminActionLog.create({
       data: {
-        adminId,
+        adminId: resolvedAdminId,
         action,
         description,
         targetUserId: targetUserId ?? null,

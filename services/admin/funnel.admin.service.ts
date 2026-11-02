@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/prisma'
 
+export const FUNNEL_RESET_EVENT = '__funnel_reset__'
+
 function getRangeStart(range: string): Date | null {
   const now = new Date()
   if (range === 'today') {
@@ -18,8 +20,8 @@ export async function buildFunnelPayload(range: string = 'all') {
   const rangeStart = getRangeStart(range)
 
   // Check if admin reset the funnel recently so DB-backed counts respect the reset timestamp
-  const lastReset = await prisma.adminActionLog.findFirst({
-    where: { action: 'FUNNEL_RESET' },
+  const lastReset = await prisma.funnelEvent.findFirst({
+    where: { eventName: FUNNEL_RESET_EVENT },
     orderBy: { createdAt: 'desc' },
     select: { createdAt: true },
   })
@@ -35,7 +37,10 @@ export async function buildFunnelPayload(range: string = 'all') {
 
   const [events, realSignups, realActivated, realCheckouts, realPurchases] = await Promise.all([
     prisma.funnelEvent.findMany({
-      where: dateFilter ? { createdAt: dateFilter } : undefined,
+      where: {
+        eventName: { not: FUNNEL_RESET_EVENT },
+        ...(dateFilter ? { createdAt: dateFilter } : {}),
+      },
       select: { sessionId: true, userId: true, eventName: true, metadata: true, createdAt: true },
       orderBy: { createdAt: 'desc' },
     }),
@@ -134,4 +139,3 @@ export async function buildFunnelPayload(range: string = 'all') {
     funnel2Data,
   }
 }
-

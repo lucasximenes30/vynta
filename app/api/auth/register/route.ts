@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { registerUser } from '@/services/user.service'
 import { setSession } from '@/lib/auth'
 import { FacebookService } from '@/services/facebook.service'
+import { notifyAdminsNewAccount } from '@/services/push.service'
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -28,6 +29,16 @@ export async function POST(request: NextRequest) {
     const fbc = request.cookies.get('_fbc')?.value
 
     after(async () => {
+      try {
+        await notifyAdminsNewAccount({
+          userId: result.user.id,
+          name: result.user.name,
+          email: result.user.email,
+        })
+      } catch (e) {
+        console.error('[Auth/Register] Falha ao enviar push admin:', e)
+      }
+
       try {
         await FacebookService.sendEvent('CompleteRegistration', {
           email: result.user.email,

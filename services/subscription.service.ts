@@ -1,6 +1,7 @@
 import { UserSubscriptionStatus, UserPlan } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { PLANS, type BillingTier } from '@/lib/plans'
+import { notifyAdminsApprovedSale } from '@/services/push.service'
 
 interface ActivateVipInput {
   userId: string
@@ -143,6 +144,14 @@ export async function activateRecurringSubscription({
   }
 
   console.log(`[Subscription Service] ${updatedUser.email} ${plan.dbPlan} active until ${endDate.toISOString()} (subscription ${subscriptionId})`)
+
+  await notifyAdminsApprovedSale({
+    chargeId,
+    name: updatedUser.name,
+    email: updatedUser.email,
+    tier,
+    amountCents: amountCents > 0 ? amountCents : plan.priceCents,
+  }).catch((err) => console.error('[Subscription Service] Admin push error:', err))
   return updatedUser
 }
 

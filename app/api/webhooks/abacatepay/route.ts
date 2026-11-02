@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { activateRecurringSubscription, cancelRecurringSubscription } from '@/services/subscription.service'
 import { findSubscriptionByCheckout, getSubscription } from '@/services/abacatepay.service'
 import { FacebookService } from '@/services/facebook.service'
+import { notifyAdminsApprovedSale } from '@/services/push.service'
 import { tierFromCycle, tierFromAmount, normalizeTier, type BillingTier } from '@/lib/plans'
 import crypto from 'crypto'
 
@@ -274,6 +275,19 @@ export async function POST(req: Request) {
               paidAt: new Date(),
             },
           })
+          const checkoutUser = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { name: true, email: true },
+          })
+          if (checkoutUser) {
+            await notifyAdminsApprovedSale({
+              chargeId: checkoutId,
+              name: checkoutUser.name,
+              email: checkoutUser.email,
+              tier,
+              amountCents,
+            }).catch(() => {})
+          }
         }
 
         const isDevCheckout = Boolean(event.devMode || checkout?.devMode || process.env.ABACATEPAY_API_KEY?.startsWith('abc_dev_'))
