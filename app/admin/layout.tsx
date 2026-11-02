@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import * as Lucide from 'lucide-react'
 import { getIconByName } from '@/lib/icons'
+import PushBridge from '@/components/push/PushBridge'
 
 const NAV_LINKS = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
@@ -85,6 +86,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </header>
 
         {/* Page Content — with bottom padding on mobile for nav bar */}
+        <PushBridge />
         <div className="flex-1 overflow-auto p-4 pb-24 md:pb-8 md:p-8">
           {children}
         </div>

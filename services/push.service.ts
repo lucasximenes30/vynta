@@ -16,6 +16,8 @@ export interface PushPayload {
   ttl?: number
   /** Dedup key the SW marks when this push arrives so the offline evaluator doesn't repeat it. */
   localKey?: string
+  /** Optional custom audio URL played when the notification is delivered/opened (e.g. approved sale chime). */
+  sound?: string
 }
 
 export interface PushSubscriptionInput {
@@ -126,12 +128,12 @@ export async function sendPushToAdmins(payload: PushPayload): Promise<number> {
 
 export async function notifyAdminsNewAccount(params: {
   userId: string
-  name: string
-  email: string
+  name?: string
+  email?: string
 }): Promise<number> {
   return sendPushToAdmins({
-    title: '🎉 Nova conta criada no Vynta!',
-    body: `${params.name} (${params.email}) acabou de criar uma conta (7 dias grátis).`,
+    title: 'Nova conta criada',
+    body: 'Olá, seu SaaS acabou de ter uma conta criada.',
     url: '/admin/users',
     tag: `admin-signup-${params.userId}`,
   })
@@ -139,8 +141,8 @@ export async function notifyAdminsNewAccount(params: {
 
 export async function notifyAdminsPendingSale(params: {
   checkoutId: string
-  name: string
-  email: string
+  name?: string
+  email?: string
   tier: BillingTier
   amountCents?: number
 }): Promise<number> {
@@ -149,8 +151,8 @@ export async function notifyAdminsPendingSale(params: {
   const fullValue = formatBRL(params.amountCents && params.amountCents > 0 ? params.amountCents : plan.priceCents)
 
   return sendPushToAdmins({
-    title: `⏳ Venda Pendente — ${planLabel} (${fullValue})`,
-    body: `${params.name} (${params.email}) gerou um checkout do ${planLabel} no valor cheio de ${fullValue}.`,
+    title: 'Compra pendente',
+    body: `Compra pendente no valor de ${fullValue} (${planLabel})`,
     url: '/admin/payments',
     tag: `admin-pending-${params.checkoutId}`,
   })
@@ -158,8 +160,8 @@ export async function notifyAdminsPendingSale(params: {
 
 export async function notifyAdminsApprovedSale(params: {
   chargeId: string
-  name: string
-  email: string
+  name?: string
+  email?: string
   tier: BillingTier
   amountCents?: number
 }): Promise<number> {
@@ -168,10 +170,11 @@ export async function notifyAdminsApprovedSale(params: {
   const fullValue = formatBRL(params.amountCents && params.amountCents > 0 ? params.amountCents : plan.priceCents)
 
   return sendPushToAdmins({
-    title: `💰 Venda Aprovada! ${planLabel} (${fullValue})`,
-    body: `${params.name} (${params.email}) assinou o ${planLabel} — valor cheio de ${fullValue} pago!`,
-    url: '/admin/payments',
+    title: 'Conta aprovada',
+    body: `Compra aprovada no valor de ${fullValue} (${planLabel})`,
+    url: '/admin/payments?sound=sale',
     tag: `admin-sale-${params.chargeId}`,
+    sound: '/sounds/sale-approved.mp3',
   })
 }
 

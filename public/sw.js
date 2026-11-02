@@ -1,9 +1,9 @@
 /* Vynta service worker: fast shell, 48h offline cache (pages, RSC & GET APIs), Web Push and local offline notifications. */
-const STATIC_CACHE = 'vynta-static-v6'
+const STATIC_CACHE = 'vynta-static-v7'
 const DATA_CACHE = 'vynta-data-v6'
 const CACHE_TTL_MS = 48 * 60 * 60 * 1000 // 48 hours
-const PRECACHE = ['/', '/offline', '/manifest.json', '/icons/icon-192.png', '/icons/icon-maskable-192.png', '/icons/badge-96.png']
-const STATIC_RE = /\.(?:js|css|woff2?|png|jpe?g|webp|svg|ico|gif|avif)$/
+const PRECACHE = ['/', '/offline', '/manifest.json', '/icons/icon-192.png', '/icons/icon-maskable-192.png', '/icons/badge-96.png', '/sounds/sale-approved.mp3']
+const STATIC_RE = /\.(?:js|css|woff2?|png|jpe?g|webp|svg|ico|gif|avif|mp3)$/
 const APP_NAV_RE = /^\/(?:dashboard|finances|habits|workout|calendar|goals|notes|reports|settings|cards)(?:\/|$)/
 
 function buildColdStartShellResponse(targetUrl) {
@@ -90,12 +90,26 @@ async function showVyntaNotification(payload) {
     renotify: !!payload.tag,
     lang: 'pt-BR',
     timestamp: Date.now(),
-    data: { url: payload.url || '/dashboard', actions: payload.actions || [] },
+    sound: payload.sound || undefined,
+    data: { url: payload.url || '/dashboard', actions: payload.actions || [], sound: payload.sound || null },
     actions: (payload.actions || []).slice(0, 2).map((a) => ({ action: a.action, title: a.title })),
   }
   await Promise.all([
     self.registration.showNotification(title, options),
     self.navigator && self.navigator.setAppBadge ? self.navigator.setAppBadge().catch(() => {}) : null,
+    payload.sound ? (async () => {
+      try {
+        const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+        let playedOnVisibleClient = false
+        for (const client of windows) {
+          client.postMessage({ type: 'vynta:play-sound', sound: payload.sound })
+          if (client.visibilityState === 'visible') playedOnVisibleClient = true
+        }
+        if (!playedOnVisibleClient) {
+          await stampAndStore(DATA_CACHE, '/__pending_sale_sound__', new Response(payload.sound))
+        }
+      } catch {}
+    })() : null,
   ])
 }
 
@@ -291,6 +305,20 @@ self.addEventListener('message', (event) => {
     event.waitUntil(showVyntaNotification(data.payload))
   } else if (data.type === 'vynta:evaluate-local-notifications') {
     event.waitUntil(evaluateLocalOfflineNotifications(data.state))
+  } else if (data.type === 'vynta:consume-pending-sound') {
+    event.waitUntil((async () => {
+      try {
+        const hit = await matchFresh(DATA_CACHE, '/__pending_sale_sound__')
+        if (hit) {
+          const sound = await hit.text()
+          const cache = await caches.open(DATA_CACHE)
+          await cache.delete('/__pending_sale_sound__')
+          if (sound && event.source) {
+            event.source.postMessage({ type: 'vynta:play-sound', sound })
+          }
+        }
+      } catch {}
+    })())
   }
 })
 
@@ -454,7 +482,7 @@ self.addEventListener('notificationclick', (event) => {
     const appClient = sameOrigin.find((c) => !/^\/(?:$|login|register|offline|esqueci-a-senha|admin|unlock|sucesso)/.test(new URL(c.url).pathname))
     if (appClient) {
       await appClient.focus()
-      appClient.postMessage({ type: 'vynta:navigate', url: target.pathname + target.search })
+      appClient.postMessage({ type: 'vynta:navigate', url: target.pathname + target.search, sound: data.sound || null })
       return
     }
     const other = sameOrigin[0]
