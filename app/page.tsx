@@ -201,6 +201,7 @@ export default function LandingPage() {
             <a href="#como-funciona" className="transition hover:text-white">Como funciona</a>
             <a href="#planos" className="transition hover:text-white">Preço</a>
             <a href="#duvidas" className="transition hover:text-white">Dúvidas</a>
+            <a href="#contato" className="transition hover:text-white">Contato</a>
           </nav>
           <div className="flex items-center gap-2 sm:gap-3">
             <Link href="/login" className="px-2 py-2 text-sm font-medium text-surface-300 transition hover:text-white">
@@ -598,13 +599,27 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer className="border-t border-white/[0.06] pb-28 pt-10 md:pb-10">
+      <footer id="contato" className="border-t border-white/[0.06] pb-28 pt-10 md:pb-10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 text-sm text-surface-500 sm:px-6 md:flex-row">
           <BrandLogo size="sm" textClassName="text-surface-300" />
-          <p>© {new Date().getFullYear()} Vynta. Feito no Brasil.</p>
+          <div className="flex flex-col items-center gap-1.5 text-center text-xs text-surface-400">
+            <p className="text-sm text-surface-300">© {new Date().getFullYear()} Vynta · CNPJ: 61.751.793/0001-75</p>
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+              <span>CNPJ: 61.751.793/0001-75</span>
+              <span>·</span>
+              <a href="https://wa.me/5585992551864" target="_blank" rel="noopener noreferrer" className="transition hover:text-white">
+                Contato: (85) 99255-1864 / 85992551864
+              </a>
+              <span>·</span>
+              <a href="mailto:lucasximenes177@gmail.com" className="transition hover:text-white">
+                E-mail: lucasximenes177@gmail.com
+              </a>
+            </div>
+          </div>
           <div className="flex gap-5">
             <Link href="/login" className="transition hover:text-white">Entrar</Link>
             <a href="#duvidas" className="transition hover:text-white">Dúvidas</a>
+            <a href="#contato" className="transition hover:text-white">Contato</a>
           </div>
         </div>
       </footer>
