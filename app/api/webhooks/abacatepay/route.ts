@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { activateRecurringSubscription, cancelRecurringSubscription } from '@/services/subscription.service'
-import { findSubscriptionByCheckout, getSubscription } from '@/services/abacatepay.service'
+import { findSubscriptionByCheckout, getSubscription, getSubscriptionCheckout } from '@/services/abacatepay.service'
 import { FacebookService } from '@/services/facebook.service'
 import { notifyAdminsApprovedSale } from '@/services/push.service'
 import { tierFromCycle, tierFromAmount, normalizeTier, type BillingTier } from '@/lib/plans'
@@ -66,7 +66,7 @@ export async function POST(req: Request) {
 
     const data = event.data || {}
     let subscription = data.subscription
-    const checkout = isTrusted ? data.checkout : undefined
+    let checkout = isTrusted ? (data.checkout || data.billing) : undefined
     const payment = data.payment
     const customer = isTrusted ? data.customer : undefined
 
@@ -74,6 +74,14 @@ export async function POST(req: Request) {
       const verified = await getSubscription(subscription.id).catch(() => null)
       if (!verified) return NextResponse.json({ error: 'Unknown subscription' }, { status: 401 })
       subscription = verified
+    }
+
+    const rawCheckoutId = data.checkout?.id || data.billing?.id
+    if (!isTrusted && rawCheckoutId) {
+      const verifiedCheckout = await getSubscriptionCheckout(rawCheckoutId).catch(() => null)
+      if (verifiedCheckout && (verifiedCheckout.status === 'PAID' || verifiedCheckout.status === 'ACTIVE')) {
+        checkout = { ...(data.checkout || data.billing || {}), ...verifiedCheckout }
+      }
     }
 
     // Handle subscription events (completed or renewed)
@@ -236,63 +244,40 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, message: 'Cancellation processed' }, { status: 200 })
     }
 
-    // Fallback: Handle standalone checkout.completed
-    if (eventType === 'checkout.completed') {
+    // Fallback: Handle standalone checkout.completed / billing.paid (e.g. standard PIX checkout)
+    if (eventType === 'checkout.completed' || eventType === 'billing.paid') {
       const checkoutId = checkout?.id
-      const amountCents = Number(checkout?.amount || 0)
+      const amountCents = Number(checkout?.amount || payment?.amount || 0)
       const rawExternalId = checkout?.externalId || ''
-      const parts = rawExternalId.split('_')
-      const userId = parts[0] && parts[0] !== 'none' ? parts[0] : null
+      const parts = String(rawExternalId).split('_')
+      let userId: string | null = (checkout?.metadata?.userId ? String(checkout.metadata.userId) : null) || (parts[0] && parts[0] !== 'none' ? parts[0] : null)
       const sessionId = parts[2] && parts[2] !== 'none' ? parts[2] : null
 
+      if (!userId && checkoutId) {
+        const pendingTx = await prisma.paymentTransaction.findUnique({
+          where: { providerTransactionId: checkoutId },
+          select: { userId: true },
+        })
+        if (pendingTx) userId = pendingTx.userId
+      }
+
       if (checkoutId && userId) {
-        // Check if there is an active recurring subscription associated with this checkout
         const sub = await findSubscriptionByCheckout(checkoutId).catch(() => null)
         const tier = normalizeTier(checkout?.metadata?.tier || tierFromAmount(amountCents))
 
-        if (sub) {
-          await activateRecurringSubscription({
-            userId,
-            tier,
-            subscriptionId: sub.id,
-            customerId: sub.customerId || checkout?.customerId,
-            chargeId: checkoutId,
-            checkoutId,
-            amountCents,
-          })
-        } else {
-          // If subscription object is not yet created, update paymentTransaction record to ACTIVE
-          await prisma.paymentTransaction.upsert({
-            where: { providerTransactionId: checkoutId },
-            update: { status: 'ACTIVE', rawStatus: 'checkout.completed', paidAt: new Date() },
-            create: {
-              userId,
-              provider: 'abacatepay',
-              providerTransactionId: checkoutId,
-              amount: amountCents / 100,
-              status: 'ACTIVE',
-              rawStatus: 'checkout.completed',
-              paidAt: new Date(),
-            },
-          })
-          const checkoutUser = await prisma.user.findUnique({
-            where: { id: userId },
-            select: { name: true, email: true },
-          })
-          if (checkoutUser) {
-            await notifyAdminsApprovedSale({
-              chargeId: checkoutId,
-              name: checkoutUser.name,
-              email: checkoutUser.email,
-              tier,
-              amountCents,
-            }).catch(() => {})
-          }
-        }
+        const activatedUser = await activateRecurringSubscription({
+          userId,
+          tier,
+          subscriptionId: sub?.id || `sub_checkout_${checkoutId}`,
+          customerId: sub?.customerId || checkout?.customerId || null,
+          chargeId: checkoutId,
+          checkoutId,
+          amountCents,
+        })
 
         const isDevCheckout = Boolean(event.devMode || checkout?.devMode || process.env.ABACATEPAY_API_KEY?.startsWith('abc_dev_'))
         const effectiveSessionId = sessionId && sessionId !== 'none' ? sessionId : userId
-        if (effectiveSessionId && !isDevCheckout) {
+        if (activatedUser && effectiveSessionId && !isDevCheckout) {
           const recentDuplicate = await prisma.funnelEvent.findFirst({
             where: {
               userId,
@@ -310,6 +295,23 @@ export async function POST(req: Request) {
                 metadata: { checkoutId, amount: amountCents / 100, tier },
               },
             }).catch(() => {})
+          }
+
+          try {
+            const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? req.headers.get('x-real-ip') ?? undefined
+            const userAgent = req.headers.get('user-agent') ?? undefined
+
+            await FacebookService.sendEvent('Purchase', {
+              email: activatedUser.email,
+              externalId: userId,
+              value: amountCents / 100,
+              currency: 'BRL',
+              eventId: `purchase_${checkoutId}`,
+              clientIpAddress: ip,
+              clientUserAgent: userAgent,
+            }, 'https://www.vynta.digital/payment/return')
+          } catch (e) {
+            console.error('[AbacatePay Webhook] Meta CAPI Purchase error:', e)
           }
         }
       }

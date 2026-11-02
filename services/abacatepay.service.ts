@@ -74,6 +74,31 @@ async function ensureSubscriptionProduct(tier: BillingTier): Promise<string> {
   return created.id
 }
 
+/**
+ * Returns a one-time AbacatePay product (no recurring cycle) for stores where only standard PIX
+ * checkout (/checkouts/create) is enabled in production.
+ */
+async function ensureOneTimeProduct(tier: BillingTier): Promise<string> {
+  const plan = PLANS[tier]
+  const externalId = `vynta-pix-${tier}-${plan.priceCents}`
+
+  const products = await abacateRequest<AbacateProduct[]>('/products/list', { query: { limit: '100' } })
+  const existing = products?.find((p) => p.externalId === externalId)
+  if (existing) return existing.id
+
+  const created = await abacateRequest<AbacateProduct>('/products/create', {
+    method: 'POST',
+    body: {
+      externalId,
+      name: `${PLAN_NAME} — ${plan.name}`,
+      description: `Acesso completo ao Vynta (${plan.name.toLowerCase()})`,
+      price: plan.priceCents,
+      currency: 'BRL',
+    },
+  })
+  return created.id
+}
+
 export interface CreateSubscriptionCheckoutInput {
   userId: string
   tier: BillingTier
@@ -81,39 +106,118 @@ export interface CreateSubscriptionCheckoutInput {
   sessionId?: string | null
 }
 
-/**
- * Creates a hosted recurring checkout (Pix or card). The checkout page collects the
- * customer's personal data, so we never need to ask for CPF inside the app.
- */
-export async function createSubscriptionCheckout({ userId, tier, appUrl, sessionId }: CreateSubscriptionCheckoutInput) {
-  const [productId, user] = await Promise.all([
-    ensureSubscriptionProduct(tier),
-    prisma.user.findUnique({ where: { id: userId }, select: { billingCustomerId: true } }),
-  ])
+async function tryCreateCheckoutForUser(
+  userId: string,
+  tier: BillingTier,
+  appUrl: string,
+  sessionId: string | null | undefined,
+  customerId: string | null,
+): Promise<AbacateCheckout> {
+  const productId = await ensureSubscriptionProduct(tier)
+  const externalId = `${userId}_${Date.now()}_${sessionId || 'none'}`
 
   const basePayload = {
     items: [{ id: productId, quantity: 1 }],
-    ...(user?.billingCustomerId ? { customerId: user.billingCustomerId } : {}),
-    externalId: `${userId}_${Date.now()}_${sessionId || 'none'}`,
+    ...(customerId ? { customerId } : {}),
+    externalId,
     returnUrl: `${appUrl}/subscription`,
     completionUrl: `${appUrl}/payment/return`,
     retryPolicy: { maxRetry: 3, retryEvery: 2 },
     metadata: { userId, tier },
   }
 
-  let checkout: AbacateCheckout
+  // 1. Try recurring subscription with both PIX and CARD
   try {
-    checkout = await abacateRequest<AbacateCheckout>('/subscriptions/create', {
+    return await abacateRequest<AbacateCheckout>('/subscriptions/create', {
       method: 'POST',
       body: { ...basePayload, methods: ['PIX', 'CARD'] },
     })
+  } catch (err1: any) {
+    const msg1 = String(err1?.message || '').toLowerCase()
+
+    // If customerId is from devMode or invalid in production, bubble up so caller retries without customerId
+    if (customerId && (msg1.includes('customer') || msg1.includes('not found'))) {
+      throw err1
+    }
+
+    // 2. If CARD is not available on this store (common on newly approved production accounts), try PIX-only subscription
+    if (msg1.includes('card')) {
+      try {
+        return await abacateRequest<AbacateCheckout>('/subscriptions/create', {
+          method: 'POST',
+          body: { ...basePayload, methods: ['PIX'] },
+        })
+      } catch (errPixSub: any) {
+        // 3. If PIX Automático is also not enabled on /subscriptions/create, fall back to standard PIX checkout (/checkouts/create)
+        const oneTimeProductId = await ensureOneTimeProduct(tier)
+        return await abacateRequest<AbacateCheckout>('/checkouts/create', {
+          method: 'POST',
+          body: {
+            items: [{ id: oneTimeProductId, quantity: 1 }],
+            ...(customerId ? { customerId } : {}),
+            externalId,
+            returnUrl: `${appUrl}/subscription`,
+            completionUrl: `${appUrl}/payment/return`,
+            methods: ['PIX'],
+            metadata: { userId, tier },
+          },
+        })
+      }
+    }
+
+    // 4. If PIX Automático is not enabled (e.g. devMode where only CARD is enabled on /subscriptions/create), try CARD-only
+    if (msg1.includes('pix')) {
+      try {
+        return await abacateRequest<AbacateCheckout>('/subscriptions/create', {
+          method: 'POST',
+          body: { ...basePayload, methods: ['CARD'] },
+        })
+      } catch {
+        const oneTimeProductId = await ensureOneTimeProduct(tier)
+        return await abacateRequest<AbacateCheckout>('/checkouts/create', {
+          method: 'POST',
+          body: {
+            items: [{ id: oneTimeProductId, quantity: 1 }],
+            ...(customerId ? { customerId } : {}),
+            externalId,
+            returnUrl: `${appUrl}/subscription`,
+            completionUrl: `${appUrl}/payment/return`,
+            methods: ['PIX'],
+            metadata: { userId, tier },
+          },
+        })
+      }
+    }
+
+    throw err1
+  }
+}
+
+/**
+ * Creates a hosted recurring checkout (Pix or card), gracefully falling back to available store methods.
+ */
+export async function createSubscriptionCheckout({ userId, tier, appUrl, sessionId }: CreateSubscriptionCheckoutInput) {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { billingCustomerId: true } })
+  let customerId = user?.billingCustomerId ?? null
+
+  // Never send a dev-mode customerId when running with a production key (or vice versa)
+  const isDevKey = apiKey().startsWith('abc_dev_')
+  if (customerId) {
+    const isDevCustomer = customerId.startsWith('cust_dev_')
+    if (isDevKey !== isDevCustomer) {
+      customerId = null
+      await prisma.user.update({ where: { id: userId }, data: { billingCustomerId: null } }).catch(() => {})
+    }
+  }
+
+  let checkout: AbacateCheckout
+  try {
+    checkout = await tryCreateCheckoutForUser(userId, tier, appUrl, sessionId, customerId)
   } catch (err: any) {
-    // Fallback to CARD-only if PIX Automático is not yet enabled on the store (e.g., dev mode)
-    if (String(err?.message || '').toLowerCase().includes('pix')) {
-      checkout = await abacateRequest<AbacateCheckout>('/subscriptions/create', {
-        method: 'POST',
-        body: { ...basePayload, methods: ['CARD'] },
-      })
+    // If stored customerId was rejected (e.g. from another environment/store), clear it and retry once without customerId
+    if (customerId) {
+      await prisma.user.update({ where: { id: userId }, data: { billingCustomerId: null } }).catch(() => {})
+      checkout = await tryCreateCheckoutForUser(userId, tier, appUrl, sessionId, null)
     } else {
       throw err
     }
@@ -134,7 +238,11 @@ export async function createSubscriptionCheckout({ userId, tier, appUrl, session
 }
 
 export async function getSubscriptionCheckout(checkoutId: string) {
-  return abacateRequest<AbacateCheckout>('/subscriptions/checkouts/get', { query: { id: checkoutId } })
+  try {
+    return await abacateRequest<AbacateCheckout>('/subscriptions/checkouts/get', { query: { id: checkoutId } })
+  } catch {
+    return await abacateRequest<AbacateCheckout>('/checkouts/get', { query: { id: checkoutId } })
+  }
 }
 
 export async function getSubscription(subscriptionId: string) {
@@ -142,7 +250,7 @@ export async function getSubscription(subscriptionId: string) {
 }
 
 export async function findSubscriptionByCheckout(checkoutId: string): Promise<AbacateSubscription | null> {
-  const list = await abacateRequest<AbacateSubscription[]>('/subscriptions/list', { query: { checkoutId } })
+  const list = await abacateRequest<AbacateSubscription[]>('/subscriptions/list', { query: { checkoutId } }).catch(() => null)
   return list?.[0] ?? null
 }
 
