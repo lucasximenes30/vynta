@@ -159,11 +159,12 @@ export default function DashboardClient({
               <button
                 onClick={async () => {
                   await fetch('/api/auth/logout', { method: 'POST' })
-                  router.push('/login')
+                  window.location.replace('/login')
                 }}
-                className="hidden text-sm text-surface-500 transition-colors hover:text-surface-800 dark:text-surface-400 dark:hover:text-surface-200 sm:inline"
+                className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-2 text-xs sm:text-sm font-medium text-surface-500 transition-colors hover:bg-surface-100 hover:text-rose-600 dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-rose-400"
               >
-                Sair
+                <Lucide.LogOut className="w-4 h-4" />
+                <span>Sair</span>
               </button>
             </div>
           </div>

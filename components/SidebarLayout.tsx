@@ -10,10 +10,10 @@ import RouterCacheSync from './RouterCacheSync'
 import { openQuickAdd } from '@/lib/quickAdd'
 import { startTour } from '@/lib/tour'
 import dynamic from 'next/dynamic'
+import * as Lucide from 'lucide-react'
 
 // Guided first-steps tour (only rendered while active; loaded lazily to keep the shell light)
 const TourHost = dynamic(() => import('./tour/TourHost'), { ssr: false })
-import * as Lucide from 'lucide-react'
 
 // Routes where the sidebar/bottom nav should NOT appear
 const NO_SIDEBAR_ROUTES = ['/', '/login', '/register', '/admin', '/offline']
@@ -132,6 +132,20 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
                 )
               ))}
             </div>
+
+            <div className="mt-5 pt-4 border-t border-surface-100 dark:border-surface-800">
+              <button
+                onClick={async () => {
+                  setShowQuickActions(false)
+                  await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
+                  window.location.replace('/login')
+                }}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-500/20 bg-rose-500/10 py-3 text-xs font-bold text-rose-600 dark:text-rose-400 transition-all active:scale-95 hover:bg-rose-500/15"
+              >
+                <Lucide.LogOut className="w-4 h-4" />
+                Sair da conta
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -139,7 +153,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
       {/* Mobile Bottom Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/80 dark:bg-surface-900/80 backdrop-blur-lg border-t border-surface-200/80 dark:border-surface-800/80 pb-safe">
         <div className="flex items-center justify-around h-16 px-2">
-          {MOBILE_NAV_ITEMS.map((item, idx) => {
+          {MOBILE_NAV_ITEMS.map((item) => {
             if (item.isAction) {
               return (
                 <div key="action" className="relative -top-5 flex justify-center w-16">

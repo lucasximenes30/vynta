@@ -223,6 +223,16 @@ export default function SettingsClient({ session }: SettingsClientProps) {
           >
             Dashboard
           </button>
+          <button
+            onClick={async () => {
+              await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
+              window.location.replace('/login')
+            }}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-1.5 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-colors"
+          >
+            <Lucide.LogOut className="w-3.5 h-3.5" />
+            Sair
+          </button>
         </div>
       </header>
 
