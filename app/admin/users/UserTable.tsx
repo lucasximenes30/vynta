@@ -16,8 +16,11 @@ type UserData = {
   phone?: string | null
   subscriptionExpiresAt?: string | null
   subscriptionEndDate?: string | null
+  lastSeenAt?: string | null
+  lastActivityAt?: string | null
 }
 
+import { lastSeenInfo } from './lastSeen'
 import UserDetailsModal, { UserDetails } from './UserDetailsModal'
 import ChangeAccessModal from './ChangeAccessModal'
 import TemporaryPasswordModal from './TemporaryPasswordModal'
@@ -41,16 +44,19 @@ export default function UserTable({
   initialSearch,
   initialPlan = 'all',
   initialStatus = 'all',
+  initialUsage = 'all',
 }: {
   initialUsers: UserData[]
   initialSearch: string
   initialPlan?: string
   initialStatus?: string
+  initialUsage?: string
 }) {
   const router = useRouter()
   const [search, setSearch] = useState(initialSearch)
   const [plan, setPlan] = useState(initialPlan)
   const [status, setStatus] = useState(initialStatus)
+  const [usage, setUsage] = useState(initialUsage)
   const [isPending, startTransition] = useTransition()
   const [loadingAction, setLoadingAction] = useState<string | null>(null)
   
@@ -65,6 +71,7 @@ export default function UserTable({
       if (search) params.set('search', search)
       if (plan !== 'all') params.set('plan', plan)
       if (status !== 'all') params.set('status', status)
+      if (usage !== 'all') params.set('usage', usage)
       
       router.push(`/admin/users?${params.toString()}`)
     })
@@ -72,10 +79,10 @@ export default function UserTable({
 
   // Trigger search when filters change
   useEffect(() => {
-    if (plan !== initialPlan || status !== initialStatus) {
+    if (plan !== initialPlan || status !== initialStatus || usage !== initialUsage) {
       handleSearch()
     }
-  }, [plan, status])
+  }, [plan, status, usage])
 
   const handleStatusChange = async (userId: string, active: boolean) => {
     const actionText = active ? 'ATIVAR' : 'INATIVAR'
@@ -135,6 +142,17 @@ export default function UserTable({
             <option value="PENDING">Pendente</option>
           </select>
 
+          <select
+            value={usage}
+            onChange={(e) => setUsage(e.target.value)}
+            className="w-full sm:w-auto px-4 py-2.5 bg-surface-50 dark:bg-surface-950 border border-surface-200 dark:border-surface-800 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all outline-none text-surface-900 dark:text-white"
+          >
+            <option value="all">Uso: Todos</option>
+            <option value="today">Acessou nas últimas 24h</option>
+            <option value="inactive2">Sem acessar há 2+ dias</option>
+            <option value="never">Nunca acessou</option>
+          </select>
+
           <button
             type="submit"
             disabled={isPending}
@@ -163,6 +181,7 @@ export default function UserTable({
                 <th className="px-6 py-4 font-semibold text-surface-600 dark:text-surface-300">Usuário</th>
                 <th className="px-6 py-4 font-semibold text-surface-600 dark:text-surface-300">Acesso</th>
                 <th className="px-6 py-4 font-semibold text-surface-600 dark:text-surface-300">Status</th>
+                <th className="px-6 py-4 font-semibold text-surface-600 dark:text-surface-300">Último acesso</th>
                 <th className="px-6 py-4 font-semibold text-surface-600 dark:text-surface-300">Cadastro</th>
                 <th className="px-6 py-4 font-semibold text-surface-600 dark:text-surface-300 text-right">Ações</th>
               </tr>
@@ -170,7 +189,7 @@ export default function UserTable({
             <tbody className="divide-y divide-surface-200 dark:divide-surface-800">
               {initialUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-surface-500">
+                  <td colSpan={6} className="px-6 py-12 text-center text-surface-500">
                     Nenhum usuário encontrado.
                   </td>
                 </tr>
@@ -208,6 +227,12 @@ export default function UserTable({
                         >
                           {isActive ? 'Ativo' : user.subscriptionStatus}
                         </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className={`text-sm font-semibold ${lastSeenInfo(user.lastSeenAt).cls}`}>{lastSeenInfo(user.lastSeenAt).label}</div>
+                        <div className="text-[11px] text-surface-400 mt-0.5">
+                          {user.lastActivityAt ? `Últ. lançamento: ${lastSeenInfo(user.lastActivityAt).label.toLowerCase()}` : 'Nenhum lançamento'}
+                        </div>
                       </td>
                       <td className="px-6 py-4 text-surface-600 dark:text-surface-400">
                         {new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(user.createdAt))}
@@ -355,6 +380,10 @@ export default function UserTable({
                     }`}
                   >
                     {isActive ? 'Ativo' : user.subscriptionStatus}
+                  </span>
+
+                  <span className={`text-[11px] font-semibold ${lastSeenInfo(user.lastSeenAt).cls}`}>
+                    · {lastSeenInfo(user.lastSeenAt).label}
                   </span>
                 </div>
               </div>

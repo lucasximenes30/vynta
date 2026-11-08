@@ -38,6 +38,28 @@ export const PLANS: Record<BillingTier, PlanOption> = {
   },
 }
 
+/**
+ * First-month offer: a one-time charge (Pix/cartão) that unlocks 30 days of the full plan.
+ * Offered once per account, during the free trial and up to `windowDaysAfterTrial` after it ends.
+ */
+export const PROMO_FIRST_MONTH = {
+  priceCents: 1490,
+  accessDays: 30,
+  windowDaysAfterTrial: 7,
+} as const
+
+/** True while a trial account (that never paid) can still buy the first-month offer. */
+export function isPromoEligible(
+  user: { plan?: string | null; role?: string | null; subscriptionExpiresAt?: Date | string | null },
+  hasPaidBefore: boolean,
+  now: number = Date.now(),
+): boolean {
+  if (hasPaidBefore || user.plan !== 'FREE_TRIAL' || user.role === 'ADMIN' || user.role === 'COURTESY') return false
+  if (!user.subscriptionExpiresAt) return false
+  const windowEnd = new Date(user.subscriptionExpiresAt).getTime() + PROMO_FIRST_MONTH.windowDaysAfterTrial * 24 * 60 * 60 * 1000
+  return now < windowEnd
+}
+
 export const YEARLY_MONTHLY_EQUIVALENT_CENTS = Math.round(PLANS.pro_yearly.priceCents / 12)
 export const YEARLY_SAVINGS_CENTS = PLANS.pro.priceCents * 12 - PLANS.pro_yearly.priceCents
 export const YEARLY_DISCOUNT_PERCENT = Math.round((YEARLY_SAVINGS_CENTS / (PLANS.pro.priceCents * 12)) * 100)

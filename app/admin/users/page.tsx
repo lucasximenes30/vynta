@@ -2,14 +2,15 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import UserTable from './UserTable'
-import * as Lucide from 'lucide-react'
+import { AdminPageHeader, Panel, StatCard } from '../ui'
+import { getLastActivityByUser } from '@/services/admin/user.admin.service'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AdminUsersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; plan?: string; status?: string }>
+  searchParams: Promise<{ search?: string; plan?: string; status?: string; usage?: string }>
 }) {
   const session = await requireAuth().catch(() => null)
   if (!session || session.role !== 'ADMIN') {
@@ -20,6 +21,7 @@ export default async function AdminUsersPage({
   const search = resolvedSearchParams?.search || ''
   const plan = resolvedSearchParams?.plan || 'all'
   const status = resolvedSearchParams?.status || 'all'
+  const usage = resolvedSearchParams?.usage || 'all'
 
   const whereClause: any = {}
 
@@ -77,7 +79,7 @@ export default async function AdminUsersPage({
   // Free Trial Specific Analytics
   const allFreeTrials = await prisma.user.findMany({
     where: { plan: 'FREE_TRIAL' },
-    select: { createdAt: true }
+    select: { createdAt: true, subscriptionExpiresAt: true }
   });
 
   let trialActive = 0;
@@ -88,7 +90,7 @@ export default async function AdminUsersPage({
   const oneDayMs = 24 * 60 * 60 * 1000;
 
   allFreeTrials.forEach(u => {
-    const expiresAt = new Date(u.createdAt.getTime() + oneDayMs);
+    const expiresAt = u.subscriptionExpiresAt ?? new Date(u.createdAt.getTime() + oneDayMs);
     if (expiresAt < now) {
       trialExpired++;
     } else {
@@ -96,26 +98,39 @@ export default async function AdminUsersPage({
       const daysUntilExpiration = Math.floor((expiresAt.getTime() - startOfToday.getTime()) / (1000 * 60 * 60 * 24));
       
       if (daysUntilExpiration === 0) trialExpiringToday++;
-      else if (daysUntilExpiration >= 1) trialExpiringTomorrow++;
+      else if (daysUntilExpiration === 1) trialExpiringTomorrow++;
     }
   });
 
-  const users = await prisma.user.findMany({
-    where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
-    orderBy: { createdAt: 'desc' },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      plan: true,
-      role: true,
-      subscriptionStatus: true,
-      createdAt: true,
-      phone: true,
-      subscriptionExpiresAt: true,
-      subscriptionEndDate: true,
-    },
-  })
+  const DAY = 24 * 60 * 60 * 1000
+  if (usage === 'today') whereClause.lastSeenAt = { gte: new Date(now.getTime() - DAY) }
+  else if (usage === 'inactive2') whereClause.lastSeenAt = { lt: new Date(now.getTime() - 2 * DAY) }
+  else if (usage === 'never') whereClause.lastSeenAt = null
+
+  const [users, seenToday, seen7d, inactive2d, neverSeen] = await Promise.all([
+    prisma.user.findMany({
+      where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
+      orderBy: usage === 'all' ? { createdAt: 'desc' } : { lastSeenAt: { sort: 'desc', nulls: 'last' } },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        plan: true,
+        role: true,
+        subscriptionStatus: true,
+        createdAt: true,
+        phone: true,
+        subscriptionExpiresAt: true,
+        subscriptionEndDate: true,
+        lastSeenAt: true,
+      },
+    }),
+    prisma.user.count({ where: { lastSeenAt: { gte: new Date(now.getTime() - DAY) } } }),
+    prisma.user.count({ where: { lastSeenAt: { gte: new Date(now.getTime() - 7 * DAY) } } }),
+    prisma.user.count({ where: { lastSeenAt: { lt: new Date(now.getTime() - 2 * DAY) }, role: { not: 'ADMIN' } } }),
+    prisma.user.count({ where: { lastSeenAt: null, role: { not: 'ADMIN' } } }),
+  ])
+  const lastActivity = await getLastActivityByUser(users.map((u) => u.id))
 
   // Provide fallback phone logic - UI will simply show 'Não informado'
   const formattedUsers = users.map((user: any) => ({
@@ -123,76 +138,54 @@ export default async function AdminUsersPage({
     createdAt: user.createdAt.toISOString(),
     subscriptionExpiresAt: user.subscriptionExpiresAt?.toISOString() || null,
     subscriptionEndDate: user.subscriptionEndDate?.toISOString() || null,
+    lastSeenAt: user.lastSeenAt?.toISOString() || null,
+    lastActivityAt: lastActivity.get(user.id)?.toISOString() || null,
   }))
+
+  const pill = (href: string, label: string, value: number, cls: string) => (
+    <a href={href} className="flex items-center justify-between gap-3 rounded-xl px-3 py-2 hover:bg-surface-50 dark:hover:bg-surface-800/40 transition-colors">
+      <span className="text-sm text-surface-600 dark:text-surface-300">{label}</span>
+      <span className={`font-display text-lg font-bold ${cls}`}>{value}</span>
+    </a>
+  )
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-display font-bold tracking-tight text-surface-900 dark:text-white">
-            Usuários
-          </h1>
-          <p className="text-surface-500 dark:text-surface-400 mt-1">
-            Gerencie acessos e contas de usuários.
-          </p>
-        </div>
+      <AdminPageHeader
+        title="Usuários"
+        subtitle="Contas, acessos e engajamento de cada usuário."
+        aside={<span className="rounded-xl bg-surface-100 dark:bg-surface-800 px-4 py-2 text-sm font-semibold text-surface-600 dark:text-surface-300">{users.length} {users.length === 1 ? 'usuário' : 'usuários'} na lista</span>}
+      />
 
-        <div className="flex items-center gap-3">
-          <div className="px-4 py-2 bg-surface-100 dark:bg-surface-800 rounded-lg text-sm font-medium text-surface-600 dark:text-surface-300">
-            Total: {users.length}
-          </div>
-        </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <StatCard icon="UserCheck" label="PRO ativos" value={activePro} tone="violet" href="/admin/users?plan=PRO&status=ACTIVE" />
+        <StatCard icon="UserCheck" label="VIP ativos" value={activeVip} tone="brand" href="/admin/users?plan=VIP&status=ACTIVE" />
+        <StatCard icon="Clock" label="Em teste" value={trialActive} tone="blue" href="/admin/users?plan=FREE_TRIAL" />
+        <StatCard icon="Users" label="Cortesia" value={courtesyUsers} tone="emerald" href="/admin/users?plan=COURTESY" />
+        <StatCard icon="UserX" label="Expirados" value={expiredUsers + trialExpired} tone="red" />
+        <StatCard icon="CreditCard" label="Pendentes" value={pendingUsers} tone="amber" href="/admin/users?status=PENDING" />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <div className="bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-800 p-4 rounded-xl flex flex-col justify-center">
-          <span className="text-xs text-surface-500 font-medium uppercase tracking-wider mb-1">VIP Ativos</span>
-          <span className="text-2xl font-bold text-brand-500">{activeVip}</span>
-        </div>
-        <div className="bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-800 p-4 rounded-xl flex flex-col justify-center">
-          <span className="text-xs text-surface-500 font-medium uppercase tracking-wider mb-1">PRO Ativos</span>
-          <span className="text-2xl font-bold text-purple-500">{activePro}</span>
-        </div>
-        <div className="bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-800 p-4 rounded-xl flex flex-col justify-center">
-          <span className="text-xs text-surface-500 font-medium uppercase tracking-wider mb-1">Courtesy</span>
-          <span className="text-2xl font-bold text-emerald-500">{courtesyUsers}</span>
-        </div>
-        <div className="bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-800 p-4 rounded-xl flex flex-col justify-center">
-          <span className="text-xs text-surface-500 font-medium uppercase tracking-wider mb-1">Testes Ativos</span>
-          <span className="text-2xl font-bold text-blue-500">{trialActive}</span>
-        </div>
-        <div className="bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-800 p-4 rounded-xl flex flex-col justify-center">
-          <span className="text-xs text-surface-500 font-medium uppercase tracking-wider mb-1">Expirados</span>
-          <span className="text-2xl font-bold text-red-500">{expiredUsers + trialExpired}</span>
-        </div>
-        <div className="bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-800 p-4 rounded-xl flex flex-col justify-center">
-          <span className="text-xs text-surface-500 font-medium uppercase tracking-wider mb-1">Pendentes</span>
-          <span className="text-2xl font-bold text-amber-500">{pendingUsers}</span>
-        </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Panel title="Uso do sistema" subtitle="Último acesso ao app (abrir o app conta como acesso).">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+            {pill('/admin/users?usage=today', 'Acessaram nas últimas 24h', seenToday, 'text-emerald-600 dark:text-emerald-400')}
+            {pill('/admin/users', 'Acessaram em 7 dias', seen7d, 'text-blue-600 dark:text-blue-400')}
+            {pill('/admin/users?usage=inactive2', 'Sem acessar há 2+ dias', inactive2d, 'text-amber-600 dark:text-amber-500')}
+            {pill('/admin/users?usage=never', 'Nunca abriram', neverSeen, 'text-red-500 dark:text-red-400')}
+          </div>
+        </Panel>
+        <Panel title="Teste grátis" subtitle="Situação dos testes de 7 dias.">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+            {pill('/admin/users?plan=FREE_TRIAL', 'Testes ativos', trialActive, 'text-blue-600 dark:text-blue-400')}
+            {pill('/admin/users?plan=FREE_TRIAL', 'Terminam hoje', trialExpiringToday, 'text-orange-600 dark:text-orange-500')}
+            {pill('/admin/users?plan=FREE_TRIAL', 'Terminam amanhã', trialExpiringTomorrow, 'text-amber-600 dark:text-amber-500')}
+            {pill('/admin/users?plan=FREE_TRIAL', 'Testes expirados', trialExpired, 'text-red-500 dark:text-red-400')}
+          </div>
+        </Panel>
       </div>
 
-      <div className="bg-blue-50/50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-900/30 p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 overflow-hidden">
-        <div>
-          <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-300">Testes Grátis (Free Trial)</h3>
-          <p className="text-xs text-blue-700 dark:text-blue-400/80 mt-1">Acompanhamento do funil de testes de 24 horas.</p>
-        </div>
-        <div className="flex gap-4 md:gap-6 overflow-x-auto pb-2 md:pb-0 hide-scrollbar">
-          <div className="text-center shrink-0">
-            <span className="block text-xl font-bold text-amber-600 dark:text-amber-500">{trialExpiringTomorrow}</span>
-            <span className="text-[0.65rem] uppercase tracking-wider font-semibold text-amber-800/60 dark:text-amber-500/60">Amanhã</span>
-          </div>
-          <div className="text-center shrink-0">
-            <span className="block text-xl font-bold text-orange-600 dark:text-orange-500">{trialExpiringToday}</span>
-            <span className="text-[0.65rem] uppercase tracking-wider font-semibold text-orange-800/60 dark:text-orange-500/60">Hoje</span>
-          </div>
-          <div className="text-center shrink-0">
-            <span className="block text-xl font-bold text-red-500 dark:text-red-400">{trialExpired}</span>
-            <span className="text-[0.65rem] uppercase tracking-wider font-semibold text-red-800/60 dark:text-red-400/60">Expirados</span>
-          </div>
-        </div>
-      </div>
-
-      <UserTable initialUsers={formattedUsers} initialSearch={search} initialPlan={plan} initialStatus={status} />
+      <UserTable initialUsers={formattedUsers} initialSearch={search} initialPlan={plan} initialStatus={status} initialUsage={usage} />
     </div>
   )
 }

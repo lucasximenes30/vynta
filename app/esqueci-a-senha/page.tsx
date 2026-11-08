@@ -1,50 +1,84 @@
-import BrandLogo from '@/components/BrandLogo'
+'use client'
+
+import { useState } from 'react'
 import Link from 'next/link'
+import { Loader2, MailCheck } from 'lucide-react'
+import AuthShell from '@/components/AuthShell'
 
-export default function RecuperarSenhaPlaceholder() {
+export default function EsqueciASenhaPage() {
+  const [email, setEmail] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [sent, setSent] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) setError(data.error || 'Não foi possível enviar agora. Tente novamente.')
+      else setSent(true)
+    } catch {
+      setError('Sem conexão. Tente novamente.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
-    <div className="relative flex min-h-dvh items-center justify-center overflow-y-auto bg-surface-950 px-4 py-8 sm:px-6">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(66,88,249,0.26),transparent_45%),radial-gradient(circle_at_bottom,rgba(17,31,171,0.2),transparent_36%)]" />
-
-      <div className="relative w-full max-w-md space-y-6 animate-auth-fade">
-        <div className="text-center">
-          <BrandLogo
-            size="lg"
-            className="justify-center mx-auto"
-            textClassName="font-display text-3xl text-white"
-            priority
-          />
-          <h1 className="mt-8 font-display text-3xl font-semibold tracking-tight text-white mb-2">
-            Recuperar Senha
-          </h1>
-        </div>
-
-        <div className="card space-y-6 border-surface-700/70 bg-surface-900/85 p-8 shadow-elevated backdrop-blur text-center w-full">
-          <p className="text-surface-200 text-sm leading-relaxed mb-4">
-            A funcionalidade de recuperação automática de senha estará disponível na próxima atualização.
+    <AuthShell
+      title="Recuperar senha"
+      subtitle={sent ? undefined : 'Digite o e-mail da sua conta e enviaremos um link para criar uma nova senha.'}
+    >
+      {sent ? (
+        <div className="space-y-4 text-center">
+          <MailCheck className="mx-auto h-10 w-10 text-emerald-400" />
+          <p className="text-surface-200">
+            Se existir uma conta com <strong className="text-white">{email}</strong>, você vai receber um e-mail em instantes com o link para redefinir a senha.
           </p>
-          
-          <div className="p-4 rounded-xl bg-brand-900/10 border border-brand-900/30 flex flex-col items-center">
-            <p className="text-brand-300 text-sm font-medium text-center">
-              Se você acabou de comprar, não se preocupe! Sua conta está segura. Precisa de ajuda para recuperar seu acesso?
-            </p>
-            <a 
-              href="https://wa.me/5585992551864?text=Ol%C3%A1%21%20Preciso%20de%20ajuda%20com%20minha%20conta%20Vynta."
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-2.5 px-6 rounded-xl transition-colors text-sm"
-            >
-              💬 Falar com Suporte
-            </a>
-          </div>
-
-          <div className="pt-4">
-            <Link href="/login" className="btn-secondary h-11 w-full text-sm font-semibold flex items-center justify-center mt-4">
-              Voltar para o Login
-            </Link>
-          </div>
+          <p className="text-sm text-surface-400">Não chegou? Confira a caixa de spam ou promoções. O link vale por 1 hora.</p>
+          <button type="button" onClick={() => setSent(false)} className="text-sm font-medium text-brand-300 hover:text-brand-200">
+            Usar outro e-mail
+          </button>
         </div>
-      </div>
-    </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <label htmlFor="email" className="text-sm font-medium text-surface-200">E-mail</label>
+            <input
+              id="email"
+              type="email"
+              required
+              autoComplete="email"
+              inputMode="email"
+              className="auth-input"
+              placeholder="voce@exemplo.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          {error && (
+            <p role="alert" className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-3 text-sm text-rose-200">{error}</p>
+          )}
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand-500 text-[15px] font-semibold text-white transition hover:bg-brand-400 disabled:opacity-70"
+          >
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+            {loading ? 'Enviando...' : 'Enviar link de redefinição'}
+          </button>
+        </form>
+      )}
+      <p className="mt-6 text-center text-sm text-surface-400">
+        Lembrou a senha? <Link href="/login" className="font-semibold text-brand-300 hover:text-brand-200">Entrar</Link>
+      </p>
+    </AuthShell>
   )
 }

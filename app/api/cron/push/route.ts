@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runScheduledPushes } from '@/services/pushScheduler.service'
 import { syncAllCalendarFeeds } from '@/services/calendarSync.service'
+import { runScheduledEmails } from '@/services/emailScheduler.service'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -14,6 +15,9 @@ export async function GET(request: NextRequest) {
   }
 
   const calendar = await syncAllCalendarFeeds()
-  const result = await runScheduledPushes()
-  return NextResponse.json({ ...result, calendar })
+  const [result, emails] = await Promise.all([
+    runScheduledPushes(),
+    runScheduledEmails().catch((err) => ({ error: String(err?.message || err) })),
+  ])
+  return NextResponse.json({ ...result, calendar, emails })
 }

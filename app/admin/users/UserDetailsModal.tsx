@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import * as Lucide from 'lucide-react'
 import { getIconByName } from '@/lib/icons'
 import { getWhatsappLink, getWhatsappMessage } from '@/lib/whatsapp'
+import { lastSeenInfo } from './lastSeen'
+import { campaignLabel } from '@/lib/emailCampaigns'
 
 export type UserDetails = {
   id: string
@@ -23,7 +25,23 @@ type FullUserDetails = UserDetails & {
   billingApprovedAt?: string | null
   billingProvider?: string | null
   paymentTransactions?: PaymentTx[]
+  lastSeenAt?: string | null
+  emailOptOut?: boolean
+  activity?: {
+    counts: Record<string, number>
+    items: { kind: string; title: string; detail?: string; at: string }[]
+  }
+  emails?: { id: string; tag: string | null; subject: string | null; sentAt: string | null; openedAt: string | null; clickedAt: string | null; clicks: number }[]
 }
+
+const ACTIVITY_ICON: Record<string, Lucide.LucideIcon> = {
+  transaction: Lucide.Wallet, habit: Lucide.CheckSquare, event: Lucide.CalendarDays, note: Lucide.StickyNote, goal: Lucide.Target, workout: Lucide.Dumbbell,
+}
+
+const COUNT_LABELS: [string, string][] = [
+  ['transactions', 'Lançamentos'], ['habits', 'Hábitos'], ['calendarEvents', 'Compromissos'],
+  ['notes', 'Notas'], ['goals', 'Metas'], ['workoutSessions', 'Treinos'], ['pushDevices', 'Aparelhos c/ push'],
+]
 
 type PaymentTx = {
   id: string
@@ -37,7 +55,7 @@ type PaymentTx = {
   createdAt: string
 }
 
-type Tab = 'account' | 'subscription' | 'payments' | 'actions'
+type Tab = 'account' | 'activity' | 'subscription' | 'payments' | 'actions'
 
 const PAYMENT_STATUS_CONFIG = {
   ACTIVE: { label: 'Aprovado', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' },
@@ -138,6 +156,7 @@ export default function UserDetailsModal({
 
   const tabs: { key: Tab; label: string; icon: string }[] = [
     { key: 'account', label: 'Conta', icon: 'User' },
+    { key: 'activity', label: 'Atividade', icon: 'Activity' },
     { key: 'subscription', label: 'Assinatura', icon: 'Crown' },
     { key: 'payments', label: 'Pagamentos', icon: 'CreditCard' },
     { key: 'actions', label: 'Ações', icon: 'Settings' },
@@ -222,6 +241,81 @@ export default function UserDetailsModal({
                   {user.id}
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeTab === 'activity' && (
+            <div className="space-y-5">
+              {loadingDetails ? (
+                <div className="flex items-center gap-3 py-4 text-surface-400">
+                  <Lucide.Loader2 className="w-5 h-5 animate-spin" />
+                  <span className="text-sm">Carregando atividade...</span>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-5">
+                    <InfoRow label="Último acesso">
+                      <span className={lastSeenInfo(fullDetails?.lastSeenAt).cls}>{lastSeenInfo(fullDetails?.lastSeenAt).label}</span>
+                      {fullDetails?.lastSeenAt && <span className="block text-xs text-surface-400">{fmtFull(fullDetails.lastSeenAt)}</span>}
+                    </InfoRow>
+                    <InfoRow label="E-mails de marketing">{fullDetails?.emailOptOut ? 'Descadastrado' : 'Recebendo'}</InfoRow>
+                  </div>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {COUNT_LABELS.map(([key, label]) => (
+                      <div key={key} className="rounded-xl border border-surface-200 dark:border-surface-800 bg-surface-50 dark:bg-surface-950/50 p-2.5 text-center">
+                        <div className="text-lg font-bold text-surface-900 dark:text-white">{fullDetails?.activity?.counts[key] ?? 0}</div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-surface-500">{label}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-surface-500 dark:text-surface-400 mb-2">E-mails recebidos</p>
+                    {(fullDetails?.emails ?? []).length === 0 ? (
+                      <p className="py-4 text-center text-sm text-surface-400 border border-dashed border-surface-200 dark:border-surface-800 rounded-2xl">Nenhum e-mail enviado ainda.</p>
+                    ) : (
+                      <ul className="space-y-2">
+                        {fullDetails!.emails!.map((e) => (
+                          <li key={e.id} className="flex items-center gap-3 rounded-xl border border-surface-200 dark:border-surface-800 px-3 py-2">
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium text-surface-900 dark:text-surface-100">{campaignLabel(e.tag)}</p>
+                              <p className="text-xs text-surface-500">Enviado {lastSeenInfo(e.sentAt).label.toLowerCase()}</p>
+                            </div>
+                            <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                              e.clickedAt ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
+                              : e.openedAt ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400'
+                              : 'bg-surface-100 text-surface-500 dark:bg-surface-800'
+                            }`}>
+                              {e.clickedAt ? `Clicou${e.clicks > 1 ? ` (${e.clicks}x)` : ''}` : e.openedAt ? 'Abriu' : 'Não abriu'}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-surface-500 dark:text-surface-400 mb-2">Últimas movimentações</p>
+                    {(fullDetails?.activity?.items ?? []).length === 0 ? (
+                      <p className="py-6 text-center text-sm text-surface-400 border border-dashed border-surface-200 dark:border-surface-800 rounded-2xl">Nenhuma movimentação ainda.</p>
+                    ) : (
+                      <ul className="divide-y divide-surface-100 dark:divide-surface-800">
+                        {fullDetails!.activity!.items.map((a, i) => {
+                          const Icon = ACTIVITY_ICON[a.kind] ?? Lucide.Circle
+                          return (
+                            <li key={i} className="flex items-center gap-3 py-2.5">
+                              <Icon className="w-4 h-4 text-surface-400 shrink-0" />
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-medium text-surface-900 dark:text-surface-100">{a.title}</p>
+                                {a.detail && <p className="text-xs text-surface-500">{a.detail}</p>}
+                              </div>
+                              <span className="text-xs text-surface-400 shrink-0">{lastSeenInfo(a.at).label}</span>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           )}
 

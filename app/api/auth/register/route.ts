@@ -4,6 +4,8 @@ import { registerUser } from '@/services/user.service'
 import { setSession } from '@/lib/auth'
 import { FacebookService } from '@/services/facebook.service'
 import { notifyAdminsNewAccount } from '@/services/push.service'
+import { sendTrackedEmail, upsertBrevoContact } from '@/services/email.service'
+import { welcomeEmail } from '@/lib/emailTemplates'
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -29,6 +31,11 @@ export async function POST(request: NextRequest) {
     const fbc = request.cookies.get('_fbc')?.value
 
     after(async () => {
+      await Promise.all([
+        sendTrackedEmail({ user: result.user, key: 'welcome', tag: 'welcome', build: () => welcomeEmail(result.user.name) }),
+        upsertBrevoContact({ email: result.user.email, name: result.user.name, attributes: { PLANO: 'TRIAL' } }),
+      ])
+
       try {
         await notifyAdminsNewAccount({
           userId: result.user.id,

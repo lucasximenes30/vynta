@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, ArrowRight, Check, ShieldCheck, Zap } from 'lucide-react'
 import { JWTPayload } from '@/lib/auth'
 import FunnelTracker from '@/components/FunnelTracker'
+import PromoOfferCard from '@/components/engagement/PromoOfferCard'
 import { event as fbEvent } from '@/components/FacebookPixel'
 import { trackFunnelEvent, getOrCreateSessionId } from '@/lib/funnel'
 import {
@@ -19,9 +20,12 @@ import {
 
 interface SubscriptionClientProps {
   session: JWTPayload
+  promoEligible?: boolean
+  /** Using the one-time promo month: can (and should) subscribe to a recurring plan. */
+  onPromoMonth?: boolean
 }
 
-export default function SubscriptionClient({ session }: SubscriptionClientProps) {
+export default function SubscriptionClient({ session, promoEligible, onPromoMonth }: SubscriptionClientProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -63,7 +67,7 @@ export default function SubscriptionClient({ session }: SubscriptionClientProps)
   }
 
   const isCurrentPlan = (tier: BillingTier) => {
-    if (session.subscriptionStatus !== 'ACTIVE') return false
+    if (session.subscriptionStatus !== 'ACTIVE' || onPromoMonth) return false
     if (tier === 'pro_yearly') return session.plan === 'PRO_YEARLY'
     if (tier === 'pro') return session.plan === 'PRO'
     return false
@@ -112,7 +116,14 @@ export default function SubscriptionClient({ session }: SubscriptionClientProps)
               {error}
             </div>
           )}
+          {onPromoMonth && (
+            <p className="mx-auto max-w-md rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-200">
+              Você está no mês promocional. Assine agora e os dias que faltam são somados ao seu plano.
+            </p>
+          )}
         </div>
+
+        {promoEligible && <PromoOfferCard source="subscription" />}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch pt-4">
           {/* Yearly Plan */}

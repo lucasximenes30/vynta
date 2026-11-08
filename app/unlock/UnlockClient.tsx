@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import BrandLogo from '@/components/BrandLogo'
 import FunnelTracker from '@/components/FunnelTracker'
+import PromoOfferCard from '@/components/engagement/PromoOfferCard'
 import { event as fbEvent } from '@/components/FacebookPixel'
 import { trackFunnelEvent, getOrCreateSessionId } from '@/lib/funnel'
 import { CheckCircle2, ArrowRight, ShieldCheck, Zap } from 'lucide-react'
@@ -22,9 +23,10 @@ interface UnlockClientProps {
   session: JWTPayload
   state?: string
   feature?: string
+  promoEligible?: boolean
 }
 
-export default function UnlockClient({ session, state, feature }: UnlockClientProps) {
+export default function UnlockClient({ session, state, feature, promoEligible }: UnlockClientProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -267,7 +269,10 @@ export default function UnlockClient({ session, state, feature }: UnlockClientPr
             </div>
           </div>
         ) : (
-          renderPlans()
+          <>
+            {promoEligible && <PromoOfferCard source="unlock" />}
+            {renderPlans()}
+          </>
         )}
 
         <div className="flex flex-col items-center justify-center gap-4 text-center pt-6">

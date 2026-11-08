@@ -33,6 +33,15 @@
 - Janelas no fuso do usuário (`notification_preferences.timezone`): manhã 07–11h ("resumo do dia" único com agenda+contas — enviado sempre que ao menos uma das categorias está ligada, mesmo vazio), noite 19–22h (hábitos, "gastou algo hoje?"), "compromisso em X min" 06–23h, trial no último dia.
 - Login/registro desvinculam o aparelho da conta anterior (`detachPushFromAccount`); o app revincula ao abrir (`syncPushSubscription`).
 
+## E-mail (Brevo), engajamento e oferta 1º mês
+- Envio via API transacional da Brevo em `services/email.service.ts` (`sendEmail`, `upsertBrevoContact`, tokens assinados de reset de senha/descadastro). Templates HTML em `lib/emailTemplates.ts`. Envs: `BREVO_API_KEY`, `EMAIL_FROM`, `EMAIL_FROM_NAME`, `BREVO_LIST_ID` (opcional), `APP_URL`. A Brevo bloqueia IPs não autorizados: a restrição de IP precisa ficar DESLIGADA (Vercel usa IP dinâmico). Teste local: `npx tsx --env-file=.env scripts/send-test-emails.ts <email>`.
+- Reset de senha: `/esqueci-a-senha` → `POST /api/auth/forgot-password` (resposta sempre igual, 1 envio/2 min por conta) → `/redefinir-senha?token=` → `POST /api/auth/reset-password`. Token JWT de 1h atrelado ao hash da senha atual (uso único, sem tabela).
+- Último acesso: `User.lastSeenAt`, gravado por `POST /api/track/activity` (heartbeat do `EngagementHost` no `SidebarLayout`, máx. 1 escrita/10 min). Accounts antigas sem valor usam `activityTrackingStart()` (menor `lastSeenAt`) como base, para não serem tratadas como "sumidas desde o cadastro".
+- Remarketing por e-mail: `services/emailScheduler.service.ts` roda no `GET /api/cron/push` (never-used, inactive 3d+, trial-last-day, trial-expired, promo-ending). Dedupe permanente em `email_logs (userId, key)`; respeita `User.emailOptOut` (`/api/email/unsubscribe`).
+- Push de reengajamento (2, 3, 5, 7, 10, 14 dias sem abrir) e da oferta no `pushScheduler` (janela 09–21h, ou seja, roda no cron das 20h).
+- Oferta 1º mês (`PROMO_FIRST_MONTH` em `lib/plans.ts`, R$14,90/30 dias): checkout AVULSO (`createPromoCheckout`, `planTier: 'promo'` em `/api/payments/create`); a ativação reconhece pelo `PaymentTransaction.rawStatus = PROMO_CHECKOUT_STATUS` e grava `subscriptionId = promo_<checkout>` sem renovação. Elegível: `FREE_TRIAL` que nunca pagou, até 7 dias após o fim do trial (`isPromoEligible`). Quem está no mês promo pode acessar `/subscription`; ao assinar, os dias restantes são somados.
+- Admin → Usuários: coluna/filtro "Último acesso", resumo de uso e aba "Atividade" (`getUserRecentActivity`, `getLastActivityByUser`).
+
 ## Agenda externa (iCal / Google)
 - `services/calendarSync.service.ts` importa o feed iCal secreto (`User.icalFeedUrl`, salvo em Ajustes → "Agenda do Google", API `app/api/calendar/feed`). Roda dentro de `GET /api/cron/push` antes dos pushes, então a cada rodada do cron os eventos ficam frescos.
 - Eventos importados têm `CalendarEvent.source = 'ical'` + `externalId` (`uid` ou `uid@dia-hora` para ocorrências de recorrência) sob `@@unique([userId, source, externalId])` — nunca edite/remova esses campos por fora; o sync faz upsert por `externalId` e apaga o que saiu do feed.

@@ -225,7 +225,7 @@ export default function LandingPage() {
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
             Finanças, hábitos, agenda e treinos num só lugar
           </p>
-          <h1 className="font-display text-[2.4rem] font-semibold leading-[1.05] tracking-tight text-white sm:text-5xl lg:text-[3.6rem]">
+          <h1 className="font-display text-[2.4rem] font-semibold leading-[1.16] tracking-tight text-white sm:text-5xl sm:leading-[1.14] lg:text-[3.6rem] lg:leading-[1.12]">
             Chega de terminar o mês sem saber{' '}
             <span className="bg-gradient-to-r from-brand-300 to-violet-300 bg-clip-text text-transparent">pra onde foi o dinheiro.</span>
           </h1>

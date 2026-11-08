@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import * as Lucide from 'lucide-react'
 import { useTheme } from '@/lib/theme'
 import { startTour } from '@/lib/tour'
+import { INSTAGRAM_HANDLE, INSTAGRAM_URL } from '@/lib/social'
+import InstagramIcon from '@/components/icons/InstagramIcon'
 import dynamic from 'next/dynamic'
 
 const NotificationSettings = dynamic(() => import('@/components/push/NotificationSettings'), {
@@ -534,6 +536,27 @@ export default function SettingsClient({ session }: SettingsClientProps) {
             </div>
             <p className="text-sm text-surface-500 dark:text-surface-400 leading-relaxed">
               Precisa de ajuda? Entre em contato diretamente com nossa equipe pelo WhatsApp.
+            </p>
+          </a>
+
+          {/* Instagram Card */}
+          <a
+            href={INSTAGRAM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="card space-y-4 cursor-pointer hover:border-pink-500/50 dark:hover:border-pink-500/50 transition-colors group block"
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-base font-semibold flex items-center gap-2">
+                <InstagramIcon className="w-5 h-5 text-pink-500" />
+                <span>Siga {INSTAGRAM_HANDLE}</span>
+              </h3>
+              <div className="w-8 h-8 rounded-full bg-surface-100 dark:bg-surface-800 flex items-center justify-center group-hover:bg-pink-50 dark:group-hover:bg-pink-500/10 group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors">
+                <Lucide.ExternalLink className="w-4 h-4" />
+              </div>
+            </div>
+            <p className="text-sm text-surface-500 dark:text-surface-400 leading-relaxed">
+              Dicas de finanças, organização e novidades do Vynta no nosso Instagram.
             </p>
           </a>
 

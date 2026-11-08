@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { userHasAccess } from '@/lib/access'
+import { PROMO_FIRST_MONTH, formatBRL, isPromoEligible } from '@/lib/plans'
 import { listUserNotifications } from '@/services/notification.service'
 import { DEFAULT_PREFERENCES, isPushConfigured, sendToSubscriptions, type PushPayload } from '@/services/push.service'
 
@@ -10,7 +11,9 @@ import { DEFAULT_PREFERENCES, isPushConfigured, sendToSubscriptions, type PushPa
  *  - morning (07h–11h): "resumo do dia" — agenda + contas num único push. Sempre enviado
  *    quando ao menos uma das categorias está ligada, mesmo vazio ("dia livre"), mais o
  *    aviso de trial no último dia
- *  - evening (19h–22h): pending habits, "did you log your spending today?"
+ *  - evening (19h–22h): pending habits, "did you log your spending today?" (or a "volte" nudge
+ *    when the app wasn't opened for 2+ days)
+ *  - 09h–21h: first-month offer (trial days 3/5, days 1/5 after expiry), promo month ending
  *  - any time (06h–23h): agenda events starting within the next hour (needs a frequent cron)
  */
 
@@ -55,6 +58,23 @@ async function mapLimit<T>(items: T[], limit: number, fn: (item: T) => Promise<v
 
 interface Planned { userId: string; key: string; payload: PushPayload }
 
+const REENGAGE_DAYS = [2, 3, 5, 7, 10, 14]
+
+/**
+ * `users.lastSeenAt` only exists since the activity heartbeat shipped. The oldest recorded value
+ * marks that moment, so accounts that predate it aren't treated as "away since signup".
+ */
+export async function activityTrackingStart(): Promise<Date | null> {
+  const agg = await prisma.user.aggregate({ _min: { lastSeenAt: true } })
+  return agg._min.lastSeenAt
+}
+
+/** Last time the user opened the app; accounts never seen count from signup (or tracking start). */
+export function lastSeenOrFallback(user: { lastSeenAt: Date | null; createdAt: Date }, trackingStart: Date): Date {
+  if (user.lastSeenAt) return user.lastSeenAt
+  return user.createdAt > trackingStart ? user.createdAt : trackingStart
+}
+
 export async function runScheduledPushes(now = new Date()) {
   if (!isPushConfigured()) return { skipped: 'VAPID keys not configured' }
 
@@ -62,7 +82,7 @@ export async function runScheduledPushes(now = new Date()) {
     where: { pushSubscriptions: { some: {} } },
     select: {
       id: true, name: true, createdAt: true, role: true, plan: true,
-      subscriptionStatus: true, subscriptionEndDate: true, subscriptionExpiresAt: true,
+      subscriptionStatus: true, subscriptionEndDate: true, subscriptionExpiresAt: true, subscriptionId: true, lastSeenAt: true,
       canUseFinance: true, canUseHabits: true, canUseAgenda: true,
       notificationPrefs: { select: { bills: true, agenda: true, habits: true, dailyLog: true, timezone: true } },
       pushSubscriptions: { select: { id: true, endpoint: true, p256dh: true, auth: true } },
@@ -75,6 +95,8 @@ export async function runScheduledPushes(now = new Date()) {
     return { user: u, prefs, local: localTime(prefs.timezone, now), hasAccess: userHasAccess(u, now.getTime()) }
   })
 
+  const promoPrice = formatBRL(PROMO_FIRST_MONTH.priceCents)
+
   // Trial ending: the only reminder sent to users still on the free trial's last day, regardless of slot.
   for (const { user, local } of ctx) {
     if (user.plan !== 'FREE_TRIAL' || !user.subscriptionExpiresAt || !inRange(local.hour, [9, 21])) continue
@@ -85,11 +107,48 @@ export async function runScheduledPushes(now = new Date()) {
         key: `trial-ending:${user.subscriptionExpiresAt.toISOString().slice(0, 10)}`,
         payload: {
           title: 'Último dia do seu teste grátis',
-          body: 'Continue com tudo que você já organizou: assine em 1 minuto e não perca a sequência.',
-          url: '/subscription?source=push',
+          body: `Continue com tudo que você já organizou: seu 1º mês sai por ${promoPrice} se assinar agora.`,
+          url: '/subscription?offer=promo&source=push',
           tag: 'trial',
         },
       })
+    }
+  }
+
+  for (const { user, local } of ctx) {
+    if (!inRange(local.hour, [9, 21])) continue
+
+    // First-month offer while the trial runs (days 3 and 5) and after it ends (days 1 and 5 after).
+    if (user.plan === 'FREE_TRIAL' && user.subscriptionExpiresAt && isPromoEligible(user, false, now.getTime())) {
+      const trialDay = Math.floor((now.getTime() - user.createdAt.getTime()) / DAY_MS) + 1
+      const daysAfter = Math.floor((now.getTime() - user.subscriptionExpiresAt.getTime()) / DAY_MS) + 1
+      const during = now < user.subscriptionExpiresAt
+      if ((during && (trialDay === 3 || trialDay === 5)) || (!during && (daysAfter === 1 || daysAfter === 5))) {
+        planned.push({
+          userId: user.id,
+          key: during ? `promo-offer:trial-day-${trialDay}` : `promo-offer:expired-day-${daysAfter}`,
+          payload: during
+            ? { title: 'Está gostando do Vynta?', body: `Assine agora e pague só ${promoPrice} no primeiro mês.`, url: '/subscription?offer=promo&source=push', tag: 'promo' }
+            : { title: 'Seus dados continuam salvos', body: `Volte a usar o Vynta: o 1º mês sai por ${promoPrice} por pouco tempo.`, url: '/subscription?offer=promo&source=push', tag: 'promo' },
+        })
+      }
+    }
+
+    // One-time promo month ending (3 days and 1 day before): invite to the recurring plan.
+    if (user.subscriptionId?.startsWith('promo_') && user.subscriptionEndDate) {
+      const daysLeft = Math.ceil((user.subscriptionEndDate.getTime() - now.getTime()) / DAY_MS)
+      if (daysLeft === 3 || daysLeft === 1) {
+        planned.push({
+          userId: user.id,
+          key: `promo-ending:${user.subscriptionEndDate.toISOString().slice(0, 10)}:${daysLeft}`,
+          payload: {
+            title: daysLeft === 1 ? 'Seu mês promocional acaba amanhã' : 'Seu mês promocional acaba em 3 dias',
+            body: 'Escolha um plano para continuar com lembretes, relatórios e tudo que você organizou.',
+            url: '/subscription?source=push',
+            tag: 'promo-ending',
+          },
+        })
+      }
     }
   }
 
@@ -153,9 +212,37 @@ export async function runScheduledPushes(now = new Date()) {
     })
   }
 
+  // Evening: user hasn't opened the app for 2+ days → "volte" nudge (on days 2, 3, 5, 7, 10 and 14 away).
+  // Replaces the "gastou algo hoje?" reminder for that user on that evening.
+  const trackingStart = await activityTrackingStart()
+  const reengaged = new Set<string>()
+  if (trackingStart) {
+    for (const { user } of evening) {
+      const since = lastSeenOrFallback(user, trackingStart)
+      const away = Math.floor((now.getTime() - since.getTime()) / DAY_MS)
+      if (!REENGAGE_DAYS.includes(away)) continue
+      reengaged.add(user.id)
+      const name = user.name.trim().split(/\s+/)[0]
+      planned.push({
+        userId: user.id,
+        key: `reengage:${since.toISOString().slice(0, 10)}:${away}`,
+        payload: {
+          title: away <= 3 ? `Poxa, ${name}, sentimos sua falta` : `Faz ${away} dias que você não aparece`,
+          body: away <= 3
+            ? 'Vi que você não está usando o Vynta. Bora colocar os gastos em dia? Leva 2 minutos.'
+            : 'Seus dados continuam salvos. Volte e veja como está o seu mês.',
+          url: '/dashboard?add=expense&source=push-reengage',
+          tag: 'reengage',
+          ttl: 6 * 3600,
+        },
+      })
+    }
+  }
+
   // Evening: nothing logged today (only for people who use the finance side or just signed up)
   const lastTxByUser = new Map(lastTx.map((t) => [t.userId, t._max.createdAt]))
   for (const { user, local } of logUsers) {
+    if (reengaged.has(user.id)) continue
     const last = lastTxByUser.get(user.id)
     if (last && last >= local.midnight) continue
     const engaged = (last && now.getTime() - last.getTime() < 14 * DAY_MS) || now.getTime() - user.createdAt.getTime() < 14 * DAY_MS

@@ -9,11 +9,15 @@ import PushBridge from './push/PushBridge'
 import RouterCacheSync from './RouterCacheSync'
 import { openQuickAdd } from '@/lib/quickAdd'
 import { startTour } from '@/lib/tour'
+import { INSTAGRAM_HANDLE, INSTAGRAM_URL } from '@/lib/social'
+import InstagramIcon from './icons/InstagramIcon'
 import dynamic from 'next/dynamic'
 import * as Lucide from 'lucide-react'
 
 // Guided first-steps tour (only rendered while active; loaded lazily to keep the shell light)
 const TourHost = dynamic(() => import('./tour/TourHost'), { ssr: false })
+// Activity heartbeat + first-month offer + Instagram prompt
+const EngagementHost = dynamic(() => import('./engagement/EngagementHost'), { ssr: false })
 
 // Routes where the sidebar/bottom nav should NOT appear
 const NO_SIDEBAR_ROUTES = ['/', '/login', '/register', '/admin', '/offline']
@@ -72,6 +76,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
       <PushBridge />
       <RouterCacheSync />
       <TourHost />
+      <EngagementHost />
 
       {/* Quick Actions Overlay (Mobile) */}
       {showQuickActions && (
@@ -133,7 +138,17 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
               ))}
             </div>
 
-            <div className="mt-5 pt-4 border-t border-surface-100 dark:border-surface-800">
+            <div className="mt-5 pt-4 border-t border-surface-100 dark:border-surface-800 space-y-2">
+              <a
+                href={INSTAGRAM_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setShowQuickActions(false)}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-pink-500/20 bg-pink-500/10 py-3 text-xs font-bold text-pink-600 dark:text-pink-400 transition-all active:scale-95"
+              >
+                <InstagramIcon className="w-4 h-4" />
+                Siga {INSTAGRAM_HANDLE} no Instagram
+              </a>
               <button
                 onClick={async () => {
                   setShowQuickActions(false)

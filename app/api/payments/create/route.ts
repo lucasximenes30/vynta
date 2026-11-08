@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse, after } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { createSubscriptionCheckout } from '@/services/abacatepay.service'
-import { normalizeTier, PLANS } from '@/lib/plans'
+import { createPromoCheckout, createSubscriptionCheckout } from '@/services/abacatepay.service'
+import { getPromoEligibility } from '@/services/subscription.service'
+import { normalizeTier, PLANS, PROMO_FIRST_MONTH } from '@/lib/plans'
 import { notifyAdminsPendingSale } from '@/services/push.service'
 
 export async function POST(req: NextRequest) {
@@ -37,17 +38,19 @@ export async function POST(req: NextRequest) {
       // Body can be empty, default to 'pro'
     }
 
+    const isPromo = rawTier === 'promo'
     const tier = normalizeTier(rawTier)
     const appUrl = req.nextUrl.origin
 
-    console.log(`[Payments/Create] Creating subscription checkout for ${user.email} (tier: ${tier})...`)
+    if (isPromo && !(await getPromoEligibility(user.id))) {
+      return NextResponse.json({ error: 'Esta oferta não está mais disponível para a sua conta.' }, { status: 400 })
+    }
 
-    const checkout = await createSubscriptionCheckout({
-      userId: user.id,
-      tier,
-      appUrl,
-      sessionId,
-    })
+    console.log(`[Payments/Create] Creating ${isPromo ? 'promo' : 'subscription'} checkout for ${user.email} (tier: ${tier})...`)
+
+    const checkout = isPromo
+      ? await createPromoCheckout({ userId: user.id, appUrl, sessionId })
+      : await createSubscriptionCheckout({ userId: user.id, tier, appUrl, sessionId })
 
     console.log('[Payments/Create] ✓ Subscription checkout created:', checkout.id)
 
@@ -58,7 +61,7 @@ export async function POST(req: NextRequest) {
           name: user.name,
           email: user.email,
           tier,
-          amountCents: PLANS[tier].priceCents,
+          amountCents: isPromo ? PROMO_FIRST_MONTH.priceCents : PLANS[tier].priceCents,
         })
       } catch (e) {
         console.error('[Payments/Create] Falha ao enviar push admin:', e)

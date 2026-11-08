@@ -1,6 +1,7 @@
 import { AbacatePay } from '@abacatepay/sdk'
 import { prisma } from '@/lib/prisma'
-import { PLANS, PLAN_NAME, type BillingTier } from '@/lib/plans'
+import { PLANS, PLAN_NAME, PROMO_FIRST_MONTH, type BillingTier } from '@/lib/plans'
+import { PROMO_CHECKOUT_STATUS } from '@/services/subscription.service'
 
 const API_BASE = 'https://api.abacatepay.com/v2'
 
@@ -231,6 +232,57 @@ export async function createSubscriptionCheckout({ userId, tier, appUrl, session
       amount: PLANS[tier].priceCents / 100,
       status: 'PENDING',
       rawStatus: 'subscription_checkout_created',
+    },
+  })
+
+  return { id: checkout.id, url: checkout.url }
+}
+
+/**
+ * First-month offer: a one-time checkout (Pix or card) for PROMO_FIRST_MONTH. Activation happens
+ * through the usual checkout.completed webhook / status polling, which recognize the pending
+ * PaymentTransaction by its rawStatus.
+ */
+export async function createPromoCheckout({ userId, appUrl, sessionId }: Omit<CreateSubscriptionCheckoutInput, 'tier'>) {
+  const externalId = `vynta-promo-first-month-${PROMO_FIRST_MONTH.priceCents}`
+  const products = await abacateRequest<AbacateProduct[]>('/products/list', { query: { limit: '100' } })
+  const productId = products?.find((p) => p.externalId === externalId)?.id
+    ?? (await abacateRequest<AbacateProduct>('/products/create', {
+      method: 'POST',
+      body: {
+        externalId,
+        name: `${PLAN_NAME} — 1º mês promocional`,
+        description: `${PROMO_FIRST_MONTH.accessDays} dias de acesso completo ao Vynta`,
+        price: PROMO_FIRST_MONTH.priceCents,
+        currency: 'BRL',
+      },
+    })).id
+
+  const body = {
+    items: [{ id: productId, quantity: 1 }],
+    externalId: `${userId}_${Date.now()}_${sessionId || 'none'}`,
+    returnUrl: `${appUrl}/subscription`,
+    completionUrl: `${appUrl}/payment/return`,
+    metadata: { userId, tier: 'promo' },
+  }
+
+  let checkout: AbacateCheckout
+  try {
+    checkout = await abacateRequest<AbacateCheckout>('/checkouts/create', { method: 'POST', body: { ...body, methods: ['PIX', 'CARD'] } })
+  } catch (err: any) {
+    // Stores without card enabled in production only accept Pix.
+    if (!String(err?.message || '').toLowerCase().includes('card')) throw err
+    checkout = await abacateRequest<AbacateCheckout>('/checkouts/create', { method: 'POST', body: { ...body, methods: ['PIX'] } })
+  }
+
+  await prisma.paymentTransaction.create({
+    data: {
+      userId,
+      provider: 'abacatepay',
+      providerTransactionId: checkout.id,
+      amount: PROMO_FIRST_MONTH.priceCents / 100,
+      status: 'PENDING',
+      rawStatus: PROMO_CHECKOUT_STATUS,
     },
   })
 

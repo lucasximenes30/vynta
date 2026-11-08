@@ -1,6 +1,9 @@
 import { UserSubscriptionStatus, UserPlan } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { PLANS, type BillingTier } from '@/lib/plans'
+import { PLANS, PROMO_FIRST_MONTH, isPromoEligible, type BillingTier } from '@/lib/plans'
+
+/** rawStatus of the pending PaymentTransaction created for a first-month offer checkout. */
+export const PROMO_CHECKOUT_STATUS = 'promo_checkout_created'
 import { notifyAdminsApprovedSale } from '@/services/push.service'
 
 interface ActivateVipInput {
@@ -73,8 +76,9 @@ interface ActivateRecurringInput {
  * Returns `null` when the charge was already processed.
  */
 export async function activateRecurringSubscription({
-  userId, tier, subscriptionId, customerId, chargeId, checkoutId, amountCents,
+  userId, tier, subscriptionId: requestedSubscriptionId, customerId, chargeId, checkoutId, amountCents,
 }: ActivateRecurringInput) {
+  let subscriptionId = requestedSubscriptionId
   const alreadyProcessed = await prisma.paymentTransaction.findFirst({
     where: { status: 'ACTIVE', OR: [{ providerTransactionId: chargeId }, { rawStatus: `charge:${chargeId}` }] },
     select: { id: true },
@@ -83,11 +87,24 @@ export async function activateRecurringSubscription({
 
   const plan = PLANS[tier]
   const now = new Date()
-  const endDate = new Date(now.getTime() + (plan.accessDays + RENEWAL_GRACE_DAYS) * 24 * 60 * 60 * 1000)
 
-  const pendingCheckout = checkoutId
-    ? await prisma.paymentTransaction.findUnique({ where: { providerTransactionId: checkoutId }, select: { id: true, status: true } })
-    : null
+  const [pendingCheckout, current] = await Promise.all([
+    checkoutId
+      ? prisma.paymentTransaction.findUnique({ where: { providerTransactionId: checkoutId }, select: { id: true, status: true, rawStatus: true } })
+      : null,
+    prisma.user.findUnique({ where: { id: userId }, select: { subscriptionId: true, subscriptionEndDate: true } }),
+  ])
+
+  // First-month offer: one-time charge, exactly PROMO_FIRST_MONTH.accessDays of access, no renewal.
+  const isPromo = pendingCheckout?.rawStatus === PROMO_CHECKOUT_STATUS
+  // Subscribing while the promo month still runs keeps the days already paid for.
+  const promoLeftMs = !isPromo && current?.subscriptionId?.startsWith('promo_') && current.subscriptionEndDate
+    ? Math.max(0, current.subscriptionEndDate.getTime() - now.getTime())
+    : 0
+  const endDate = new Date(now.getTime() + promoLeftMs + (isPromo
+    ? PROMO_FIRST_MONTH.accessDays
+    : plan.accessDays + RENEWAL_GRACE_DAYS) * 24 * 60 * 60 * 1000)
+  if (isPromo) subscriptionId = `promo_${checkoutId}`
 
   // First charge already activated by /api/subscription/status: only attach the real ids.
   if (pendingCheckout?.status === 'ACTIVE') {
@@ -176,6 +193,15 @@ export async function cancelRecurringSubscription(subscriptionId: string, unpaid
         : { subscriptionStatus: UserSubscriptionStatus.CANCELED, subscriptionEndDate: new Date(now) },
     })
   }))
+}
+
+/** Whether the user can still buy the first-month offer (trial account that never paid). */
+export async function getPromoEligibility(userId: string, now = Date.now()) {
+  const [user, paid] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId }, select: { plan: true, role: true, subscriptionExpiresAt: true } }),
+    prisma.paymentTransaction.count({ where: { userId, status: 'ACTIVE' } }),
+  ])
+  return !!user && isPromoEligible(user, paid > 0, now)
 }
 
 /** The checkout that started the user's current subscription (needed by the customer portal). */

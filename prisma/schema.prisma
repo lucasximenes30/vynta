@@ -45,6 +45,10 @@ model User {
   icalFeedUrl           String?
   icalSyncedAt          DateTime?
   icalSyncError         String?
+  /// Last time the user opened the app (throttled heartbeat from the client shell).
+  lastSeenAt            DateTime?
+  /// Unsubscribed from marketing/remarketing e-mails (transactional e-mails still go out).
+  emailOptOut           Boolean                @default(false)
 
   cards                 Card[]
   customCategories      Category[]
@@ -68,7 +72,9 @@ model User {
   pushSubscriptions     PushSubscription[]
   notificationPrefs     NotificationPreference?
   pushLogs              PushLog[]
+  emailLogs             EmailLog[]
 
+  @@index([lastSeenAt])
   @@map("users")
 }
 
@@ -681,4 +687,30 @@ model PushLog {
   @@unique([userId, key])
   @@index([createdAt])
   @@map("push_logs")
+}
+
+// Dedup of automated e-mails (remarketing, trial reminders): claimed before sending, never pruned,
+// so each (userId, key) e-mail goes out at most once.
+// Also the tracking record: the row id goes into the e-mail's tracked links/pixel
+// (/api/email/c/:id and /api/email/o/:id), filling openedAt/clickedAt for the admin.
+model EmailLog {
+  id          String    @id @default(uuid())
+  userId      String
+  key         String
+  /// Campaign (welcome, never-used, inactive, trial-last-day...)
+  tag         String?
+  subject     String?
+  sentAt      DateTime?
+  openedAt    DateTime?
+  opens       Int       @default(0)
+  clickedAt   DateTime?
+  clicks      Int       @default(0)
+  lastClickUrl String?
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+  @@index([createdAt])
+  @@index([tag, sentAt])
+  @@map("email_logs")
 }
