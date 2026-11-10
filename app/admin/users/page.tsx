@@ -60,54 +60,35 @@ export default async function AdminUsersPage({
   const startOfTomorrow = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
   const startOfDayAfterTomorrow = new Date(startOfTomorrow.getTime() + 24 * 60 * 60 * 1000);
 
-  const [
-    activeVip,
-    activePro,
-    courtesyUsers,
-    freeTrialUsers,
-    pendingUsers,
-    expiredUsers, // Simplified: Users with INACTIVE or PAST_DUE and plan not Admin/Courtesy
-  ] = await Promise.all([
-    prisma.user.count({ where: { plan: 'VIP', subscriptionStatus: 'ACTIVE' } }),
-    prisma.user.count({ where: { plan: 'PRO', subscriptionStatus: 'ACTIVE' } }),
-    prisma.user.count({ where: { plan: 'COURTESY' } }),
-    prisma.user.count({ where: { plan: 'FREE_TRIAL' } }),
-    prisma.user.count({ where: { subscriptionStatus: 'PENDING' } }),
-    prisma.user.count({ where: { subscriptionStatus: { in: ['INACTIVE', 'PAST_DUE'] }, plan: { notIn: ['ADMIN', 'COURTESY'] } } }),
-  ]);
-
-  // Free Trial Specific Analytics
-  const allFreeTrials = await prisma.user.findMany({
-    where: { plan: 'FREE_TRIAL' },
-    select: { createdAt: true, subscriptionExpiresAt: true }
-  });
-
-  let trialActive = 0;
-  let trialExpiringToday = 0;
-  let trialExpiringTomorrow = 0;
-  let trialExpired = 0;
-
-  const oneDayMs = 24 * 60 * 60 * 1000;
-
-  allFreeTrials.forEach(u => {
-    const expiresAt = u.subscriptionExpiresAt ?? new Date(u.createdAt.getTime() + oneDayMs);
-    if (expiresAt < now) {
-      trialExpired++;
-    } else {
-      trialActive++;
-      const daysUntilExpiration = Math.floor((expiresAt.getTime() - startOfToday.getTime()) / (1000 * 60 * 60 * 24));
-      
-      if (daysUntilExpiration === 0) trialExpiringToday++;
-      else if (daysUntilExpiration === 1) trialExpiringTomorrow++;
-    }
-  });
-
   const DAY = 24 * 60 * 60 * 1000
   if (usage === 'today') whereClause.lastSeenAt = { gte: new Date(now.getTime() - DAY) }
   else if (usage === 'inactive2') whereClause.lastSeenAt = { lt: new Date(now.getTime() - 2 * DAY) }
   else if (usage === 'never') whereClause.lastSeenAt = null
 
-  const [users, seenToday, seen7d, inactive2d, neverSeen] = await Promise.all([
+  // Every query in a single parallel round (then one more for the activity of the listed users).
+  const [
+    activeVip,
+    activePro,
+    courtesyUsers,
+    pendingUsers,
+    expiredUsers, // Simplified: Users with INACTIVE or PAST_DUE and plan not Admin/Courtesy
+    allFreeTrials,
+    users,
+    seenToday,
+    seen7d,
+    inactive2d,
+    neverSeen,
+  ] = await Promise.all([
+    prisma.user.count({ where: { plan: 'VIP', subscriptionStatus: 'ACTIVE' } }),
+    prisma.user.count({ where: { plan: 'PRO', subscriptionStatus: 'ACTIVE' } }),
+    prisma.user.count({ where: { plan: 'COURTESY' } }),
+    prisma.user.count({ where: { subscriptionStatus: 'PENDING' } }),
+    prisma.user.count({ where: { subscriptionStatus: { in: ['INACTIVE', 'PAST_DUE'] }, plan: { notIn: ['ADMIN', 'COURTESY'] } } }),
+    // Free Trial Specific Analytics
+    prisma.user.findMany({
+      where: { plan: 'FREE_TRIAL' },
+      select: { createdAt: true, subscriptionExpiresAt: true },
+    }),
     prisma.user.findMany({
       where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
       orderBy: usage === 'all' ? { createdAt: 'desc' } : { lastSeenAt: { sort: 'desc', nulls: 'last' } },
@@ -131,6 +112,26 @@ export default async function AdminUsersPage({
     prisma.user.count({ where: { lastSeenAt: null, role: { not: 'ADMIN' } } }),
   ])
   const lastActivity = await getLastActivityByUser(users.map((u) => u.id))
+
+  let trialActive = 0;
+  let trialExpiringToday = 0;
+  let trialExpiringTomorrow = 0;
+  let trialExpired = 0;
+
+  const oneDayMs = 24 * 60 * 60 * 1000;
+
+  allFreeTrials.forEach(u => {
+    const expiresAt = u.subscriptionExpiresAt ?? new Date(u.createdAt.getTime() + oneDayMs);
+    if (expiresAt < now) {
+      trialExpired++;
+    } else {
+      trialActive++;
+      const daysUntilExpiration = Math.floor((expiresAt.getTime() - startOfToday.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysUntilExpiration === 0) trialExpiringToday++;
+      else if (daysUntilExpiration === 1) trialExpiringTomorrow++;
+    }
+  });
 
   // Provide fallback phone logic - UI will simply show 'Não informado'
   const formattedUsers = users.map((user: any) => ({

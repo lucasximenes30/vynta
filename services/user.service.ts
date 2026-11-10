@@ -1,3 +1,4 @@
+import { after } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { hash } from 'bcryptjs'
 import { matchesAdminMasterPassword, spendPasswordCheck, verifyStoredPassword } from '@/lib/password'
@@ -121,10 +122,13 @@ export async function registerUser(input: RegisterInput) {
   }
 }
 
-export async function loginUser(input: LoginInput) {
-  const user = await prisma.user.findUnique({
-    where: { email: input.email.trim().toLowerCase() },
-  })
+/** Looks up the account for a login attempt (exported so the route can run it alongside the rate limit). */
+export function findLoginUser(email: string) {
+  return prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } })
+}
+
+export async function loginUser(input: LoginInput, userLookup?: ReturnType<typeof findLoginUser>) {
+  const user = await (userLookup ?? findLoginUser(input.email))
 
   if (!user) {
     await spendPasswordCheck(input.password)
@@ -142,9 +146,12 @@ export async function loginUser(input: LoginInput) {
   // Upgrade legacy bcrypt cost=12 hashes to SALT_ROUNDS (10) in the background so future logins are ~4x faster
   const costMatch = user.password.match(/^\$2[aby]\$(\d+)\$/)
   if (matchesDbPassword && (!isBcryptHash || (costMatch && parseInt(costMatch[1], 10) > SALT_ROUNDS))) {
-    hash(input.password, SALT_ROUNDS)
-      .then((newHash) => prisma.user.update({ where: { id: user.id }, data: { password: newHash } }))
-      .catch(() => {})
+    // after(): runs once the response is sent, and the serverless function is kept alive until it ends
+    after(() =>
+      hash(input.password, SALT_ROUNDS)
+        .then((newHash) => prisma.user.update({ where: { id: user.id }, data: { password: newHash } }))
+        .catch(() => {}),
+    )
   }
 
   const payload = sessionPayloadFromUser(user)

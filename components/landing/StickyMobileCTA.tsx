@@ -28,10 +28,10 @@ export default function StickyMobileCTA() {
         onClick={() => trackFunnelEvent('cta_click', { location: 'sticky_mobile' })}
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 py-3.5 text-[15px] font-semibold text-white shadow-[0_8px_30px_-8px_rgba(66,88,249,0.8)] active:scale-[0.98]"
       >
-        Testar {TRIAL_DAYS} dias grátis
+        Criar minha conta grátis
         <ArrowRight className="h-4 w-4" />
       </Link>
-      <p className="mt-1.5 text-center text-[11px] text-surface-500">Sem cartão e sem CPF</p>
+      <p className="mt-1.5 text-center text-[11px] text-surface-400"><span className="font-semibold text-surface-200">{TRIAL_DAYS} dias grátis.</span> Sem cartão, sem CPF.</p>
     </div>
   )
 }

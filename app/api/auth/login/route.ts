@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { z } from 'zod'
-import { loginUser } from '@/services/user.service'
+import { findLoginUser, loginUser } from '@/services/user.service'
 import { setSession } from '@/lib/auth'
 import { clientIp, enforceRateLimits, resetRateLimit } from '@/lib/rateLimit'
 
@@ -16,14 +16,18 @@ export async function POST(request: NextRequest) {
 
     // Per IP (credential stuffing from one machine) and per account (distributed brute force).
     const accountKey = `login:acct:${email.trim().toLowerCase()}`
+    // The account lookup runs alongside the rate-limit check (one DB round trip instead of two);
+    // the password is only verified after the limit passes.
+    const userLookup = findLoginUser(email)
+    userLookup.catch(() => {})
     const limited = await enforceRateLimits([
       { key: `login:ip:${clientIp(request)}`, limit: 20, windowSec: 15 * 60 },
       { key: accountKey, limit: 8, windowSec: 15 * 60 },
     ])
     if (limited) return limited
 
-    const result = await loginUser({ email, password })
-    await resetRateLimit(accountKey)
+    const result = await loginUser({ email, password }, userLookup)
+    after(() => resetRateLimit(accountKey))
     
     // ── Check account status before setting session ──────────────────────
     const isPaidActive = result.user.subscriptionStatus === 'ACTIVE'

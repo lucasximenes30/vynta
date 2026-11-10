@@ -19,13 +19,16 @@
 - Cabeçalhos de segurança em `next.config.mjs` (HSTS, X-Frame-Options, nosniff...). Não há CSP completo por causa dos pixels de marketing.
 
 ## Performance
+- Prisma roda sem o engine Rust (`engineType = "client"` no generator, exige o adapter `PrismaNeon`): cold start bem menor nas funções serverless. Depois de mexer no schema, `npx prisma generate`.
+- `components/SidebarLayout.tsx` é só um roteador fino; o chrome do app (sidebar, bottom nav, quick add, push, tour, engagement) fica em `components/AppShell.tsx`, carregado via `next/dynamic` apenas nas rotas do app — landing/login/register não baixam esse código.
+- Login (`/api/auth/login` e `/api/admin/auth/login`): a busca do usuário roda em paralelo com o rate limit; escritas não essenciais (reset do contador, upgrade do hash) vão para `after()` de `next/server`.
 - Deploy na Vercel em `gru1` (`vercel.json`) para ficar junto do banco em São Paulo.
 - `services/transaction.service.ts`: todas as leituras derivam de um único `loadUserTransactions` (1 query) — não reintroduzir queries por mês/loop.
 - Ícones referenciados por nome: use `getIconByName` de `lib/icons.ts` (nunca `(Lucide as any)[name]`, que põe todos os ícones no bundle).
 - Bibliotecas pesadas (recharts, exceljs, jspdf) devem ser carregadas via `next/dynamic` / `import()`.
 
 ## Mobile / PWA
-- Lançamento rápido: `openQuickAdd('EXPENSE'|'INCOME')` de `lib/quickAdd.ts` abre a sheet global (host em `SidebarLayout`). Também abre via `?add=expense|income` (shortcuts do manifest), tecla `n` e drawer "Mais".
+- Lançamento rápido: `openQuickAdd('EXPENSE'|'INCOME')` de `lib/quickAdd.ts` abre a sheet global (host em `AppShell`). Também abre via `?add=expense|income` (shortcuts do manifest), tecla `n` e drawer "Mais".
 - Após criar/apagar uma transação, dispare `vynta:transaction-created` — as telas com dados financeiros escutam e fazem `router.refresh()`.
 - Datas de transação são sempre `<dia local>T12:00:00Z` (ver `todayDateValue`), nunca horário real em UTC.
 - Fila e cache offline (48h): `readQueue/enqueueTransaction/enqueueMutation/syncQueue` em `lib/quickAdd.ts` + interceptação de mutações offline em `components/RouterCacheSync.tsx`; SW em `public/sw.js` mantém cache de estáticos (`STATIC_CACHE`) e cache de páginas/RSC/GETs autenticados com TTL de 48h (`DATA_CACHE`, limpo em `/api/auth/logout|login|register`).
@@ -41,7 +44,7 @@
 ## E-mail (Brevo), engajamento e oferta 1º mês
 - Envio via API transacional da Brevo em `services/email.service.ts` (`sendEmail`, `upsertBrevoContact`, tokens assinados de reset de senha/descadastro). Templates HTML em `lib/emailTemplates.ts`. Envs: `BREVO_API_KEY`, `EMAIL_FROM`, `EMAIL_FROM_NAME`, `BREVO_LIST_ID` (opcional), `APP_URL`. A Brevo bloqueia IPs não autorizados: a restrição de IP precisa ficar DESLIGADA (Vercel usa IP dinâmico). Teste local: `npx tsx --env-file=.env scripts/send-test-emails.ts <email>`.
 - Reset de senha: `/esqueci-a-senha` → `POST /api/auth/forgot-password` (resposta sempre igual, 1 envio/2 min por conta) → `/redefinir-senha?token=` → `POST /api/auth/reset-password`. Token JWT de 1h atrelado ao hash da senha atual (uso único, sem tabela).
-- Último acesso: `User.lastSeenAt`, gravado por `POST /api/track/activity` (heartbeat do `EngagementHost` no `SidebarLayout`, máx. 1 escrita/10 min). Accounts antigas sem valor usam `activityTrackingStart()` (menor `lastSeenAt`) como base, para não serem tratadas como "sumidas desde o cadastro".
+- Último acesso: `User.lastSeenAt`, gravado por `POST /api/track/activity` (heartbeat do `EngagementHost` no `AppShell`, máx. 1 escrita/10 min). Accounts antigas sem valor usam `activityTrackingStart()` (menor `lastSeenAt`) como base, para não serem tratadas como "sumidas desde o cadastro".
 - Remarketing por e-mail: `services/emailScheduler.service.ts` roda no `GET /api/cron/push` (never-used, inactive 3d+, trial-last-day, trial-expired, promo-ending). Dedupe permanente em `email_logs (userId, key)`; respeita `User.emailOptOut` (`/api/email/unsubscribe`).
 - Push de reengajamento (2, 3, 5, 7, 10, 14 dias sem abrir) e da oferta no `pushScheduler` (janela 09–21h, ou seja, roda no cron das 20h).
 - Oferta 1º mês (`PROMO_FIRST_MONTH` em `lib/plans.ts`, R$14,90/30 dias): checkout AVULSO (`createPromoCheckout`, `planTier: 'promo'` em `/api/payments/create`); a ativação reconhece pelo `PaymentTransaction.rawStatus = PROMO_CHECKOUT_STATUS` e grava `subscriptionId = promo_<checkout>` sem renovação. Elegível: `FREE_TRIAL` que nunca pagou, até 7 dias após o fim do trial (`isPromoEligible`). Quem está no mês promo pode acessar `/subscription`; ao assinar, os dias restantes são somados.
@@ -72,3 +75,8 @@
 - Skeletons por rota (`components/PageSkeleton.tsx` + `loading.tsx`) — mantenha-os parecidos com o layout real.
 - Pixels de marketing (Utmify, Facebook) só carregam nas rotas de aquisição/checkout (`components/MarketingScripts.tsx`); não os coloque nas telas logadas.
 - Animações simples: use as classes CSS `animate-in fade-in zoom-in-95 slide-in-from-bottom-*` (definidas em `globals.css`) em vez de framer-motion; `collapse-grid[data-open]` para acordeões.
+
+## Landing page (`app/page.tsx`)
+- Copy: siga a skill `.devin/skills/copy-conversao` (pesquisa, regras, fatos do produto). Nunca invente depoimento/número de usuários.
+- Animações sem biblioteca (estilo abacatepay.com): script inline liga `html.motion` antes do paint; `components/landing/LandingMotion.tsx` adiciona `.is-in` em `[data-reveal]` (variações `left|right|zoom|fade`, `data-reveal-stagger`, filhos `.pop-in`/`.grow-x`) e faz parallax em `[data-parallax]`. Entrada do hero com `.rise`/`.rise-zoom`/`.pop` + `--d`. CSS em `globals.css` (só transform/opacity, respeita reduced motion). Não traga framer-motion de volta para a landing.
+- Prints vêm da conta demo `demo@vynta.digital` (COURTESY, `emailOptOut`): recrie com `DEMO_PASSWORD=... npx tsx --env-file=.env scripts/seed-demo-account.ts` (apaga e recria só essa conta, datas relativas a hoje). Imagens em `public/images/landing/` (webp, mobile 780×1688 = 390px @2x; desktop 1600×1000; `og.jpg` 1200×630).

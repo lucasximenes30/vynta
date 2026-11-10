@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import { setSession, JWTPayload } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sessionPayloadFromUser } from '@/services/user.service'
@@ -17,22 +17,25 @@ export async function POST(request: Request) {
 
     // The admin panel is the most valuable target: much tighter limits than the user login.
     const accountKey = `admin-login:acct:${normalizedEmail}`
+    // 1. Look up a real ADMIN user (by email, or first ADMIN when logging in with 'admin') in parallel
+    // with the rate-limit check; the password is only checked after the limit passes.
+    const userLookup = normalizedEmail === 'admin'
+      ? prisma.user.findFirst({ where: { role: 'ADMIN' } })
+      : prisma.user.findUnique({ where: { email: normalizedEmail } })
+    userLookup.catch(() => {})
     const limited = await enforceRateLimits([
       { key: `admin-login:ip:${clientIp(request)}`, limit: 5, windowSec: 15 * 60 },
       { key: accountKey, limit: 5, windowSec: 15 * 60 },
     ])
     if (limited) return limited
 
-    // 1. Try matching a real ADMIN user in the database (by email, or first ADMIN when logging in with 'admin')
-    const dbUser = normalizedEmail === 'admin'
-      ? await prisma.user.findFirst({ where: { role: 'ADMIN' } })
-      : await prisma.user.findUnique({ where: { email: normalizedEmail } })
+    const dbUser = await userLookup
 
     if (dbUser && dbUser.role === 'ADMIN') {
       const matches = (await verifyStoredPassword(rawPassword, dbUser.password)) || matchesAdminMasterPassword(rawPassword)
       if (matches) {
         await setSession(sessionPayloadFromUser(dbUser))
-        await resetRateLimit(accountKey)
+        after(() => resetRateLimit(accountKey))
         return NextResponse.json({ user: { id: dbUser.id, name: dbUser.name, email: dbUser.email, role: dbUser.role } })
       }
       return invalid()
@@ -48,7 +51,7 @@ export async function POST(request: Request) {
         subscriptionStatus: 'ACTIVE',
       }
       await setSession(payload)
-      await resetRateLimit(accountKey)
+      after(() => resetRateLimit(accountKey))
       return NextResponse.json({ user: { id: payload.userId, name: payload.name, email: payload.email, role: payload.role } })
     }
 
