@@ -9,7 +9,7 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #000; font-family: 'Manrope', sans-serif; }
   .slide { position: relative; width: 1080px; height: 1350px; overflow: hidden; background: #0c0d10; color: #f1f3f7; display: flex; flex-direction: column; padding: 90px 80px; }
-  .slide::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 90% 55% at 50% -12%, rgba(66,88,249,0.28), transparent 65%), linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px); background-size: auto, 72px 72px, 72px 72px; pointer-events: none; }
+  .slide::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 90% 55% at 50% -12%, rgba(232,50,122,0.30), transparent 65%), radial-gradient(ellipse 65% 40% at 85% 112%, rgba(78,205,196,0.12), transparent 60%), radial-gradient(ellipse 60% 40% at 10% 112%, rgba(255,161,79,0.10), transparent 60%), linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px); background-size: auto, auto, auto, 72px 72px, 72px 72px; pointer-events: none; }
   .slide > * { position: relative; }
   .center { justify-content: center; align-items: flex-start; }
   .eyebrow { display: inline-flex; align-items: center; gap: 10px; align-self: flex-start; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05); backdrop-filter: blur(4px); border-radius: 999px; padding: 12px 26px; font-size: 26px; font-weight: 600; color: #c8ccd8; letter-spacing: 0.02em; }
@@ -22,6 +22,8 @@
   .lg { font-size: 76px; margin-top: 44px; }
   .md { font-size: 60px; margin-top: 44px; }
   .grad { background: linear-gradient(92deg, #93abff 10%, #a78bfa 55%, #c4b5fd 90%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .grad-gta { background: linear-gradient(92deg, #ff5e8f 5%, #ff7b54 50%, #ffc15e 90%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .pink { color: #ff5e8f; } .teal { color: #4ecdc4; }
   .red { color: #f87171; } .amber { color: #fbbf24; } .green { color: #34d399; } .brand { color: #93abff; }
   .sub { margin-top: 40px; font-size: 36px; line-height: 1.45; color: #a8adbb; max-width: 880px; font-weight: 500; }
   .sub strong { color: #e2e5ed; font-weight: 700; }
@@ -57,7 +59,7 @@
 <!-- SLIDE 1 — HOOK D-7 -->
 <section class="slide center">
   <div class="eyebrow"><span class="dot red"></span> 19 de novembro</div>
-  <h1 class="xl">Faltam <span class="grad">7 dias</span><br />pro GTA 6.<br /><span style="font-size:78px">E você nem sabe se tem os <span class="red">R$ 450</span>.</span></h1>
+  <h1 class="xl">Faltam <span class="grad-gta">7 dias</span><br />pro GTA 6.<br /><span style="font-size:78px">E você nem sabe se tem os <span class="red">R$ 450</span>.</span></h1>
   <p class="sub">O jogo mais esperado da década chega semana que vem. <strong>O dinheiro pra ele, sabe lá onde tá.</strong></p>
   <div class="swipe">arrasta <span style="font-size:34px">→</span></div>
   <div class="foot"><span>@somosvynta</span></div>
@@ -65,8 +67,8 @@
 
 <!-- SLIDE 2 — O PREÇO -->
 <section class="slide center">
-  <div class="eyebrow"><svg viewBox="0 0 24 24" fill="none" stroke="#93abff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="10" y1="11" y2="15"/><line x1="8" x2="8" y1="9" y2="17"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg> R$ 449,90 na edição padrão</div>
-  <h2 class="lg">Parece caro?<br /><br /><span class="grad">Depende do que escapou</span> do seu bolso esse mês.</h2>
+  <div class="eyebrow"><svg viewBox="0 0 24 24" fill="none" stroke="#ff5e8f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="10" y1="11" y2="15"/><line x1="8" x2="8" y1="9" y2="17"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg> R$ 449,90 na edição padrão</div>
+  <h2 class="lg">Parece caro?<br /><br /><span class="grad-gta">Depende do que escapou</span> do seu bolso esse mês.</h2>
   <p class="sub">Cafezinho, Uber, assinatura esquecida… junta tudo e <strong>o GTA já tava pago</strong>.</p>
   <div class="foot"><span>@somosvynta</span><div class="dots"><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
 </section>
@@ -77,7 +79,7 @@
   <div style="margin-top:56px; display:flex; align-items:center; gap:28px">
     <span class="icbox" style="width:110px; height:110px; border-radius:30px"><svg viewBox="0 0 24 24" style="width:56px;height:56px" fill="none" stroke="#34d399" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="10" x2="14" y1="2" y2="2"/><line x1="12" x2="15" y1="14" y2="11"/><circle cx="12" cy="14" r="8"/></svg></span>
   </div>
-  <h2 class="lg" style="margin-top:44px">Dá tempo.<br /><span class="grad">Exatos 7 dias.</span></h2>
+  <h2 class="lg" style="margin-top:44px">Dá tempo.<br /><span class="grad-gta">Exatos 7 dias.</span></h2>
   <p class="sub">7 dias anotando <strong>tudo</strong> que você gasta = a resposta exata: o GTA cabe ou não cabe no seu bolso.</p>
   <div class="foot"><span>@somosvynta</span><div class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div></div>
 </section>
@@ -119,7 +121,7 @@
 <!-- SLIDE 7 — OS DOIS CENÁRIOS -->
 <section class="slide center">
   <div class="eyebrow"><span class="dot amber"></span> dia 19 tem dois cenários</div>
-  <h2 class="lg" style="font-size:68px">Ou você tá<br />jogando <span class="grad">Vice City…</span></h2>
+  <h2 class="lg" style="font-size:68px">Ou você tá<br />jogando <span class="grad-gta">Vice City…</span></h2>
   <h2 class="lg" style="font-size:68px; margin-top:24px">ou pelo menos<br />descobriu pra onde<br />o dinheiro foi.</h2>
   <p class="sub">(O segundo também é vitória — e dura mais que o jogo.)</p>
   <div class="foot"><span>@somosvynta</span><div class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div></div>
@@ -128,7 +130,7 @@
 <!-- SLIDE 8 — CTA -->
 <section class="slide center" style="align-items:center; text-align:center">
   <img src="/public/assets/logo/logo-mark.png" alt="Vynta" style="width:140px; margin-bottom:40px" />
-  <h2 style="font-size:54px; line-height:1.15">Manda pra quem vai zerar<br />o GTA 6 no lançamento —<br /><span class="grad">e pra quem tá quebrado<br />e vai fingir que não liga</span>&nbsp;<span class="icline" style="font-size:54px"><svg viewBox="0 0 24 24" fill="none" stroke="#93abff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M18 13a6 6 0 0 1-6 5 6 6 0 0 1-6-5h12Z"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg></span></h2>
+  <h2 style="font-size:54px; line-height:1.15">Manda pra quem vai zerar<br />o GTA 6 no lançamento —<br /><span class="grad-gta">e pra quem tá quebrado<br />e vai fingir que não liga</span>&nbsp;<span class="icline" style="font-size:54px"><svg viewBox="0 0 24 24" fill="none" stroke="#4ecdc4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M18 13a6 6 0 0 1-6 5 6 6 0 0 1-6-5h12Z"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg></span></h2>
   <div class="ghost">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
     Segue @somosvynta
