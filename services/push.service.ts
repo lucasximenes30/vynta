@@ -33,7 +33,13 @@ export function isPushConfigured(): boolean {
   const privateKey = process.env.VAPID_PRIVATE_KEY
   configured = !!(publicKey && privateKey)
   if (configured) {
-    webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'mailto:contato@vynta.app', publicKey!, privateKey!)
+    try {
+      webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'mailto:contato@vynta.app', publicKey!, privateKey!)
+    } catch (err) {
+      // Malformed env values throw here; treat push as unconfigured instead of 500ing callers.
+      console.error('[push] VAPID keys inválidas:', err)
+      configured = false
+    }
   }
   return configured
 }

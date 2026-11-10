@@ -12,7 +12,13 @@ const securityHeaders = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
-  serverExternalPackages: ['bufferutil', 'utf-8-validate', 'ws'],
+  // Keep Prisma's generated client + query-compiler WASM out of webpack chunks and copy them into
+  // every serverless bundle — without this, nft misses `query_compiler_bg.wasm` and Prisma throws
+  // ENOENT at runtime (it broke only the /api/cron/push function).
+  serverExternalPackages: ['bufferutil', 'utf-8-validate', 'ws', '@prisma/client', '.prisma/client'],
+  outputFileTracingIncludes: {
+    '/**': ['./node_modules/.prisma/client/**/*'],
+  },
   experimental: {
     optimizePackageImports: ['recharts', 'date-fns', 'framer-motion'],
     // Reuse visited dynamic screens for 30s: instant tab switches in the PWA.
