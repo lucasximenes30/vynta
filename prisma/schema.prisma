@@ -714,3 +714,13 @@ model EmailLog {
   @@index([tag, sentAt])
   @@map("email_logs")
 }
+
+// Fixed-window rate limit counters shared by every serverless instance (see lib/rateLimit.ts).
+model RateLimit {
+  key     String   @id
+  count   Int      @default(0)
+  resetAt DateTime
+
+  @@index([resetAt])
+  @@map("rate_limits")
+}

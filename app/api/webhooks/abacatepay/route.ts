@@ -6,6 +6,7 @@ import { FacebookService } from '@/services/facebook.service'
 import { notifyAdminsApprovedSale } from '@/services/push.service'
 import { tierFromCycle, tierFromAmount, normalizeTier, type BillingTier } from '@/lib/plans'
 import crypto from 'crypto'
+import { safeEqual } from '@/lib/password'
 
 // Public key provided in AbacatePay docs for HMAC signature verification
 const ABACATEPAY_PUBLIC_KEY =
@@ -48,7 +49,7 @@ export async function POST(req: Request) {
 
   const url = new URL(req.url)
   const querySecret = url.searchParams.get('webhookSecret')
-  const isQuerySecretMatch = !!(querySecret && secret && querySecret === secret)
+  const isQuerySecretMatch = !!(querySecret && secret && safeEqual(querySecret, secret))
 
   const isSignatureValid = verifySignature(rawBody, signature, secret)
 
@@ -79,8 +80,10 @@ export async function POST(req: Request) {
     const rawCheckoutId = data.checkout?.id || data.billing?.id
     if (!isTrusted && rawCheckoutId) {
       const verifiedCheckout = await getSubscriptionCheckout(rawCheckoutId).catch(() => null)
+      // Only API-verified fields: merging the raw payload would let a forged event pick
+      // metadata.userId/externalId and hand someone else's paid checkout to any account.
       if (verifiedCheckout && (verifiedCheckout.status === 'PAID' || verifiedCheckout.status === 'ACTIVE')) {
-        checkout = { ...(data.checkout || data.billing || {}), ...verifiedCheckout }
+        checkout = verifiedCheckout
       }
     }
 

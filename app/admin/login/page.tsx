@@ -28,7 +28,8 @@ export default function AdminLoginPage() {
       })
 
       if (!res.ok) {
-        throw new Error('Credenciais inválidas')
+        const data = await res.json().catch(() => null)
+        throw new Error(res.status === 429 && data?.error ? data.error : 'Credenciais inválidas')
       }
 
       router.push('/admin/users')

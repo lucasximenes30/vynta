@@ -12,6 +12,11 @@
 
 ## Segurança
 - Arquivos em `services/` são módulos server-only comuns: NÃO adicione `'use server'` neles (viraria endpoint público recebendo `userId` arbitrário). Server actions ficam em arquivos `actions.ts` e devem validar a sessão.
+- Rate limit: `enforceRateLimits([{ key, limit, windowSec }])` de `lib/rateLimit.ts` (contador atômico na tabela `rate_limits`, vale entre todas as instâncias serverless; NÃO use contador em memória). Já aplicado em login (8/conta e 20/IP por 15 min), admin login (5/5), register (5/IP/h), forgot (3/conta/h), reset, change-password, push test e `/api/track`. Toda rota pública nova que grava no banco ou envia e-mail precisa de limite. Limpeza dos expirados no cron.
+- Segredos comparados com `safeEqual` (`lib/password.ts`, tempo constante) — nunca `===`. `JWT_SECRET` é obrigatório em produção (≥ 32 chars; `getJwtSecretKey` lança erro sem ele). `ADMIN_PASSWORD` (senha mestre dos ADMIN) só é aceita com ≥ 16 chars.
+- Webhooks falham fechados: Cakto exige `CAKTO_WEBHOOK_SECRET`; AbacatePay sem `webhookSecret` só usa dados relidos da API (nunca mesclar o payload bruto).
+- `/api/auth/force-password-change` só funciona com `forcePasswordChange = true` no banco (não pede a senha atual).
+- Cabeçalhos de segurança em `next.config.mjs` (HSTS, X-Frame-Options, nosniff...). Não há CSP completo por causa dos pixels de marketing.
 
 ## Performance
 - Deploy na Vercel em `gru1` (`vercel.json`) para ficar junto do banco em São Paulo.

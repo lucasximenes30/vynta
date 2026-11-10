@@ -1,6 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
-import { JWT_SECRET } from './constants'
+import { getJwtSecretKey } from './constants'
 
 export interface JWTPayload {
   userId: string
@@ -24,19 +24,19 @@ export interface JWTPayload {
   [key: string]: unknown
 }
 
-const secret = new TextEncoder().encode(JWT_SECRET)
-
 export async function signToken(payload: JWTPayload): Promise<string> {
   return new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
-    .sign(secret)
+    .sign(getJwtSecretKey())
 }
 
 export async function verifyToken(token: string): Promise<JWTPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, secret)
+    const { payload } = await jwtVerify(token, getJwtSecretKey(), { algorithms: ['HS256'] })
+    // Password-reset/unsubscribe tokens are signed with the same key; they are never sessions.
+    if (typeof payload.userId !== 'string' || 'purpose' in payload) return null
     return payload as unknown as JWTPayload
   } catch {
     return null

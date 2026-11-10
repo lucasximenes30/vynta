@@ -3,6 +3,7 @@ import { UserSubscriptionStatus } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
+import { safeEqual } from '@/lib/password'
 
 export async function POST(req: Request) {
   try {
@@ -18,21 +19,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
     }
 
-    // 1. Validate Secret from payload
-    const secret = payload.secret
+    // 1. Validate Secret from payload. Fails closed: without a configured secret this endpoint would
+    // let anyone activate any account by POSTing its e-mail.
     const expectedSecret = process.env.CAKTO_WEBHOOK_SECRET
-    
-    // Log secret matching (safely)
-    const secretProvided = !!secret;
-    const secretMatches = expectedSecret ? secret === expectedSecret : true;
-    console.log(`[Cakto Webhook] Secret provided: ${secretProvided}, Secret matches: ${secretMatches}`);
-
-    // In production we should strictly enforce the secret
-    if (expectedSecret && !secretMatches) {
-      console.error(`[Cakto Webhook] Unauthorized: Secret mismatch`);
+    if (!expectedSecret || typeof payload?.secret !== 'string' || !safeEqual(payload.secret, expectedSecret)) {
+      console.error(`[Cakto Webhook] Unauthorized: ${expectedSecret ? 'secret mismatch' : 'CAKTO_WEBHOOK_SECRET not configured'}`)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    } else if (!expectedSecret) {
-      console.warn('[Cakto Webhook] CAKTO_WEBHOOK_SECRET is not set. Accepting without signature verification (dev mode behavior).');
     }
 
     // 2. Validate Event and Data

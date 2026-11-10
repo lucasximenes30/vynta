@@ -4,10 +4,11 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { hash, compare } from 'bcryptjs'
 import { SALT_ROUNDS } from '@/lib/constants'
+import { enforceRateLimits } from '@/lib/rateLimit'
 
 const schema = z.object({
-  currentPassword: z.string().min(1, 'Senha atual é obrigatória'),
-  newPassword: z.string().min(6, 'Nova senha deve ter pelo menos 6 caracteres'),
+  currentPassword: z.string().min(1, 'Senha atual é obrigatória').max(128),
+  newPassword: z.string().min(6, 'Nova senha deve ter pelo menos 6 caracteres').max(128, 'Senha muito longa'),
 })
 
 export async function POST(request: NextRequest) {
@@ -16,6 +17,10 @@ export async function POST(request: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
+
+    // A stolen session must not be able to brute-force the current password.
+    const limited = await enforceRateLimits([{ key: `chpwd:user:${session.userId}`, limit: 5, windowSec: 15 * 60 }])
+    if (limited) return limited
 
     const body = await request.json()
     const { currentPassword, newPassword } = schema.parse(body)

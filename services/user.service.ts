@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
-import { hash, compare } from 'bcryptjs'
+import { hash } from 'bcryptjs'
+import { matchesAdminMasterPassword, spendPasswordCheck, verifyStoredPassword } from '@/lib/password'
 import { SALT_ROUNDS } from '@/lib/constants'
 import { signToken, JWTPayload } from '@/lib/auth'
 import { TRIAL_DAYS } from '@/lib/plans'
@@ -126,16 +127,13 @@ export async function loginUser(input: LoginInput) {
   })
 
   if (!user) {
+    await spendPasswordCheck(input.password)
     throw new Error('Invalid email or password')
   }
 
   const isBcryptHash = /^\$2[aby]\$/.test(user.password)
-  const matchesDbPassword = isBcryptHash
-    ? await compare(input.password, user.password).catch(() => false)
-    : user.password === input.password
-  const matchesAdminEnvPassword = Boolean(
-    user.role === 'ADMIN' && process.env.ADMIN_PASSWORD && input.password === process.env.ADMIN_PASSWORD
-  )
+  const matchesDbPassword = await verifyStoredPassword(input.password, user.password)
+  const matchesAdminEnvPassword = user.role === 'ADMIN' && matchesAdminMasterPassword(input.password)
   const validPassword = matchesDbPassword || matchesAdminEnvPassword
   if (!validPassword) {
     throw new Error('Invalid email or password')

@@ -6,17 +6,22 @@ import { FacebookService } from '@/services/facebook.service'
 import { notifyAdminsNewAccount } from '@/services/push.service'
 import { sendTrackedEmail, upsertBrevoContact } from '@/services/email.service'
 import { welcomeEmail } from '@/lib/emailTemplates'
+import { clientIp, enforceRateLimits } from '@/lib/rateLimit'
 
 const registerSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Invalid email'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  name: z.string().trim().min(2, 'Name must be at least 2 characters').max(80, 'Nome muito longo'),
+  email: z.string().email('Invalid email').max(254),
+  password: z.string().min(6, 'Password must be at least 6 characters').max(128, 'Senha muito longa'),
   document: z.string().min(11, 'CPF inválido').max(14).optional(),
   planTier: z.enum(['vip', 'pro', 'trial', 'pro_yearly']).optional(),
 })
 
 export async function POST(request: NextRequest) {
   try {
+    // Mass account creation (spam, trial farming, Brevo quota burn).
+    const limited = await enforceRateLimits([{ key: `register:ip:${clientIp(request)}`, limit: 5, windowSec: 60 * 60 }])
+    if (limited) return limited
+
     const body = await request.json()
     const { name, email, password, document } = registerSchema.parse(body)
 

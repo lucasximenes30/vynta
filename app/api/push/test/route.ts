@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
+import { enforceRateLimits } from '@/lib/rateLimit'
 import { isPushConfigured, sendPushToUser } from '@/services/push.service'
 
 export async function POST() {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const limited = await enforceRateLimits([{ key: `push-test:user:${session.userId}`, limit: 5, windowSec: 10 * 60 }])
+  if (limited) return limited
   if (!isPushConfigured()) return NextResponse.json({ error: 'Notificações não configuradas no servidor' }, { status: 503 })
 
   const delivered = await sendPushToUser(session.userId, {

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { runScheduledPushes } from '@/services/pushScheduler.service'
 import { syncAllCalendarFeeds } from '@/services/calendarSync.service'
 import { runScheduledEmails } from '@/services/emailScheduler.service'
+import { pruneRateLimits } from '@/lib/rateLimit'
+import { safeEqual } from '@/lib/password'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -10,7 +12,7 @@ export const maxDuration = 60
 // external scheduler using the same header. Idempotent: safe to call as often as you like.
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET
-  if (!secret || request.headers.get('authorization') !== `Bearer ${secret}`) {
+  if (!secret || !safeEqual(request.headers.get('authorization') ?? '', `Bearer ${secret}`)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -18,6 +20,7 @@ export async function GET(request: NextRequest) {
   const [result, emails] = await Promise.all([
     runScheduledPushes(),
     runScheduledEmails().catch((err) => ({ error: String(err?.message || err) })),
+    pruneRateLimits(),
   ])
   return NextResponse.json({ ...result, calendar, emails })
 }

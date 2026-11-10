@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { loginUser } from '@/services/user.service'
 import { setSession } from '@/lib/auth'
+import { clientIp, enforceRateLimits, resetRateLimit } from '@/lib/rateLimit'
 
 const loginSchema = z.object({
-  email: z.string().email('Invalid email'),
-  password: z.string().min(1, 'Password is required'),
+  email: z.string().email('Invalid email').max(254),
+  password: z.string().min(1, 'Password is required').max(128),
 })
 
 export async function POST(request: NextRequest) {
@@ -13,7 +14,16 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { email, password } = loginSchema.parse(body)
 
+    // Per IP (credential stuffing from one machine) and per account (distributed brute force).
+    const accountKey = `login:acct:${email.trim().toLowerCase()}`
+    const limited = await enforceRateLimits([
+      { key: `login:ip:${clientIp(request)}`, limit: 20, windowSec: 15 * 60 },
+      { key: accountKey, limit: 8, windowSec: 15 * 60 },
+    ])
+    if (limited) return limited
+
     const result = await loginUser({ email, password })
+    await resetRateLimit(accountKey)
     
     // ── Check account status before setting session ──────────────────────
     const isPaidActive = result.user.subscriptionStatus === 'ACTIVE'

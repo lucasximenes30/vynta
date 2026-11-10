@@ -1,5 +1,5 @@
 import { SignJWT, jwtVerify } from 'jose'
-import { JWT_SECRET } from '@/lib/constants'
+import { getJwtSecretKey } from '@/lib/constants'
 import { prisma } from '@/lib/prisma'
 
 // Server-only module (no 'use server'). Transactional/remarketing e-mail via Brevo (ex-Sendinblue).
@@ -139,7 +139,7 @@ export async function upsertBrevoContact(contact: { email: string; name?: string
 
 // ── Signed links (password reset, unsubscribe) ───────────────────────────────
 
-const secret = new TextEncoder().encode(JWT_SECRET)
+const secret = () => getJwtSecretKey()
 
 async function fingerprint(passwordHash: string) {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(passwordHash))
@@ -155,12 +155,12 @@ export async function createPasswordResetToken(userId: string, passwordHash: str
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('1h')
-    .sign(secret)
+    .sign(secret())
 }
 
 export async function verifyPasswordResetToken(token: string, getPasswordHash: (userId: string) => Promise<string | null>) {
   try {
-    const { payload } = await jwtVerify(token, secret)
+    const { payload } = await jwtVerify(token, secret(), { algorithms: ['HS256'] })
     if (payload.purpose !== 'pwd-reset' || typeof payload.sub !== 'string') return null
     const current = await getPasswordHash(payload.sub)
     if (!current || payload.fp !== (await fingerprint(current))) return null
@@ -171,13 +171,13 @@ export async function verifyPasswordResetToken(token: string, getPasswordHash: (
 }
 
 export async function createUnsubscribeUrl(userId: string) {
-  const token = await new SignJWT({ sub: userId, purpose: 'unsub' }).setProtectedHeader({ alg: 'HS256' }).sign(secret)
+  const token = await new SignJWT({ sub: userId, purpose: 'unsub' }).setProtectedHeader({ alg: 'HS256' }).sign(secret())
   return `${APP_URL}/api/email/unsubscribe?t=${token}`
 }
 
 export async function verifyUnsubscribeToken(token: string) {
   try {
-    const { payload } = await jwtVerify(token, secret)
+    const { payload } = await jwtVerify(token, secret(), { algorithms: ['HS256'] })
     return payload.purpose === 'unsub' && typeof payload.sub === 'string' ? payload.sub : null
   } catch {
     return null
