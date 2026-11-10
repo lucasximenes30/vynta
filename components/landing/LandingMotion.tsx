@@ -63,8 +63,8 @@ export default function LandingMotion() {
     }
 
     return () => {
-      root.classList.remove('motion')
-      delete root.dataset.motionReady
+      // Do NOT remove `motion`/`motionReady` here: React dev (StrictMode) mounts effects twice, so
+      // cleanup would strip the class and the second setup would bail on the early return above.
       reveal.disconnect()
       watch.disconnect()
       window.removeEventListener('scroll', schedule)
