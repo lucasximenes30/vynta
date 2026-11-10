@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; font-family: 'Manrope', sans-serif; }
+  .slide { position: relative; width: 1080px; height: 1350px; overflow: hidden; background: #0c0d10; color: #f1f3f7; display: flex; flex-direction: column; padding: 90px 80px; }
+  .slide::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 90% 55% at 50% -12%, rgba(66,88,249,0.28), transparent 65%), linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px); background-size: auto, 72px 72px, 72px 72px; pointer-events: none; }
+  .slide > * { position: relative; }
+  .center { justify-content: center; align-items: flex-start; }
+  .eyebrow { display: inline-flex; align-items: center; gap: 10px; align-self: flex-start; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05); backdrop-filter: blur(4px); border-radius: 999px; padding: 12px 26px; font-size: 26px; font-weight: 600; color: #c8ccd8; letter-spacing: 0.02em; }
+  .eyebrow .dot { width: 12px; height: 12px; border-radius: 999px; background: #34d399; }
+  .eyebrow .dot.red { background: #f87171; }
+  .eyebrow .dot.amber { background: #fbbf24; }
+  .eyebrow svg { width: 26px; height: 26px; }
+  h1, h2 { font-family: 'Sora', sans-serif; font-weight: 800; letter-spacing: -0.035em; line-height: 1.08; color: #fff; }
+  .xl { font-size: 96px; margin-top: 44px; }
+  .lg { font-size: 76px; margin-top: 44px; }
+  .md { font-size: 60px; margin-top: 44px; }
+  .grad { background: linear-gradient(92deg, #93abff 10%, #a78bfa 55%, #c4b5fd 90%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .red { color: #f87171; } .amber { color: #fbbf24; } .green { color: #34d399; } .brand { color: #93abff; }
+  .sub { margin-top: 40px; font-size: 36px; line-height: 1.45; color: #a8adbb; max-width: 880px; font-weight: 500; }
+  .sub strong { color: #e2e5ed; font-weight: 700; }
+  .swipe { position: absolute; bottom: 78px; right: 80px; display: flex; align-items: center; gap: 14px; font-size: 28px; font-weight: 700; color: #93abff; }
+  .foot { position: absolute; left: 80px; bottom: 78px; display: flex; align-items: center; gap: 22px; font-size: 26px; font-weight: 600; color: #7a7d8b; }
+  .dots { display: flex; gap: 10px; }
+  .dots i { width: 10px; height: 10px; border-radius: 999px; background: rgba(255,255,255,0.18); }
+  .dots i.on { background: #637ffd; width: 28px; }
+  .card { position: relative; border: 1px solid rgba(255,255,255,0.09); background: rgba(255,255,255,0.04); border-radius: 32px; padding: 40px 44px; width: 100%; }
+  .card + .card { margin-top: 24px; }
+  .card .row { display: flex; align-items: center; gap: 28px; }
+  .icbox { flex: none; width: 84px; height: 84px; border-radius: 24px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09); }
+  .icbox svg { width: 42px; height: 42px; }
+  .icline { display: inline-flex; width: 1em; height: 1em; vertical-align: -0.12em; }
+  .icline svg { width: 100%; height: 100%; }
+  .card .t { font-family: 'Sora', sans-serif; font-size: 38px; font-weight: 700; color: #fff; letter-spacing: -0.02em; }
+  .card .d { font-size: 29px; color: #a8adbb; margin-top: 8px; font-weight: 500; }
+  .chiprow { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 48px; }
+  .chip { border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.045); border-radius: 999px; padding: 16px 30px; font-size: 28px; font-weight: 600; color: #c8ccd8; display: inline-flex; align-items: center; gap: 12px; }
+  .chip svg { width: 28px; height: 28px; }
+  .bigstat { font-family: 'Sora', sans-serif; font-size: 130px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; color: #fff; }
+  .phone { position: relative; width: 430px; border-radius: 56px; border: 10px solid #1a1c22; outline: 1px solid rgba(255,255,255,0.14); overflow: hidden; box-shadow: 0 60px 120px rgba(0,0,0,0.65), 0 0 90px rgba(66,88,249,0.18); background: #000; }
+  .phone img { display: block; width: 100%; }
+  .cta-pill { display: inline-flex; align-items: center; gap: 18px; background: linear-gradient(92deg, #4258f9, #5b6cff); color: #fff; font-family: 'Sora', sans-serif; font-weight: 700; font-size: 34px; border-radius: 999px; padding: 26px 48px; box-shadow: 0 20px 60px rgba(66,88,249,0.45); margin-top: 46px; }
+  .ghost { display: inline-flex; align-items: center; gap: 16px; margin-top: 26px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.05); border-radius: 999px; padding: 22px 40px; font-size: 30px; font-weight: 700; color: #f1f3f7; }
+  .ghost svg { width: 34px; height: 34px; }
+  .strike { text-decoration: line-through; text-decoration-color: #f87171; text-decoration-thickness: 6px; }
+  .countdown { font-family: 'Sora', sans-serif; font-weight: 800; font-size: 210px; letter-spacing: -0.05em; line-height: 0.9; background: linear-gradient(92deg, #93abff 10%, #a78bfa 55%, #c4b5fd 90%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1 — HOOK D-7 -->
+<section class="slide center">
+  <div class="eyebrow"><span class="dot red"></span> 19 de novembro</div>
+  <h1 class="xl">Faltam <span class="grad">7 dias</span><br />pro GTA 6.<br /><span style="font-size:78px">E você nem sabe se tem os <span class="red">R$ 450</span>.</span></h1>
+  <p class="sub">O jogo mais esperado da década chega semana que vem. <strong>O dinheiro pra ele, sabe lá onde tá.</strong></p>
+  <div class="swipe">arrasta <span style="font-size:34px">→</span></div>
+  <div class="foot"><span>@somosvynta</span></div>
+</section>
+
+<!-- SLIDE 2 — O PREÇO -->
+<section class="slide center">
+  <div class="eyebrow"><svg viewBox="0 0 24 24" fill="none" stroke="#93abff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="10" y1="11" y2="15"/><line x1="8" x2="8" y1="9" y2="17"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg> R$ 449,90 na edição padrão</div>
+  <h2 class="lg">Parece caro?<br /><br /><span class="grad">Depende do que escapou</span> do seu bolso esse mês.</h2>
+  <p class="sub">Cafezinho, Uber, assinatura esquecida… junta tudo e <strong>o GTA já tava pago</strong>.</p>
+  <div class="foot"><span>@somosvynta</span><div class="dots"><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+</section>
+
+<!-- SLIDE 3 — DÁ TEMPO -->
+<section class="slide center">
+  <div class="eyebrow"><span class="dot"></span> a boa notícia</div>
+  <div style="margin-top:56px; display:flex; align-items:center; gap:28px">
+    <span class="icbox" style="width:110px; height:110px; border-radius:30px"><svg viewBox="0 0 24 24" style="width:56px;height:56px" fill="none" stroke="#34d399" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="10" x2="14" y1="2" y2="2"/><line x1="12" x2="15" y1="14" y2="11"/><circle cx="12" cy="14" r="8"/></svg></span>
+  </div>
+  <h2 class="lg" style="margin-top:44px">Dá tempo.<br /><span class="grad">Exatos 7 dias.</span></h2>
+  <p class="sub">7 dias anotando <strong>tudo</strong> que você gasta = a resposta exata: o GTA cabe ou não cabe no seu bolso.</p>
+  <div class="foot"><span>@somosvynta</span><div class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div></div>
+</section>
+
+<!-- SLIDE 4 — O MÉTODO -->
+<section class="slide center">
+  <div class="eyebrow"><span class="dot"></span> o desafio é simples</div>
+  <h2 class="lg">Anota tudo.<br />Na hora que<br />acontece.</h2>
+  <p class="sub">O lanche, o Uber, a comprinha "só isso". Em uma semana o <strong>dinheiro invisível aparece</strong> — e geralmente ele é maior que R$ 450.</p>
+  <div class="swipe">continua <span style="font-size:34px">→</span></div>
+  <div class="foot"><span>@somosvynta</span><div class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i></div></div>
+</section>
+
+<!-- SLIDE 5 — PRODUTO -->
+<section class="slide">
+  <div style="display:flex; align-items:center; gap:56px; height:100%">
+    <div style="flex:1">
+      <div class="eyebrow"><span class="dot"></span> é pra isso que existe o Vynta</div>
+      <h2 style="font-family:'Sora'; font-size:56px; margin-top:36px; line-height:1.12">Aperta <span class="brand">+</span> e anota<br />entre uma<br />partida e outra.</h2>
+      <p class="sub" style="font-size:30px; margin-top:32px">5 segundos, na hora do gasto. <strong>A categoria vem sozinha</strong> — nem precisa de internet.</p>
+      <div class="chiprow" style="margin-top:40px">
+        <span class="chip"><svg viewBox="0 0 24 24" fill="#fbbf24" stroke="#fbbf24" stroke-width="1" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> 5 segundos</span>
+        <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="#93abff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" x2="22" y1="2" y2="22"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M2 8.82a15 15 0 0 1 4.17-2.65"/><path d="M10.66 5c4.01-.36 8.14.9 11.34 3.76"/><path d="M16.85 11.25a10 10 0 0 1 2.22 1.68"/><path d="M5 13a10 10 0 0 1 5.24-2.76"/><line x1="12" x2="12.01" y1="20" y2="20"/></svg> funciona offline</span>
+      </div>
+    </div>
+    <div class="phone"><img src="/public/images/landing/finances-mobile.webp" alt="Vynta app" /></div>
+  </div>
+  <div class="foot"><span>@somosvynta</span><div class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div></div>
+</section>
+
+<!-- SLIDE 6 — A COINCIDÊNCIA -->
+<section class="slide center" style="align-items:center; text-align:center">
+  <div class="eyebrow" style="align-self:center"><svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg> detalhe bonito</div>
+  <h2 class="md" style="margin-top:44px; text-align:center">O teste grátis do Vynta dura <span class="grad">exatamente os 7 dias</span> que faltam pro GTA.</h2>
+  <p class="sub" style="margin-top:36px; text-align:center">Coincidência? <strong>A gente acha que não.</strong></p>
+  <div class="foot"><span>@somosvynta</span><div class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div></div>
+</section>
+
+<!-- SLIDE 7 — OS DOIS CENÁRIOS -->
+<section class="slide center">
+  <div class="eyebrow"><span class="dot amber"></span> dia 19 tem dois cenários</div>
+  <h2 class="lg" style="font-size:68px">Ou você tá<br />jogando <span class="grad">Vice City…</span></h2>
+  <h2 class="lg" style="font-size:68px; margin-top:24px">ou pelo menos<br />descobriu pra onde<br />o dinheiro foi.</h2>
+  <p class="sub">(O segundo também é vitória — e dura mais que o jogo.)</p>
+  <div class="foot"><span>@somosvynta</span><div class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div></div>
+</section>
+
+<!-- SLIDE 8 — CTA -->
+<section class="slide center" style="align-items:center; text-align:center">
+  <img src="/public/assets/logo/logo-mark.png" alt="Vynta" style="width:140px; margin-bottom:40px" />
+  <h2 style="font-size:54px; line-height:1.15">Manda pra quem vai zerar<br />o GTA 6 no lançamento —<br /><span class="grad">e pra quem tá quebrado<br />e vai fingir que não liga</span>&nbsp;<span class="icline" style="font-size:54px"><svg viewBox="0 0 24 24" fill="none" stroke="#93abff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M18 13a6 6 0 0 1-6 5 6 6 0 0 1-6-5h12Z"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg></span></h2>
+  <div class="ghost">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+    Segue @somosvynta
+  </div>
+  <div class="cta-pill">7 dias grátis — o tempo exato até o GTA</div>
+  <p style="margin-top:26px; font-size:24px; color:#7a7d8b; font-weight:600">Link na bio. Sem cartão, sem CPF.</p>
+  <div class="foot"><div class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div></div>
+</section>
+
+</body>
+</html>
