@@ -46,21 +46,7 @@ export default function BrandLogo({
 
   return (
     <div className={rootClassName}>
-      <div
-        className={[
-          'relative overflow-hidden rounded-xl border border-surface-200/80 bg-white p-1 shadow-sm',
-          'dark:border-surface-700/70 dark:bg-surface-900',
-          markSizeClasses[size],
-        ]
-          .filter(Boolean)
-          .join(' ')}
-      >
-        <span
-          aria-hidden
-          className="absolute inset-0 flex items-center justify-center text-xs font-bold text-brand-600 dark:text-brand-300"
-        >
-          V
-        </span>
+      <div className={['relative', markSizeClasses[size]].filter(Boolean).join(' ')}>
         <Image
           src="/assets/logo/logo-mark.png"
           alt="Vynta logo"
