@@ -6,6 +6,7 @@ import { prisma } from './prisma'
 import { credentialStamp } from './sessionCredentials'
 import { safeEqual } from './password'
 import { sessionPayloadFromUser } from './sessionPayload'
+import { APP_SESSION_SECONDS, SESSION_RENEW_AFTER_SECONDS } from './sessionPolicy'
 export { signToken, verifyToken, type JWTPayload } from './authToken'
 export async function setSession(payload: JWTPayload, preSignedToken?: string) {
   if (payload.userId === 'admin-system') {
@@ -53,6 +54,27 @@ export async function refreshSession(payload: JWTPayload, current: JWTPayload) {
   const token = await signToken({ ...payload, sessionId: current.sessionId }, current.exp)
   await writeSessionCookie(token, current.exp!)
   return token
+}
+
+/** Called only after getSession authorizes an online app heartbeat. Never creates a row. */
+export async function renewActiveSession(current: JWTPayload) {
+  if (current.role === 'ADMIN' || !current.sessionId || !current.exp) return false
+  const now = Math.floor(Date.now() / 1000)
+  if (current.exp <= now || current.exp > now + APP_SESSION_SECONDS - SESSION_RENEW_AFTER_SECONDS) return false
+  const expiresAt = now + APP_SESSION_SECONDS
+  // Atomic update of an existing, still-active session: logout wins regardless of ordering.
+  // The upper bound also prevents concurrent renewal requests from shortening expiry.
+  const result = await prisma.authSession.updateMany({
+    where: {
+      id: current.sessionId, userId: current.userId,
+      expiresAt: { gt: new Date(now * 1000), gte: new Date(current.exp * 1000), lt: new Date(expiresAt * 1000) },
+    },
+    data: { expiresAt: new Date(expiresAt * 1000) },
+  })
+  if (!result.count) return false
+  const token = await signToken(current, expiresAt)
+  await writeSessionCookie(token, expiresAt)
+  return true
 }
 
 export const getSession = cache(async (): Promise<JWTPayload | null> => {

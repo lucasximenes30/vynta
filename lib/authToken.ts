@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from 'jose'
 
 import { getJwtSecretKey } from './constants'
+import { sessionLifetimeSeconds } from './sessionPolicy'
 
 export interface JWTPayload {
   userId: string
@@ -30,7 +31,7 @@ export async function signToken(payload: JWTPayload, expiresAt?: number): Promis
   return new SignJWT({ ...payload, sessionId: payload.sessionId ?? crypto.randomUUID() })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime(expiresAt ?? '7d')
+    .setExpirationTime(expiresAt ?? Math.floor(Date.now() / 1000) + sessionLifetimeSeconds(payload.role))
     .sign(getJwtSecretKey())
 }
 

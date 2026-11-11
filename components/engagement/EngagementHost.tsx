@@ -46,16 +46,20 @@ export default function EngagementHost() {
 
   useEffect(() => {
     let cancelled = false
+    let inFlight = false
 
     const ping = async () => {
-      if (document.visibilityState !== 'visible') return
+      if (cancelled || inFlight || document.visibilityState !== 'visible' || !navigator.onLine) return
       const last = Number(read(K.lastPing) || 0)
-      if (Date.now() - last < PING_EVERY_MS) return
-      write(K.lastPing, String(Date.now()))
-
+      const elapsed = Date.now() - last
+      if (elapsed >= 0 && elapsed < PING_EVERY_MS) return
+      inFlight = true
       const days = recordActiveDay()
       const res = await fetch('/api/track/activity', { method: 'POST', keepalive: true }).catch(() => null)
       const data = res?.ok ? await res.json().catch(() => null) : null
+      inFlight = false
+      if (!res?.ok) return // Offline/server failures must allow retry when connectivity returns.
+      write(K.lastPing, String(Date.now()))
       if (cancelled || readTour()?.active) return
 
       if (data?.promo && days.length >= 2 && read(K.promoShown) !== today()) {
@@ -70,11 +74,17 @@ export default function EngagementHost() {
 
     const onVisible = () => { if (document.visibilityState === 'visible') ping() }
     const t = setTimeout(ping, 2500)
+    const interval = setInterval(ping, PING_EVERY_MS)
     document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('online', onVisible)
+    window.addEventListener('pageshow', onVisible)
     return () => {
       cancelled = true
       clearTimeout(t)
+      clearInterval(interval)
       document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('online', onVisible)
+      window.removeEventListener('pageshow', onVisible)
     }
   }, [])
 

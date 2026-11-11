@@ -15,6 +15,7 @@ import { signToken, verifyToken } from '../lib/authToken'
 import { transactionInputSchema } from '../lib/transactionValidation'
 import ExcelJS from 'exceljs'
 import { authenticAbacateWebhook, ABACATEPAY_PUBLIC_KEY } from '../lib/abacateWebhook'
+import { APP_SESSION_SECONDS, ADMIN_SESSION_SECONDS } from '../lib/sessionPolicy'
 
 /** Bundle the real handler with explicit local doubles. No database, AI, email or push is contacted. */
 async function isolated(entry: string, mocks: Record<string, string>) {
@@ -114,6 +115,9 @@ async function main() {
   const stamp = credentialStamp('alice', 'password-hash')
   const token = await signToken({ userId: 'alice', email: 'alice@example.test', name: 'Alice', credentialStamp: stamp })
   assert.equal((await verifyToken(token))?.userId, 'alice')
+  assert.equal((await verifyToken(token))!.exp! - Number((await verifyToken(token))!.iat), APP_SESSION_SECONDS)
+  const adminToken = await signToken({ userId: 'admin', email: 'admin@example.test', name: 'Admin', role: 'ADMIN', credentialStamp: stamp })
+  assert.equal((await verifyToken(adminToken))!.exp! - Number((await verifyToken(adminToken))!.iat), ADMIN_SESSION_SECONDS)
   assert.notEqual(stamp, credentialStamp('alice', 'new-password-hash'))
   assert.notEqual(stamp, credentialStamp('bob', 'password-hash'))
   assert.equal(await verifyToken(token + 'tampered'), null)
@@ -184,18 +188,65 @@ async function main() {
   state.__sessions = new Map([[tokenClaims.sessionId!, { id: tokenClaims.sessionId, userId: 'alice', expiresAt: new Date(tokenClaims.exp! * 1000) }]])
   state.__authUser = { id: 'alice', name: 'Alice', email: 'alice@example.test', password: 'password-hash', role: 'USER', plan: 'PRO', subscriptionStatus: 'ACTIVE', createdAt: new Date(), subscriptionEndDate: null, subscriptionExpiresAt: null }
   const auth = await isolated('lib/auth.ts', {
-    'next/headers': 'export const cookies = async () => ({ get: () => ({value: globalThis.__testCookie}), set: (key,value) => { globalThis.__testCookie = value }, delete: () => { globalThis.__testCookie = undefined } })',
+    'next/headers': 'export const cookies = async () => ({ get: () => ({value: globalThis.__testCookie}), set: (key,value,options) => { globalThis.__testCookie = value; globalThis.__cookieOptions = options }, delete: () => { globalThis.__testCookie = undefined } })',
     'next/server': 'export const after = () => {}',
     './prisma': `export const prisma = {
       user: { findUnique: async () => globalThis.__authUser },
       authSession: {
         create: async ({data}) => { if(globalThis.__sessionOutage) throw new Error('storage down'); if(globalThis.__sessions.has(data.id)) throw new Error('duplicate'); globalThis.__sessions.set(data.id,data); return data },
         findFirst: async ({where}) => { if(globalThis.__sessionOutage) throw new Error('storage down'); const row = globalThis.__sessions.get(where.id); return row && row.userId === where.userId && row.expiresAt > where.expiresAt.gt && row.expiresAt >= where.expiresAt.gte ? row : null },
+        updateMany: async ({where,data}) => { if(globalThis.__sessionOutage) throw new Error('storage down'); const row = globalThis.__sessions.get(where.id); if(!row || row.userId !== where.userId || row.expiresAt <= where.expiresAt.gt || row.expiresAt < where.expiresAt.gte || row.expiresAt >= where.expiresAt.lt) return {count:0}; globalThis.__sessions.set(where.id,{...row,...data}); return {count:1} },
         deleteMany: async ({where}) => { if(globalThis.__sessionOutage) throw new Error('storage down'); const row = globalThis.__sessions.get(where.id); if(row?.userId === where.userId) globalThis.__sessions.delete(where.id); return {count:row?1:0} },
       },
     }`,
   })
   assert.equal((await auth.getSession())?.role, 'USER', 'permissions come from current account')
+  assert.equal(await auth.renewActiveSession(await auth.getSession()), false, 'fresh sessions do not write on every heartbeat')
+  const weekToken = await signToken({ userId: 'alice', email: 'alice@example.test', name: 'Alice', credentialStamp: stamp }, Math.floor(Date.now() / 1000) + ADMIN_SESSION_SECONDS)
+  await auth.setSession({ userId: 'alice', email: 'alice@example.test', name: 'Alice', credentialStamp: stamp }, weekToken)
+  assert.equal(await auth.renewActiveSession(await auth.getSession()), true, 'existing seven-day sessions upgrade on activity without another login')
+  assert.equal((globalThis as any).__cookieOptions.maxAge, APP_SESSION_SECONDS)
+  await auth.removeSession()
+  state.__testCookie = token
+  const originalNow = Date.now
+  let rollingToken = token
+  try {
+    // Keep using the same app session for longer than a year, without reauthentication.
+    for (let days = 2; days <= 400; days += 2) {
+      Date.now = () => originalNow() + days * 86400000
+      state.__testCookie = rollingToken
+      if (days === 2) {
+        state.__sessionOutage = true
+        await assert.rejects(() => auth.renewActiveSession({ ...tokenClaims, role: 'USER' }), /storage down/)
+        assert.equal(state.__testCookie, rollingToken, 'temporary failure keeps existing login intact')
+        state.__sessionOutage = false
+      }
+      assert.equal(await auth.renewActiveSession(await auth.getSession()), true)
+      rollingToken = state.__testCookie!
+      const rolling = (await verifyToken(rollingToken))!
+      assert.equal(rolling.sessionId, tokenClaims.sessionId)
+      assert.equal(rolling.exp, Math.floor(Date.now() / 1000) + APP_SESSION_SECONDS)
+      assert.equal((globalThis as any).__cookieOptions.maxAge, APP_SESSION_SECONDS)
+      assert.equal((globalThis as any).__cookieOptions.httpOnly, true)
+      assert.equal(await auth.renewActiveSession(await auth.getSession()), false)
+    }
+    assert.equal(await auth.renewActiveSession({ ...await auth.getSession(), role: 'ADMIN', exp: Math.floor(Date.now() / 1000) + 60 }), false)
+    // A logout racing after authorization but before renewal cannot recreate the deleted row.
+    Date.now = () => originalNow() + 402 * 86400000
+    const beforeLogout = await auth.getSession()
+    const activeRow = state.__sessions!.get(tokenClaims.sessionId!)
+    state.__sessions!.set(tokenClaims.sessionId!, { ...activeRow, expiresAt: new Date(originalNow() - 1000) })
+    assert.equal(await auth.getSession(), null, 'expired persistent sessions never authorize')
+    assert.equal(await auth.renewActiveSession(beforeLogout), false, 'expired registry rows cannot be revived')
+    state.__sessions!.set(tokenClaims.sessionId!, activeRow)
+    await auth.removeSession()
+    assert.equal(await auth.renewActiveSession(beforeLogout), false)
+    state.__testCookie = rollingToken
+    assert.equal(await auth.getSession(), null)
+  } finally { Date.now = originalNow }
+  // Restore the isolated fixture for the existing logout/password/billing regressions.
+  state.__sessions!.set(tokenClaims.sessionId!, { id: tokenClaims.sessionId, userId: 'alice', expiresAt: new Date(tokenClaims.exp! * 1000) })
+  state.__testCookie = token
   const secondToken = await auth.setSession({ userId: 'alice', email: 'alice@example.test', name: 'Alice', credentialStamp: stamp })
   assert.notEqual(secondToken, token, 'logins in the same second have independent session identifiers')
   state.__testCookie = token
@@ -218,6 +269,20 @@ async function main() {
   assert.equal(await auth.getSession(), null, 'old session rejected after password reset')
   state.__authUser = null
   assert.equal(await auth.getSession(), null, 'deleted account rejected')
+  const activityRoute = await isolated('app/api/track/activity/route.ts', {
+    '@/lib/auth': 'export const getSession = async () => globalThis.__heartbeatSession; export const renewActiveSession = async (session) => { globalThis.__heartbeatRenewed = session.sessionId }',
+    '@/lib/prisma': 'export const prisma = {user:{updateMany:async()=>({count:1})}}',
+    '@/services/subscription.service': 'export const getPromoEligibility = async () => false',
+  })
+  ;(globalThis as any).__heartbeatSession = null
+  assert.equal((await activityRoute.POST()).status, 401)
+  assert.equal((globalThis as any).__heartbeatRenewed, undefined)
+  ;(globalThis as any).__heartbeatSession = { userId: 'alice', sessionId: 'fixture', plan: 'PRO' }
+  const heartbeat = await activityRoute.POST()
+  assert.equal(heartbeat.status, 200)
+  assert.equal(heartbeat.headers.get('cache-control'), 'no-store')
+  assert.equal((globalThis as any).__heartbeatRenewed, 'fixture')
+  delete (globalThis as any).__heartbeatSession; delete (globalThis as any).__heartbeatRenewed; delete (globalThis as any).__cookieOptions
   const logoutRoute = await isolated('app/api/auth/logout/route.ts', { '@/lib/auth': 'export const removeSession = async () => { throw new Error("storage down") }' })
   assert.equal((await logoutRoute.POST()).status, 503)
   const clientLogout = await isolated('lib/logout.ts', {})
@@ -235,6 +300,6 @@ async function main() {
     assert.deepEqual(redirects, ['/admin/login'])
   } finally { globalThis.fetch = originalFetch; (globalThis as any).window = originalWindow }
   delete state.__reportReads; delete state.__reportRows; delete state.__authUser; delete state.__testCookie; delete state.__sessions; delete state.__sessionOutage
-  console.log('Security/report regressions passed, including copied-token logout revocation, independent devices, billing refresh without resurrection, fail-closed storage and cron-job.org contract.')
+  console.log('Security/report regressions passed: rolling PWA sessions over 400 days, expiry and logout races, independent devices, billing refresh, fail-closed storage, webhooks and cron-job.org contract.')
 }
 main().catch((error) => { console.error(error); process.exitCode = 1 })
