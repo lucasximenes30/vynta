@@ -30,7 +30,7 @@ export async function PATCH(
   } catch (error: unknown) {
     const message =
       error instanceof z.ZodError
-        ? error.errors[0]?.message ?? 'Dados inválidos'
+        ? error.issues[0]?.message ?? 'Dados inválidos'
         : error instanceof Error
           ? error.message
           : 'Something went wrong'

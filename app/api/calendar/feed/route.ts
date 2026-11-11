@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { IcalSyncError, syncUserCalendarFeed } from '@/services/calendarSync.service'
+import { enforceRateLimits } from '@/lib/rateLimit'
 
 const putSchema = z.object({ url: z.string().trim().url().max(2000) })
 
@@ -29,6 +30,8 @@ export async function GET() {
 export async function PUT(request: NextRequest) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  const limited = await enforceRateLimits([{ key: `calendar-sync:${session.userId}`, limit: 6, windowSec: 600 }])
+  if (limited) return limited
 
   const parsed = putSchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) return NextResponse.json({ error: 'Link inválido' }, { status: 400 })
@@ -50,6 +53,8 @@ export async function PUT(request: NextRequest) {
 export async function POST() {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  const limited = await enforceRateLimits([{ key: `calendar-sync:${session.userId}`, limit: 6, windowSec: 600 }])
+  if (limited) return limited
 
   const user = await prisma.user.findUnique({ where: { id: session.userId }, select: { icalFeedUrl: true } })
   if (!user?.icalFeedUrl) return NextResponse.json({ error: 'Nenhuma agenda conectada' }, { status: 400 })

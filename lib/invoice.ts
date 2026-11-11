@@ -128,7 +128,10 @@ export function parseNubankCsv(text: string): ParsedInvoice {
       isInstallment = true
       currentInstallment = parseInt(match[1], 10)
       totalInstallments = parseInt(match[2], 10)
-      title = title.replace(match[0], '').replace(/[-–—\s]+$/, '').trim()
+      title = title.replace(match[0], '').trim()
+      let end = title.length
+      while (end > 0 && /[-–—\s]/.test(title[end - 1])) end--
+      title = title.slice(0, end)
     }
 
     result.items.push({ date, title, amount, isInstallment, currentInstallment, totalInstallments })

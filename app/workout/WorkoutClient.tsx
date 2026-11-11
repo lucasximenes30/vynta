@@ -1,5 +1,7 @@
 'use client'
 
+import { logoutAndRedirect } from '@/lib/logout'
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import * as Lucide from 'lucide-react'
@@ -799,8 +801,7 @@ export default function WorkoutClient({
   }, [workoutToastMessage])
 
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' })
-    router.push('/login')
+    await logoutAndRedirect('/login')
   }
 
   const handleCreatePlanModalFocus = (event: React.FocusEvent<HTMLElement>) => {

@@ -200,7 +200,7 @@ async function callGoogle(input: GenerateAITextInput, config: ProviderConfig): P
     },
   })
 
-  const result = await model.generateContent(input.prompt)
+  const result = await model.generateContent(input.prompt, { timeout: 15_000 })
   return result.response.text().trim()
 }
 
@@ -225,6 +225,7 @@ async function callGroqOrOpenAI(input: GenerateAITextInput, config: ProviderConf
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(15_000),
   })
 
   const raw = await response.text()

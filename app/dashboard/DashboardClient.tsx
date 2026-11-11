@@ -1,5 +1,7 @@
 'use client'
 
+import { logoutAndRedirect } from '@/lib/logout'
+
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import * as Lucide from 'lucide-react'
@@ -158,8 +160,7 @@ export default function DashboardClient({
 
               <button
                 onClick={async () => {
-                  await fetch('/api/auth/logout', { method: 'POST' })
-                  window.location.replace('/login')
+                  await logoutAndRedirect('/login')
                 }}
                 className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-2 text-xs sm:text-sm font-medium text-surface-500 transition-colors hover:bg-surface-100 hover:text-rose-600 dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-rose-400"
               >

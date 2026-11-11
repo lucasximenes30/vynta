@@ -4,6 +4,8 @@ import { getSession } from '@/lib/auth'
 import { createTransaction, getTransactionsByUser, getUserBalance, getMonthlySummary } from '@/services/transaction.service'
 import { verifyCardOwnership } from '@/services/card.service'
 import { prisma } from '@/lib/prisma'
+import { enforceRateLimits } from '@/lib/rateLimit'
+import { readBoundedText } from '@/lib/boundedBody'
 
 const createSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -39,9 +41,11 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const limited = await enforceRateLimits([{ key: `transaction-write:${session.userId}`, limit: 120, windowSec: 60 }])
+  if (limited) return limited
 
   try {
-    const body = await request.json()
+    const body = JSON.parse(await readBoundedText(request, 16 * 1024))
     const data = createSchema.parse(body)
     const { isInstallment, totalInstallments, purchaseDate, dueDay, isRecurring, recurringDay, cardId, goalId, goalAmount, ...rest } = data
 
@@ -107,7 +111,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, transaction })
   } catch (error: any) {
     const message = error instanceof z.ZodError
-      ? error.errors[0]?.message ?? 'Invalid input'
+      ? error.issues[0]?.message ?? 'Invalid input'
       : error.message ?? 'Something went wrong'
 
     return NextResponse.json(

@@ -1,5 +1,7 @@
 'use client'
 
+import { logoutAndRedirect } from '@/lib/logout'
+
 import { useState, useEffect, useCallback, useRef, useMemo, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -489,8 +491,7 @@ export default function FinancesClient({
   }, [])
 
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' })
-    router.push('/login')
+    await logoutAndRedirect('/login')
   }
 
   // Delete account

@@ -81,6 +81,19 @@ model User {
   @@map("users")
 }
 
+/// Positive session registry. No User FK: also covers the synthetic admin-system principal.
+/// Only an authenticated login can create a row; refresh never recreates a logged-out session.
+model AuthSession {
+  id        String   @id
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+  @@index([userId])
+  @@map("auth_sessions")
+}
+
 model PaymentTransaction {
   id                    String        @id @default(uuid())
   userId                String

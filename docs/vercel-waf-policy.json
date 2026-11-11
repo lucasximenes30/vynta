@@ -1,0 +1,39 @@
+{
+  "project": "vynta",
+  "team": "lucasximenes30s-projects",
+  "plan": "Hobby",
+  "configuredOn": "2026-11-10",
+  "rules": [
+    {
+      "name": "Vynta - limite de autenticacao",
+      "field": "Request Path",
+      "operator": "Matches expression",
+      "value": "^/api/(admin/auth/login|auth/(login|register|forgot-password|reset-password))/?$",
+      "action": "rate_limit",
+      "responseStatus": 429,
+      "algorithm": "fixed_window",
+      "windowSec": 60,
+      "limit": 60,
+      "key": "IP Address"
+    },
+    {
+      "name": "Vynta - bloquear sondagens",
+      "field": "Request Path",
+      "operator": "Matches expression",
+      "value": "^/(\\.env(\\.[^/]+)?|\\.git(/.*)?|wp-login\\.php|xmlrpc\\.php|wp-admin(/.*)?)$",
+      "action": "deny"
+    }
+  ],
+  "integrationPathsOutsideRules": [
+    "/api/cron/push",
+    "/api/webhooks/abacatepay",
+    "/api/billing/cakto/webhook",
+    "/api/payments/create",
+    "/api/subscription/status",
+    "/api/auth/logout"
+  ],
+  "botProtection": "off",
+  "attackMode": "off",
+  "systemBypass": "none",
+  "note": "Reviewed inventory of dashboard rules, not an automatically deployed Vercel configuration. System DDoS mitigations remain managed by Vercel."
+}

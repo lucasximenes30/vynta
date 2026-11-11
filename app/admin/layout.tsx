@@ -1,5 +1,7 @@
 'use client'
 
+import { logoutAndRedirect } from '@/lib/logout'
+
 import React from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -43,8 +45,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const current = ALL_LINKS.find((l) => isActive(l.href))
 
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
-    router.push('/admin/login')
+    await logoutAndRedirect('/admin/login')
   }
 
   return (

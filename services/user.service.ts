@@ -1,4 +1,3 @@
-import { after } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { hash } from 'bcryptjs'
 import { matchesAdminMasterPassword, spendPasswordCheck, verifyStoredPassword } from '@/lib/password'
@@ -6,50 +5,8 @@ import { SALT_ROUNDS } from '@/lib/constants'
 import { signToken, JWTPayload } from '@/lib/auth'
 import { TRIAL_DAYS } from '@/lib/plans'
 
-type SessionUser = {
-  id: string
-  email: string
-  name: string
-  subscriptionStatus: string
-  hasWorkoutModule: boolean
-  forcePasswordChange: boolean
-  role: string
-  plan: string
-  createdAt: Date
-  canUseFinance: boolean
-  canUseHabits: boolean
-  canUseWorkout: boolean
-  canUseGoals: boolean
-  canUseNotes: boolean
-  canUseAgenda: boolean
-  usedUpgradeOffer: boolean
-  subscriptionEndDate: Date | null
-  subscriptionExpiresAt: Date | null
-}
-
-/** JWT session payload built from the user row (single source for login, register and billing refreshes). */
-export function sessionPayloadFromUser(user: SessionUser): JWTPayload {
-  return {
-    userId: user.id,
-    email: user.email,
-    name: user.name,
-    subscriptionStatus: user.subscriptionStatus,
-    hasWorkoutModule: user.hasWorkoutModule,
-    forcePasswordChange: user.forcePasswordChange,
-    role: user.role,
-    plan: user.plan,
-    createdAt: user.createdAt.toISOString(),
-    canUseFinance: user.canUseFinance,
-    canUseHabits: user.canUseHabits,
-    canUseWorkout: user.canUseWorkout,
-    canUseGoals: user.canUseGoals,
-    canUseNotes: user.canUseNotes,
-    canUseAgenda: user.canUseAgenda,
-    usedUpgradeOffer: user.usedUpgradeOffer,
-    subscriptionEndDate: user.subscriptionEndDate ? user.subscriptionEndDate.toISOString() : undefined,
-    subscriptionExpiresAt: user.subscriptionExpiresAt ? user.subscriptionExpiresAt.toISOString() : undefined,
-  }
-}
+import { sessionPayloadFromUser } from '@/lib/sessionPayload'
+export { sessionPayloadFromUser } from '@/lib/sessionPayload'
 
 export interface RegisterInput {
   name: string
@@ -143,15 +100,11 @@ export async function loginUser(input: LoginInput, userLookup?: ReturnType<typeo
     throw new Error('Invalid email or password')
   }
 
-  // Upgrade legacy bcrypt cost=12 hashes to SALT_ROUNDS (10) in the background so future logins are ~4x faster
-  const costMatch = user.password.match(/^\$2[aby]\$(\d+)\$/)
-  if (matchesDbPassword && (!isBcryptHash || (costMatch && parseInt(costMatch[1], 10) > SALT_ROUNDS))) {
-    // after(): runs once the response is sent, and the serverless function is kept alive until it ends
-    after(() =>
-      hash(input.password, SALT_ROUNDS)
-        .then((newHash) => prisma.user.update({ where: { id: user.id }, data: { password: newHash } }))
-        .catch(() => {}),
-    )
+  // Upgrade plaintext before signing: a background password update would revoke the new session.
+  // Existing bcrypt hashes retain their work factor.
+  if (matchesDbPassword && !isBcryptHash) {
+    user.password = await hash(input.password, SALT_ROUNDS)
+    await prisma.user.update({ where: { id: user.id }, data: { password: user.password } })
   }
 
   const payload = sessionPayloadFromUser(user)

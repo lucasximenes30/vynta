@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { verifyToken } from '@/lib/auth'
+import { verifyToken } from '@/lib/authToken'
+import { apiBodyLimit, isAllowedMutationOrigin } from '@/lib/requestPolicy'
 
 const protectedRoutes = ['/dashboard', '/habits', '/reports', '/cards', '/workout', '/goals', '/notes', '/calendar', '/finances', '/settings']
 const publicRoutes = ['/', '/login', '/register', '/sucesso', '/esqueci-a-senha', '/unlock']
@@ -8,6 +9,16 @@ const publicRoutes = ['/', '/login', '/register', '/sucesso', '/esqueci-a-senha'
 export async function middleware(request: NextRequest) {
   const sessionToken = request.cookies.get('session')?.value
   const path = request.nextUrl.pathname
+  if (path.startsWith('/api/')) {
+    if (!isAllowedMutationOrigin(request)) {
+      return NextResponse.json({ error: 'Origem da solicitação não permitida.' }, { status: 403 })
+    }
+    const length = Number(request.headers.get('content-length'))
+    if (Number.isFinite(length) && length > apiBodyLimit(path)) {
+      return NextResponse.json({ error: 'Conteúdo muito grande.' }, { status: 413 })
+    }
+    return NextResponse.next()
+  }
 
   // If the user installed the PWA from the landing page ("/") before logging in, iOS bookmarks "/"
   // as the home screen URL. Redirect authenticated users straight to /dashboard at the edge so cold
@@ -130,5 +141,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/dashboard/:path*', '/habits/:path*', '/reports/:path*', '/cards/:path*', '/workout/:path*', '/admin/:path*', '/force-password-change', '/goals/:path*', '/notes/:path*', '/calendar/:path*', '/finances/:path*'],
+  matcher: ['/', '/api/:path*', '/dashboard/:path*', '/habits/:path*', '/reports/:path*', '/cards/:path*', '/workout/:path*', '/admin/:path*', '/force-password-change', '/goals/:path*', '/notes/:path*', '/calendar/:path*', '/finances/:path*'],
 }

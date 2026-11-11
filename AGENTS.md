@@ -4,6 +4,7 @@
 - Typecheck: `npx tsc --noEmit -p .`
 - Build: `npm run build` (também roda typecheck). Compare o "First Load JS" por rota ao mexer em bundles.
 - ESLint não está configurado (`npm run lint` abre um setup interativo).
+- Regressões de segurança/relatórios: `npx tsx scripts/check-security.ts` (serviços isolados; não acessa banco, IA, e-mail ou push reais).
 
 ## Banco (Neon, sa-east-1) / Prisma
 - O histórico de `prisma/migrations` está defasado; o fluxo usado é `npm run db:push`. Schema e banco estão sincronizados (inclusive a tabela legada `life_events`, mantida no schema como `LifeEvent` para não ser dropada).
@@ -14,25 +15,30 @@
 - Arquivos em `services/` são módulos server-only comuns: NÃO adicione `'use server'` neles (viraria endpoint público recebendo `userId` arbitrário). Server actions ficam em arquivos `actions.ts` e devem validar a sessão.
 - Rate limit: `enforceRateLimits([{ key, limit, windowSec }])` de `lib/rateLimit.ts` (contador atômico na tabela `rate_limits`, vale entre todas as instâncias serverless; NÃO use contador em memória). Já aplicado em login (8/conta e 20/IP por 15 min), admin login (5/5), register (5/IP/h), forgot (3/conta/h), reset, change-password, push test e `/api/track`. Toda rota pública nova que grava no banco ou envia e-mail precisa de limite. Limpeza dos expirados no cron.
 - Segredos comparados com `safeEqual` (`lib/password.ts`, tempo constante) — nunca `===`. `JWT_SECRET` é obrigatório em produção (≥ 32 chars; `getJwtSecretKey` lança erro sem ele). `ADMIN_PASSWORD` (senha mestre dos ADMIN) só é aceita com ≥ 16 chars.
-- Webhooks falham fechados: Cakto exige `CAKTO_WEBHOOK_SECRET`; AbacatePay sem `webhookSecret` só usa dados relidos da API (nunca mesclar o payload bruto).
+- Webhooks falham fechados: Cakto exige `CAKTO_WEBHOOK_SECRET`; AbacatePay exige `ABACATEPAY_WEBHOOK_SECRET` (query `webhookSecret` ou header `X-Webhook-Secret`) e HMAC do corpo bruto. Sem env retorna 503; autenticação inválida retorna 401. Não reintroduzir fallback de eventos sem segredo.
 - `/api/auth/force-password-change` só funciona com `forcePasswordChange = true` no banco (não pede a senha atual).
 - Cabeçalhos de segurança em `next.config.mjs` (HSTS, X-Frame-Options, nosniff...). Não há CSP completo por causa dos pixels de marketing.
+- Sessões: `lib/authToken.ts` só verifica JWT no edge; `getSession` exige registro ativo em `auth_sessions`, consulta permissões atuais e compara `credentialStamp` vinculado ao hash da senha. Logout apaga o registro antes do cookie e revoga cópias daquele token; falha no banco retorna 503 para permitir nova tentativa. `setSession` cria registro apenas em autenticação nova; `refreshSession` preserva ID e expiração absoluta após pagamento, sem recriar sessão revogada. Entradas expiradas são podadas em `after()` após login, sem alterar o cron. Nunca retorne o hash da senha ao cliente.
+- WAF Hobby: duas regras publicadas (limite por IP nas rotas de autenticação e bloqueio de sondagens), inventário em `docs/vercel-waf-policy.json`. Cron e webhooks não correspondem a essas regras; não ativar challenge global sem avaliar integrações. Ver `docs/logout-waf-2026-11-10.md`.
+- Mutações de API exigem Origin igual ao da requisição (`lib/requestPolicy.ts`); exceções exatas apenas para callbacks de pagamento. Cron-job.org continua usando GET com `Authorization: Bearer $CRON_SECRET`, sem Origin/cookie e sem quota de navegação.
+- Limites adicionais protegem IA, checkout, importação/exportação, sincronização manual, push e transações. Falha no armazenamento do limitador retorna 503; excesso retorna 429. Não confundir essas quotas com WAF/DDoS de infraestrutura.
 
 ## Performance
 - Prisma roda sem o engine Rust (`engineType = "client"` no generator, exige o adapter `PrismaNeon`): cold start bem menor nas funções serverless. Depois de mexer no schema, `npx prisma generate`.
 - `components/SidebarLayout.tsx` é só um roteador fino; o chrome do app (sidebar, bottom nav, quick add, push, tour, engagement) fica em `components/AppShell.tsx`, carregado via `next/dynamic` apenas nas rotas do app — landing/login/register não baixam esse código.
-- Login (`/api/auth/login` e `/api/admin/auth/login`): a busca do usuário roda em paralelo com o rate limit; escritas não essenciais (reset do contador, upgrade do hash) vão para `after()` de `next/server`.
+- Login (`/api/auth/login` e `/api/admin/auth/login`): a busca do usuário roda em paralelo com o rate limit; reset do contador vai para `after()` de `next/server`. Upgrade de senha legada ocorre antes da assinatura, pois a sessão fica vinculada ao hash final.
 - Deploy na Vercel em `gru1` (`vercel.json`) para ficar junto do banco em São Paulo.
 - `services/transaction.service.ts`: todas as leituras derivam de um único `loadUserTransactions` (1 query) — não reintroduzir queries por mês/loop.
 - Ícones referenciados por nome: use `getIconByName` de `lib/icons.ts` (nunca `(Lucide as any)[name]`, que põe todos os ícones no bundle).
 - Bibliotecas pesadas (recharts, exceljs, jspdf) devem ser carregadas via `next/dynamic` / `import()`.
+- Relatórios: `getReportSnapshot` deriva resumo, comparação, categorias e tendência de uma leitura de transações. Visão principal usa SVG/CSS; Recharts só entra ao expandir a análise avançada. Cache de insights inclui usuário, período e hash de todos os dados do prompt.
 
 ## Mobile / PWA
 - Lançamento rápido: `openQuickAdd('EXPENSE'|'INCOME')` de `lib/quickAdd.ts` abre a sheet global (host em `AppShell`). Também abre via `?add=expense|income` (shortcuts do manifest), tecla `n` e drawer "Mais".
 - Após criar/apagar uma transação, dispare `vynta:transaction-created` — as telas com dados financeiros escutam e fazem `router.refresh()`.
 - Datas de transação são sempre `<dia local>T12:00:00Z` (ver `todayDateValue`), nunca horário real em UTC.
 - Fila e cache offline (48h): `readQueue/enqueueTransaction/enqueueMutation/syncQueue` em `lib/quickAdd.ts` + interceptação de mutações offline em `components/RouterCacheSync.tsx`; SW em `public/sw.js` mantém cache de estáticos (`STATIC_CACHE`) e cache de páginas/RSC/GETs autenticados com TTL de 48h (`DATA_CACHE`, limpo em `/api/auth/logout|login|register`).
-- Pagamentos: webhook `subscription.completed/renewed` ativa via `activateRecurringSubscription` (idempotente por charge); `subscription.cancelled` via `cancelRecurringSubscription` (acesso até o fim do período pago). Só o `webhookSecret` na URL autentica o evento — o HMAC usa chave pública e serve só de integridade.
+- Pagamentos: webhook `subscription.completed/renewed` ativa via `activateRecurringSubscription` (idempotente por charge); `subscription.cancelled` via `cancelRecurringSubscription` (acesso até o fim do período pago). O segredo na URL ou header autentica o evento; o HMAC usa chave pública e serve só de integridade.
 
 ## Notificações push (PWA)
 - Web Push com VAPID (`web-push`). Envs: `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `CRON_SECRET` (ver `.env.example`). Trocar as chaves VAPID invalida todas as inscrições.

@@ -1,3 +1,5 @@
+import { safeEqual } from '@/lib/password'
+
 export const CAKTO_CONFIG = {
   clientId: process.env.CAKTO_CLIENT_ID || '',
   clientSecret: process.env.CAKTO_CLIENT_SECRET || '',
@@ -12,14 +14,7 @@ export const CAKTO_CONFIG = {
  * For now, verifies if a secret token matches.
  */
 export function verifyCaktoWebhookSignature(token?: string | null) {
-  if (!CAKTO_CONFIG.webhookSecret) {
-    // If no secret configured, accept all for now in dev, but in prod log a warning
-    if (process.env.NODE_ENV === 'production') {
-      console.warn('CAKTO_WEBHOOK_SECRET is not set in production. Webhooks will not be validated properly.')
-    }
-    return true
-  }
-  return token === CAKTO_CONFIG.webhookSecret
+  return !!(CAKTO_CONFIG.webhookSecret && token && safeEqual(token, CAKTO_CONFIG.webhookSecret))
 }
 
 let cachedAccessToken: string | null = null;

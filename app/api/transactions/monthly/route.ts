@@ -7,6 +7,7 @@ import {
   getAvailableMonths,
   getExpensesByCategory,
   getMonthlyTrend,
+  getReportSnapshot,
 } from '@/services/transaction.service'
 
 export async function GET(request: NextRequest) {
@@ -19,8 +20,15 @@ export async function GET(request: NextRequest) {
   const refMonth = searchParams.get('refMonth')
   const year = refYear ?? searchParams.get('year')
   const month = refMonth ?? searchParams.get('month')
+  if ((year !== null && (!Number.isInteger(Number(year)) || Number(year) < 1900 || Number(year) > 2100))
+    || (month !== null && (!Number.isInteger(Number(month)) || Number(month) < 1 || Number(month) > 12))) {
+    return NextResponse.json({ error: 'Período inválido' }, { status: 400 })
+  }
 
   try {
+    if (type === 'report' && year && month) {
+      return NextResponse.json(await getReportSnapshot(session.userId, Number(year), Number(month)), { headers: { 'Cache-Control': 'private, no-store' } })
+    }
     if (type === 'transactions' && year && month) {
       const transactions = await getTransactionsByMonth(
         session.userId,
@@ -40,8 +48,8 @@ export async function GET(request: NextRequest) {
     }
 
     if (type === 'comparison') {
-      const cYear = parseInt(refYear ?? new Date().getFullYear().toString())
-      const cMonth = parseInt(refMonth ?? (new Date().getMonth() + 1).toString())
+      const cYear = Number(year ?? new Date().getFullYear())
+      const cMonth = Number(month ?? new Date().getMonth() + 1)
       const comparison = await getMonthComparison(session.userId, cYear, cMonth)
       return NextResponse.json(comparison)
     }

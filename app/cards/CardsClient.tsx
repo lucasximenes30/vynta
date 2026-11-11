@@ -1,5 +1,7 @@
 'use client'
 
+import { logoutAndRedirect } from '@/lib/logout'
+
 import dynamic from 'next/dynamic'
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
@@ -104,8 +106,7 @@ export default function CardsClient({ session, initialCards, transactions = [] }
   }
 
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' })
-    router.push('/login')
+    await logoutAndRedirect('/login')
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

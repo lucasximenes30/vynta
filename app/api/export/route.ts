@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getUserBalance } from '@/services/transaction.service'
+import { enforceRateLimits } from '@/lib/rateLimit'
 
 export async function GET(req: Request) {
   try {
@@ -10,6 +11,8 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
+    const limited = await enforceRateLimits([{ key: `export:${session.userId}`, limit: 15, windowSec: 600 }])
+    if (limited) return limited
     const { searchParams } = new URL(req.url)
     const type = searchParams.get('type') // 'monthly' | 'annual'
     const yearParam = searchParams.get('year')
@@ -21,6 +24,10 @@ export async function GET(req: Request) {
     }
 
     const year = parseInt(yearParam, 10)
+    if (!['monthly', 'annual'].includes(type) || !Number.isInteger(Number(yearParam)) || year < 1900 || year > 2100
+      || (type === 'monthly' && (!Number.isInteger(Number(monthParam)) || Number(monthParam) < 1 || Number(monthParam) > 12))) {
+      return NextResponse.json({ error: 'Período inválido' }, { status: 400 })
+    }
     let startDate: Date
     let endDate: Date
 

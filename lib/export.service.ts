@@ -3,6 +3,7 @@ import ExcelJS from 'exceljs'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { localizeCategoryName } from './categories'
+import { csvRow } from './csv'
 
 interface ExportData {
   summary: { income: number; expense: number; balance: number }
@@ -50,30 +51,30 @@ const getPeriodTitle = (data: ExportData) => {
 
 export const exportToCSV = (data: ExportData, fileName: string) => {
   const headers = ['Data', 'Título', 'Categoria', 'Tipo', 'Valor']
-  let csvContent = headers.join(',') + '\n'
+  let csvContent = csvRow(headers)
 
   data.extract.forEach(item => {
     const row = [
       formatDate(item.date),
-      `"${item.title.replace(/"/g, '""')}"`, // escape quotes
+      item.title,
       localizeCategoryName(item.category),
       item.type === 'INCOME' ? 'Receita' : 'Despesa',
       item.amount.toString().replace('.', ',') // simple format for generic CSV
     ]
-    csvContent += row.join(',') + '\n'
+    csvContent += csvRow(row)
   })
 
   // Add summary at the bottom
-  csvContent += '\n\nResumo\n'
-  csvContent += `Receitas,"${formatCurrency(data.summary.income)}"\n`
-  csvContent += `Despesas,"${formatCurrency(data.summary.expense)}"\n`
-  csvContent += `Saldo,"${formatCurrency(data.summary.balance)}"\n`
+  csvContent += '\r\n' + csvRow(['Resumo'])
+  csvContent += csvRow(['Receitas', formatCurrency(data.summary.income)])
+  csvContent += csvRow(['Despesas', formatCurrency(data.summary.expense)])
+  csvContent += csvRow(['Saldo', formatCurrency(data.summary.balance)])
 
   if (data.goals && data.goals.length > 0) {
-    csvContent += '\n\nMetas e Caixinhas\n'
-    csvContent += 'Título,Categoria,Acumulado,Objetivo\n'
+    csvContent += '\r\n' + csvRow(['Metas e Caixinhas'])
+    csvContent += csvRow(['Título', 'Categoria', 'Acumulado', 'Objetivo'])
     data.goals.forEach(g => {
-      csvContent += `"${g.title.replace(/"/g, '""')}",${g.category || 'Geral'},"${formatCurrency(Number(g.currentAmount))}","${formatCurrency(Number(g.targetAmount))}"\n`
+      csvContent += csvRow([g.title, g.category || 'Geral', formatCurrency(Number(g.currentAmount)), formatCurrency(Number(g.targetAmount))])
     })
   }
 

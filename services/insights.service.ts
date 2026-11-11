@@ -16,6 +16,8 @@ export interface AIInsight {
 }
 
 export interface InsightsInput {
+  userId: string
+  period: string
   monthlyIncome: number
   monthlyExpense: number
   monthlyBalance: number
@@ -27,9 +29,7 @@ export interface InsightsInput {
   language: string
 }
 
-// Cache em memória para server-side (Map com TTL)
-const cache = new Map<string, { data: AIInsight[]; timestamp: number }>()
-const CACHE_TTL = 24 * 60 * 60 * 1000 // 24h
+// Persistent insights cache is isolated by account, period and exact prompt inputs.
 const MAX_AI_INSIGHTS = 4
 const AI_INSIGHTS_REVALIDATE_SECONDS = 6 * 60 * 60
 const MAX_INSIGHT_CHARS = 180
@@ -105,7 +105,7 @@ function scoreInsight(insight: AIInsight): number {
   else if (insight.type === 'tip') score += 3
   else score += 2
 
-  if (/(R\$|\$|\d+%)/.test(insight.text)) score += 2
+  if (insight.text.includes('$') || /\d%/.test(insight.text)) score += 2
   if (insight.text.length >= 70 && insight.text.length <= 170) score += 1
 
   return score
@@ -153,20 +153,7 @@ function normalizeAndPrioritizeInsights(raw: AIInsight[], language: SupportedLoc
     .map((entry) => entry.item)
 }
 
-function cacheKey(input: InsightsInput): string {
-  return JSON.stringify({
-    i: input.monthlyIncome,
-    e: input.monthlyExpense,
-    t: input.topCategories.map((c) => `${c.category}:${Math.round(c.amount / 10) * 10}`),
-    l: input.language,
-  })
-}
-
-export async function generateAIInsights(input: InsightsInput): Promise<AIInsight[]> {
-  // Check cache em memória
-  const key = cacheKey(input)
-  const cached = cache.get(key)
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) return cached.data
+export async function generateAIInsights(input: InsightsInput): Promise<{ insights: AIInsight[]; source: 'ai' | 'summary' }> {
 
   const language = normalizeLanguage(input.language)
   const localizedTopCategories = localizeTopCategories(input.topCategories, language)
@@ -234,27 +221,16 @@ ${trendText}`
     const promptHash = createHash('sha256').update(prompt).digest('hex')
     const insights = await unstable_cache(
       () => requestAIInsights(prompt, language),
-      ['ai-insights', promptHash],
+      ['ai-insights-v2', input.userId, input.period, promptHash],
       { revalidate: AI_INSIGHTS_REVALIDATE_SECONDS },
     )()
 
-    // Save to cache
-    cache.set(key, { data: insights, timestamp: Date.now() })
-
-    // Limpar entradas velhas do cache (>100 entries)
-    if (cache.size > 100) {
-      const keys = Array.from(cache.keys())
-      for (let i = 0; i < keys.length - 80; i++) {
-        cache.delete(keys[i])
-      }
-    }
-
-    return insights
+    return { insights, source: 'ai' }
   } catch (error) {
     console.error('[Insights AI] Falling back to static insights', {
       message: error instanceof Error ? error.message : String(error),
     })
-    return getStaticInsights(input)
+    return { insights: getStaticInsights(input), source: 'summary' }
   }
 }
 
@@ -264,15 +240,15 @@ async function requestAIInsights(prompt: string, language: SupportedLocale): Pro
     purpose: 'reports',
     prompt,
     temperature: 0.45,
+    maxOutputTokens: 1024,
   })
 
-  let text = aiResult.text.trim()
+  let text = aiResult.text.slice(0, 16_384).trim()
 
   // Extrair JSON se tiver markdown wrapping
-  const jsonMatch = text.match(/\[[\s\S]*\]/)
-  if (jsonMatch) {
-    text = jsonMatch[0]
-  }
+  const start = text.indexOf('[')
+  const end = text.lastIndexOf(']')
+  if (start >= 0 && end > start) text = text.slice(start, end + 1)
 
   const parsed: AIInsight[] = JSON.parse(text)
   const insights = Array.isArray(parsed) ? normalizeAndPrioritizeInsights(parsed, language) : []

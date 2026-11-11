@@ -1,9 +1,12 @@
 'use client'
 
+import { logoutAndRedirect } from '@/lib/logout'
+
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import Sidebar from './Sidebar'
+import RouteMotion from './RouteMotion'
 import QuickAddHost from './quick-add/QuickAddHost'
 import PushBridge from './push/PushBridge'
 import RouterCacheSync from './RouterCacheSync'
@@ -20,7 +23,7 @@ const TourHost = dynamic(() => import('./tour/TourHost'), { ssr: false })
 const EngagementHost = dynamic(() => import('./engagement/EngagementHost'), { ssr: false })
 
 // Main app routes prefetched once the shell is mounted so screen switches are instant
-const PREFETCH_ROUTES = ['/dashboard', '/finances', '/habits', '/workout', '/calendar', '/goals', '/notes', '/reports', '/settings', '/cards']
+const PREFETCH_ROUTES = ['/dashboard', '/finances', '/habits']
 
 // Logged-in app chrome (sidebar, bottom nav, quick add, push, tour…). Loaded only on app routes via
 // SidebarLayout, so the landing/login pages never download it.
@@ -31,6 +34,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [showQuickActions, setShowQuickActions] = useState(false)
 
   useEffect(() => {
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection
+    if (connection?.saveData || ['slow-2g', '2g', '3g'].includes(connection?.effectiveType ?? '')) return
     const prefetchAll = () => PREFETCH_ROUTES.forEach((route) => router.prefetch(route))
     if ('requestIdleCallback' in window) {
       const id = window.requestIdleCallback(prefetchAll)
@@ -56,7 +61,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {/* Main Content Area */}
       {/* Offset content on desktop (pl-20 for collapsed sidebar) */}
       <div className="flex-1 min-w-0 md:pl-20">
-        {children}
+        <RouteMotion>{children}</RouteMotion>
       </div>
 
       {/* Quick-add transaction sheet, toast and offline queue sync */}
@@ -140,8 +145,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <button
                 onClick={async () => {
                   setShowQuickActions(false)
-                  await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
-                  window.location.replace('/login')
+                  await logoutAndRedirect('/login')
                 }}
                 className="flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-500/20 bg-rose-500/10 py-3 text-xs font-bold text-rose-600 dark:text-rose-400 transition-all active:scale-95 hover:bg-rose-500/15"
               >

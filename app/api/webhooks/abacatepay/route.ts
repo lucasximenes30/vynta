@@ -1,91 +1,30 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { activateRecurringSubscription, cancelRecurringSubscription } from '@/services/subscription.service'
-import { findSubscriptionByCheckout, getSubscription, getSubscriptionCheckout } from '@/services/abacatepay.service'
+import { findSubscriptionByCheckout } from '@/services/abacatepay.service'
 import { FacebookService } from '@/services/facebook.service'
 import { notifyAdminsApprovedSale } from '@/services/push.service'
 import { tierFromCycle, tierFromAmount, normalizeTier, type BillingTier } from '@/lib/plans'
-import crypto from 'crypto'
-import { safeEqual } from '@/lib/password'
-
-// Public key provided in AbacatePay docs for HMAC signature verification
-const ABACATEPAY_PUBLIC_KEY =
-  't9dXRhHHo3yDEj5pVDYz0frf7q6bMKyMRmxxCPIPp3RCplBfXRxqlC6ZpiWmOqj4L63qEaeUOtrCI8P0VMUgo6iIga2ri9ogaHFs0WIIywSMg0q7RmBfybe1E5XJcfC4IW3alNqym0tXoAKkzvfEjZxV6bE0oG2zJrNNYmUCKZyV0KZ3JS8Votf9EAWWYdiDkMkpbMdPggfh1EqHlVkMiTady6jOR3hyzGEHrIz2Ret0xHKMbiqkr9HS1JhNHDX9'
-
-function verifySignature(rawBody: string, signature: string, secret?: string): boolean {
-  if (!signature) return false
-  const bodyBuffer = Buffer.from(rawBody, 'utf8')
-
-  // Check 1: HMAC with ABACATEPAY_PUBLIC_KEY (Base64 or Hex)
-  try {
-    const expectedB64 = crypto.createHmac('sha256', ABACATEPAY_PUBLIC_KEY).update(bodyBuffer).digest('base64')
-    if (signature.length === expectedB64.length && crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedB64))) {
-      return true
-    }
-  } catch {}
-
-  // Check 2: HMAC with configured secret if present
-  if (secret) {
-    try {
-      const expHex = crypto.createHmac('sha256', secret).update(bodyBuffer).digest('hex')
-      const expB64 = crypto.createHmac('sha256', secret).update(bodyBuffer).digest('base64')
-
-      if (signature.length === expHex.length && crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expHex))) {
-        return true
-      }
-      if (signature.length === expB64.length && crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expB64))) {
-        return true
-      }
-    } catch {}
-  }
-
-  return false
-}
+import { authenticAbacateWebhook } from '@/lib/abacateWebhook'
+import { readBoundedText } from '@/lib/boundedBody'
 
 export async function POST(req: Request) {
-  const signature = req.headers.get('x-webhook-signature')?.trim() || req.headers.get('x-abacatepay-signature')?.trim() || ''
-  const rawBody = await req.text()
+  let rawBody: string
+  try { rawBody = await readBoundedText(req, 256 * 1024) }
+  catch { return NextResponse.json({ error: 'Invalid body' }, { status: 413 }) }
   const secret = process.env.ABACATEPAY_WEBHOOK_SECRET
-
-  const url = new URL(req.url)
-  const querySecret = url.searchParams.get('webhookSecret')
-  const isQuerySecretMatch = !!(querySecret && secret && safeEqual(querySecret, secret))
-
-  const isSignatureValid = verifySignature(rawBody, signature, secret)
-
-  // The HMAC key is public (integrity only); only the URL secret proves the event came from AbacatePay.
-  // Without it, the event is still processed, but every fact is re-read from the AbacatePay API.
-  const isTrusted = isQuerySecretMatch || process.env.NODE_ENV !== 'production'
-  if (!isQuerySecretMatch) {
-    console.warn(`[AbacatePay Webhook] webhookSecret ${secret ? 'mismatch' : 'not configured'} (hmac ${isSignatureValid ? 'ok' : 'invalid'}); verifying via API.`)
-  }
+  // Configuration failures are retryable; invalid delivery credentials never reach payment code.
+  if (!secret) return NextResponse.json({ error: 'Webhook unavailable' }, { status: 503 })
+  if (!authenticAbacateWebhook(req, rawBody, secret)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
     const event = JSON.parse(rawBody)
     const eventType = event.event
-    console.log(`[AbacatePay Webhook] Event received: ${eventType} (id: ${event.id})`)
-
     const data = event.data || {}
-    let subscription = data.subscription
-    let checkout = isTrusted ? (data.checkout || data.billing) : undefined
+    const subscription = data.subscription
+    const checkout = data.checkout || data.billing
     const payment = data.payment
-    const customer = isTrusted ? data.customer : undefined
-
-    if (!isTrusted && subscription?.id) {
-      const verified = await getSubscription(subscription.id).catch(() => null)
-      if (!verified) return NextResponse.json({ error: 'Unknown subscription' }, { status: 401 })
-      subscription = verified
-    }
-
-    const rawCheckoutId = data.checkout?.id || data.billing?.id
-    if (!isTrusted && rawCheckoutId) {
-      const verifiedCheckout = await getSubscriptionCheckout(rawCheckoutId).catch(() => null)
-      // Only API-verified fields: merging the raw payload would let a forged event pick
-      // metadata.userId/externalId and hand someone else's paid checkout to any account.
-      if (verifiedCheckout && (verifiedCheckout.status === 'PAID' || verifiedCheckout.status === 'ACTIVE')) {
-        checkout = verifiedCheckout
-      }
-    }
+    const customer = data.customer
 
     // Handle subscription events (completed or renewed)
     if (eventType === 'subscription.completed' || eventType === 'subscription.renewed') {
@@ -94,16 +33,11 @@ export async function POST(req: Request) {
         console.warn('[AbacatePay Webhook] No subscription ID in event')
         return NextResponse.json({ ok: true, message: 'Ignored - missing subscription' })
       }
-
-      if (!isTrusted && subscription.status !== 'ACTIVE') {
-        return NextResponse.json({ error: 'Subscription not active' }, { status: 401 })
-      }
-
       const checkoutId = checkout?.id || subscription?.checkoutId || null
       const customerId = customer?.id || subscription?.customerId || null
-      // Untrusted payloads can't pick the charge id, otherwise replays would extend access forever.
-      const chargeId = (isTrusted && payment?.id) || `${subscriptionId}:${event.id}`
-      const amountCents = Number((isTrusted && payment?.amount) || subscription?.amount || checkout?.amount || 0)
+      // Authenticated delivery identifiers are stable across automatic retries.
+      const chargeId = payment?.id || `${subscriptionId}:${event.id}`
+      const amountCents = Number(payment?.amount || subscription?.amount || checkout?.amount || 0)
 
       // Find user
       let userId: string | null = null
@@ -240,7 +174,7 @@ export async function POST(req: Request) {
     // Handle subscription cancellation
     if (eventType === 'subscription.cancelled') {
       const subscriptionId = subscription?.id
-      if (subscriptionId && (isTrusted || subscription.status === 'CANCELLED')) {
+      if (subscriptionId) {
         await cancelRecurringSubscription(subscriptionId, subscription?.cancelledDueTo === 'max_payment_retries_exceeded')
         console.log(`[AbacatePay Webhook] Subscription cancelled for ${subscriptionId} (${subscription?.cancelledDueTo ?? 'requested'})`)
       }

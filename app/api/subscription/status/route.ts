@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getSession, setSession } from '@/lib/auth'
+import { getSession, refreshSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { activateRecurringSubscription } from '@/services/subscription.service'
 import { getSubscriptionCheckout, findSubscriptionByCheckout } from '@/services/abacatepay.service'
@@ -84,11 +84,10 @@ export async function POST() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // If user is already active and not expired, sync session if needed
+    // getSession resolves current DB permissions, while the browser JWT may still contain
+    // pre-payment claims. Always refresh it here, preserving the revocable session ID.
     if (userHasAccess(user)) {
-      if (session.subscriptionStatus !== user.subscriptionStatus || session.plan !== user.plan) {
-        await setSession(sessionPayloadFromUser(user))
-      }
+      await refreshSession(sessionPayloadFromUser(user), session)
       return NextResponse.json({ ok: true, status: 'approved', canAccess: true })
     }
 
@@ -114,7 +113,7 @@ export async function POST() {
     if (tx.status === 'ACTIVE') {
       const refreshedUser = await prisma.user.findUnique({ where: { id: user.id } })
       const canAccess = !!refreshedUser && userHasAccess(refreshedUser)
-      if (refreshedUser) await setSession(sessionPayloadFromUser(refreshedUser))
+      if (refreshedUser) await refreshSession(sessionPayloadFromUser(refreshedUser), session)
       return NextResponse.json(canAccess
         ? { ok: true, status: 'approved', message: 'Pagamento confirmado! Seu acesso foi liberado.', canAccess }
         : { ok: false, status: 'expired', message: 'Sua assinatura não está mais ativa.', canAccess })
@@ -138,7 +137,7 @@ export async function POST() {
 
         const finalUser = activated || (await prisma.user.findUnique({ where: { id: user.id } }))
         if (finalUser) {
-          await setSession(sessionPayloadFromUser(finalUser))
+          await refreshSession(sessionPayloadFromUser(finalUser), session)
         }
 
         return NextResponse.json({
@@ -165,7 +164,7 @@ export async function POST() {
 
         const finalUser = activated || (await prisma.user.findUnique({ where: { id: user.id } }))
         if (finalUser) {
-          await setSession(sessionPayloadFromUser(finalUser))
+          await refreshSession(sessionPayloadFromUser(finalUser), session)
         }
 
         return NextResponse.json({

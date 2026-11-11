@@ -4,10 +4,11 @@ import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { safeEqual } from '@/lib/password'
+import { readBoundedText, BodyTooLargeError } from '@/lib/boundedBody'
 
 export async function POST(req: Request) {
   try {
-    const rawBody = await req.text()
+    const rawBody = await readBoundedText(req, 256 * 1024)
     
     console.log('--- CAKTO WEBHOOK RECEIVED ---');
 
@@ -15,7 +16,7 @@ export async function POST(req: Request) {
     try {
       payload = JSON.parse(rawBody)
     } catch {
-      console.error('[Cakto Webhook] Validation failed: Invalid JSON. Body snippet:', rawBody.substring(0, 100))
+      console.error('[Cakto Webhook] Validation failed: Invalid JSON')
       return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
     }
 
@@ -160,6 +161,7 @@ export async function POST(req: Request) {
     console.log('[Cakto Webhook] Successfully processed payload.');
     return NextResponse.json({ success: true }, { status: 200 })
   } catch (err: any) {
+    if (err instanceof BodyTooLargeError) return NextResponse.json({ error: 'Payload too large' }, { status: 413 })
     console.error('[Cakto Webhook] Uncaught error processing webhook:', err.message)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }

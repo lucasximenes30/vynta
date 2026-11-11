@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { getSession } from '@/lib/auth'
+import { getSession, setSession } from '@/lib/auth'
+import { sessionPayloadFromUser } from '@/lib/sessionPayload'
 import { prisma } from '@/lib/prisma'
 import { hash, compare } from 'bcryptjs'
 import { SALT_ROUNDS } from '@/lib/constants'
@@ -45,15 +46,16 @@ export async function POST(request: NextRequest) {
 
     const hashedPassword = await hash(newPassword, SALT_ROUNDS)
 
-    await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { id: session.userId },
       data: { password: hashedPassword },
     })
+    await setSession(sessionPayloadFromUser(updatedUser))
 
     return NextResponse.json({ success: true })
   } catch (error: any) {
     const message = error instanceof z.ZodError
-      ? error.errors[0]?.message ?? 'Dados inválidos'
+      ? error.issues[0]?.message ?? 'Dados inválidos'
       : error.message ?? 'Algo deu errado'
 
     return NextResponse.json(

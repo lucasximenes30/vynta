@@ -32,8 +32,9 @@ function extractJsonObject(rawText: string): string | null {
     return trimmed
   }
 
-  const match = trimmed.match(/\{[\s\S]*\}/)
-  return match ? match[0] : null
+  const start = trimmed.indexOf('{')
+  const end = trimmed.lastIndexOf('}')
+  return start >= 0 && end > start ? trimmed.slice(start, end + 1) : null
 }
 
 async function runAiEnrichment(

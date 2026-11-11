@@ -2,6 +2,8 @@ import ical, { type VEvent } from 'node-ical'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { DEFAULT_PREFERENCES } from '@/services/push.service'
+import { isAllowedCalendarUrl } from '@/lib/outboundPolicy'
+import { readBoundedText, BodyTooLargeError } from '@/lib/boundedBody'
 
 /**
  * Imports a user's Google (or any) calendar via its secret iCal feed URL into
@@ -72,20 +74,29 @@ function toDesired(tz: string, uid: string, start: Date, end: Date | undefined, 
 }
 
 async function fetchIcs(url: string): Promise<string> {
+  if (!isAllowedCalendarUrl(url)) {
+    throw new IcalSyncError('Use o endereço secreto iCal do Google Agenda (calendar.google.com).')
+  }
   let res: Response
   try {
     res = await fetch(url, {
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       headers: { Accept: 'text/calendar, text/plain, */*' },
       cache: 'no-store',
-      redirect: 'follow',
+      redirect: 'error',
     })
   } catch {
     throw new IcalSyncError('Não consegui acessar o link. Confira se ele está completo.')
   }
   if (!res.ok) throw new IcalSyncError(`O link respondeu com erro ${res.status}. Gere um novo link secreto no Google Agenda.`)
-  const body = await res.text()
-  if (body.length > MAX_ICS_BYTES) throw new IcalSyncError('Arquivo da agenda grande demais para sincronizar.')
+  let body: string
+  try {
+    body = await readBoundedText(res, MAX_ICS_BYTES)
+  } catch (error) {
+    throw new IcalSyncError(error instanceof BodyTooLargeError
+      ? 'Arquivo da agenda grande demais para sincronizar.'
+      : 'A agenda demorou demais para responder. Tente novamente.')
+  }
   if (!body.includes('BEGIN:VCALENDAR')) {
     throw new IcalSyncError('Esse link não é uma agenda iCal (.ics). Use o "endereço secreto no formato iCal".')
   }

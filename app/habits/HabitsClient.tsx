@@ -1,5 +1,7 @@
 'use client'
 
+import { logoutAndRedirect } from '@/lib/logout'
+
 import dynamic from 'next/dynamic'
 import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -370,8 +372,7 @@ export default function HabitsClient({
   }
 
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' })
-    router.push('/login')
+    await logoutAndRedirect('/login')
   }
 
   // ─── Render ──────────────────────────────────────────────────────────────────

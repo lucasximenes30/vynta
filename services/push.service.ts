@@ -1,6 +1,7 @@
 import webpush from 'web-push'
 import { prisma } from '@/lib/prisma'
 import { PLANS, formatBRL, type BillingTier } from '@/lib/plans'
+import { isAllowedPushEndpoint } from '@/lib/outboundPolicy'
 
 // Server-only module (no 'use server'): every caller must already know the userId is trusted.
 
@@ -48,6 +49,7 @@ export function isPushConfigured(): boolean {
 export const MAX_DEVICES_PER_USER = 10
 
 export async function savePushSubscription(userId: string, sub: PushSubscriptionInput, userAgent?: string | null) {
+  if (!isAllowedPushEndpoint(sub.endpoint)) throw new Error('Serviço de notificações não permitido.')
   // An endpoint belongs to one browser profile: if another account logs in on it, it moves over.
   await prisma.pushSubscription.upsert({
     where: { endpoint: sub.endpoint },
@@ -82,11 +84,13 @@ export async function sendToSubscriptions(subs: StoredSubscription[], payload: P
   const gone: string[] = []
 
   await Promise.all(subs.map(async (sub) => {
+    // Revalidate stored subscriptions too; invalid legacy records must never be contacted by cron.
+    if (!isAllowedPushEndpoint(sub.endpoint)) { gone.push(sub.id); return }
     try {
       await webpush.sendNotification(
         { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
         body,
-        { TTL: ttl, urgency: 'normal', topic: payload.tag?.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 32) || undefined },
+        { TTL: ttl, timeout: 10_000, urgency: 'normal', topic: payload.tag?.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 32) || undefined },
       )
       delivered.push(sub.id)
     } catch (err: any) {

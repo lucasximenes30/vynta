@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     const message =
       error instanceof z.ZodError
-        ? error.errors[0]?.message ?? 'Invalid input'
+        ? error.issues[0]?.message ?? 'Invalid input'
         : error.message ?? 'Something went wrong'
     return NextResponse.json({ error: message }, { status: 400 })
   }

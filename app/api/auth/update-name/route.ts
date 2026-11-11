@@ -25,7 +25,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ success: true, name })
   } catch (error: any) {
     const message = error instanceof z.ZodError
-      ? error.errors[0]?.message ?? 'Dados inválidos'
+      ? error.issues[0]?.message ?? 'Dados inválidos'
       : error.message ?? 'Algo deu errado'
 
     return NextResponse.json(

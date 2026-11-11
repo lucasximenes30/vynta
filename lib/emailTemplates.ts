@@ -28,7 +28,7 @@ function link(path: string) {
   return new URL(path, APP_URL).toString()
 }
 
-const strip = (s: string) => s.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ')
+const strip = (s: string) => s.replace(/<[^<>]+>/g, '').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ')
 
 // ── card (account e-mails) ───────────────────────────────────────────────────
 

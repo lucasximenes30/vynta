@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, ...payload })
   } catch (error: any) {
     const message = error instanceof z.ZodError
-      ? error.errors[0]?.message ?? 'Invalid request'
+      ? error.issues[0]?.message ?? 'Invalid request'
       : error?.message ?? 'Failed to process notification action'
 
     return NextResponse.json(

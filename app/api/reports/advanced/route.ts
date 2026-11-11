@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
+import { enforceRateLimits } from '@/lib/rateLimit'
 import {
   calculateFinancialScore,
   detectSpendingAnomalies,
@@ -9,6 +10,8 @@ import {
 export async function GET(request: Request) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const limited = await enforceRateLimits([{ key: `advanced-reports:${session.userId}`, limit: 20, windowSec: 600 }])
+  if (limited) return limited
 
   const url = new URL(request.url)
   const language = url.searchParams.get('language') || 'pt-BR'

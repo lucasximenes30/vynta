@@ -1,765 +1,248 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
-
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
-import * as Lucide from 'lucide-react'
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import { ArrowDownLeft, ArrowUpRight, BarChart3, CalendarDays, ChevronLeft, ChevronRight, Download, Lightbulb, RefreshCw, Sparkles, Target, TrendingUp, Wallet, ArrowRight, ChevronDown } from 'lucide-react'
 import { localizeCategoryName } from '@/lib/categories'
+import { openQuickAdd } from '@/lib/quickAdd'
+import { reportCurrency as money, reportMonth, type ReportInsight, type ReportSnapshot } from '@/lib/reportTypes'
 
-// Below-the-fold sections and the export modal are split out of the initial bundle
-const AdvancedReports = dynamic(() => import('@/components/AdvancedReports'))
-const MonthlyGoalsReport = dynamic(() => import('@/components/MonthlyGoalsReport'))
+const AdvancedReports = dynamic(() => import('@/components/AdvancedReports'), { loading: () => <SectionSkeleton /> })
+const MonthlyGoalsReport = dynamic(() => import('@/components/MonthlyGoalsReport'), { loading: () => <SectionSkeleton /> })
 const ExportModal = dynamic(() => import('@/components/ExportModal'))
+const colors = ['#7c6af2', '#36b9a3', '#f2ad5b', '#e67c9a', '#5d9de8', '#a4a8b8']
 
-
-// Translation helper for category & month
-const monthTranslations: Record<string, string> = {
-  'month.january': 'Janeiro',
-  'month.february': 'Fevereiro',
-  'month.march': 'Março',
-  'month.april': 'Abril',
-  'month.may': 'Maio',
-  'month.june': 'Junho',
-  'month.july': 'Julho',
-  'month.august': 'Agosto',
-  'month.september': 'Setembro',
-  'month.october': 'Outubro',
-  'month.november': 'Novembro',
-  'month.december': 'Dezembro',
+function SectionSkeleton() {
+  return <div className="report-panel space-y-4" role="status" aria-label="Carregando relatório"><div className="skeleton h-5 w-40" /><div className="skeleton h-52 w-full rounded-2xl" /></div>
 }
 
-const t = (key: string): string => {
-  if (key.startsWith('category.')) {
-    const category = key.replace('category.', '');
-    const translated = localizeCategoryName(category, 'pt-BR');
-    return translated !== category ? translated : category;
-  }
-  return monthTranslations[key] || key.replace(/^(month)\./, '');
+function Change({ amount, expense = false }: { amount: number; expense?: boolean }) {
+  const positive = expense ? amount < 0 : amount > 0
+  return <p className="mt-3 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs">
+    <span className={amount === 0 ? 'text-surface-500' : positive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+      {amount > 0 ? '+' : amount < 0 ? '−' : ''}{money(Math.abs(amount))}
+    </span><span className="text-surface-500 dark:text-surface-400">vs. mês anterior</span>
+  </p>
 }
 
-const locale = 'pt-BR';
-
-interface Session { userId: string; email: string; name: string }
-interface Balance { income: number; expense: number; balance: number }
-interface Monthly { income: number; expense: number; balance: number; transactionCount: number }
-interface Comparison {
-  current: { year: number; month: number; income: number; expense: number; balance: number }
-  previous: { year: number; month: number; income: number; expense: number; balance: number }
-  comparison: { incomeChange: number; expenseChange: number; balanceChange: number }
+function localInsights(report: ReportSnapshot): ReportInsight[] {
+  const items: ReportInsight[] = []
+  const top = report.categories[0]
+  if (top && report.summary.expense > 0) items.push({ type: 'tip', text: `${localizeCategoryName(top.category)} representa ${Math.round(top.amount / report.summary.expense * 100)}% das despesas. Comece por essa categoria ao revisar seu orçamento.` })
+  const result = report.summary.income - report.summary.expense
+  items.push({ type: result >= 0 ? 'positive' : 'negative', text: result >= 0 ? `As receitas superam as despesas em ${money(result)} neste período. Confira os próximos vencimentos antes de destinar essa diferença a uma meta.` : `As despesas superam as receitas em ${money(-result)} neste período. Revise os gastos previstos e os lançamentos que ainda faltam.` })
+  return items
 }
 
-const CATEGORY_COLORS: Record<string, string> = {
-  Food: '#f43f5e',
-  Transport: '#f59e0b',
-  Entertainment: '#8b5cf6',
-  Shopping: '#ec4899',
-  Bills: '#3b82f6',
-  Health: '#10b981',
-  General: '#6b7280',
-  Salary: '#22c55e',
-  Freelance: '#06b6d4',
-  Investment: '#a855f7',
-  Other: '#94a3b8',
-  Alimentação: '#f43f5e',
-  Transporte: '#f59e0b',
-  Lazer: '#8b5cf6',
-  Compras: '#ec4899',
-  Contas: '#3b82f6',
-  Saúde: '#10b981',
-  Geral: '#6b7280',
-  Salário: '#22c55e',
-  Investimento: '#a855f7',
-  Outro: '#94a3b8',
-}
-
-const CATEGORY_COLORS_LIGHT: Record<string, string> = {
-  Food: '#fb7185',
-  Transport: '#fbbf24',
-  Entertainment: '#a78bfa',
-  Shopping: '#f472b6',
-  Bills: '#60a5fa',
-  Health: '#34d399',
-  General: '#9ca3af',
-  Salary: '#4ade80',
-  Freelance: '#22d3ee',
-  Investment: '#c084fc',
-  Other: '#cbd5e1',
-  Alimentação: '#fb7185',
-  Transporte: '#fbbf24',
-  Lazer: '#a78bfa',
-  Compras: '#f472b6',
-  Contas: '#60a5fa',
-  Saúde: '#34d399',
-  Geral: '#9ca3af',
-  Salário: '#4ade80',
-  Investimento: '#c084fc',
-  Outro: '#cbd5e1',
-}
-
-type AIInsight = { text: string; type: 'positive' | 'negative' | 'tip' }
-type StaticInsight = { text: string; type: 'positive' | 'negative' | 'tip' }
-
-const MAX_INSIGHTS = 4
-const MAX_INSIGHT_CHARS = 180
-
-function shortenInsightText(text: string): string {
-  const cleaned = text.replace(/\s+/g, ' ').trim()
-  if (!cleaned) return ''
-  if (cleaned.length <= MAX_INSIGHT_CHARS) return cleaned
-
-  const truncated = cleaned.slice(0, MAX_INSIGHT_CHARS)
-  const lastSpace = truncated.lastIndexOf(' ')
-  if (lastSpace >= 70) return `${truncated.slice(0, lastSpace).trim()}...`
-  return `${truncated.trim()}...`
-}
-
-function normalizeInsightsForDisplay(insights: AIInsight[]): AIInsight[] {
-  return insights
-    .map((insight) => ({
-      text: shortenInsightText(insight.text),
-      type:
-        insight.type === 'positive' || insight.type === 'negative' || insight.type === 'tip'
-          ? insight.type
-          : 'tip',
-    }))
-    .filter((insight) => insight.text.length > 0)
-    .slice(0, MAX_INSIGHTS)
-}
-
-function generateStaticFallbackInsights(
-  categories: { category: string; amount: number }[],
-  comparison: Comparison,
-  formatCurrency: (value: number) => string,
-  isBRL: boolean,
-  localizeCategoryLabel: (category: string) => string
-): StaticInsight[] {
-  const insights: StaticInsight[] = []
-
-  if (categories.length > 0) {
-    const total = categories.reduce((s, c) => s + c.amount, 0)
-    const top = categories[0]
-    const pct = total > 0 ? ((top.amount / total) * 100).toFixed(0) : '0'
-    const topLabel = localizeCategoryLabel(top.category)
-    insights.push({
-      text: `${topLabel} concentra ${pct}% dos seus gastos. Revise essa categoria primeiro.`,
-      type: 'tip',
-    })
-  }
-
-  const balChange = comparison.comparison.balanceChange
-  if (balChange >= 0) {
-    insights.push({
-      text: `Seu saldo subiu ${formatCurrency(Math.abs(balChange))} vs o mês anterior.`,
-      type: 'positive',
-    })
-  } else {
-    insights.push({
-      text: `Seu saldo caiu ${formatCurrency(Math.abs(balChange))} vs o mês anterior.`,
-      type: 'negative',
-    })
-  }
-
-  if (comparison.comparison.expenseChange > 0) {
-    insights.push({
-      text: `As despesas subiram ${formatCurrency(comparison.comparison.expenseChange)}. Defina um teto por categoria.`,
-      type: 'negative',
-    })
-  } else if (comparison.comparison.expenseChange < 0) {
-    insights.push({
-      text: `Você reduziu ${formatCurrency(Math.abs(comparison.comparison.expenseChange))} em despesas. Bom controle.`,
-      type: 'positive',
-    })
-  }
-
-  if (comparison.comparison.incomeChange > 0) {
-    insights.push({
-      text: `Sua receita aumentou ${formatCurrency(comparison.comparison.incomeChange)}. Direcione parte para reserva.`,
-      type: 'positive',
-    })
-  }
-
-  return normalizeInsightsForDisplay(insights)
-}
-
-export default function ReportsClient({
-  session, balance, monthly, comparison,
-}: {
-  session: Session
-  balance: Balance
-  monthly: Monthly
-  comparison: Comparison
-}) {
-  const router = useRouter()
-  
-  const [activeTab, setActiveTab] = useState<'geral' | 'metas'>('geral')
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false)
-  
-
-  const isBRL = true;
-  const localizeCategoryLabel = useCallback(
-    (category: string) => t(`category.${category}`),
-    [t]
-  )
-
-  // Rate
-  const [rate, setRate] = useState(5.5)
-  const [rateLoading, setRateLoading] = useState(true)
+export default function ReportsClient({ initialReport }: { initialReport: ReportSnapshot }) {
+  const [selectedMonth, setSelectedMonth] = useState(initialReport.period)
+  const [report, setReport] = useState(initialReport)
+  const [tab, setTab] = useState<'overview' | 'goals'>('overview')
+  const [revision, setRevision] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [insights, setInsights] = useState<ReportInsight[]>([])
+  const [insightsLoading, setInsightsLoading] = useState(true)
+  const [insightsFallback, setInsightsFallback] = useState(false)
+  const [insightRetry, setInsightRetry] = useState(0)
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
 
   useEffect(() => {
-    setRateLoading(true)
-    setRateError(false)
-    getExchangeRate().then((r) => { setRate(r); setRateLoading(false) }).catch(() => { setRateError(true); setRateLoading(false) })
-  }, [locale])
-
-  const [rateError, setRateError] = useState(false)
-
-  const formatCurrency = useCallback((value: number) => {
-    if (isBRL) return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
-    const usd = value / rate
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(usd)
-  }, [isBRL, rate])
-
-  const formatDate = (dateStr: string) => {
-    const loc = 'pt-BR'
-    return new Date(dateStr).toLocaleDateString(loc, { day: '2-digit', month: 'short', year: 'numeric' })
-  }
-
-  // Month selector
-  const [selectedMonth, setSelectedMonth] = useState<string>('')
-  const [availableMonths, setAvailableMonths] = useState<string[]>([])
-
-  useEffect(() => {
-    const loadMonths = async () => {
-      const res = await fetch('/api/transactions/monthly?type=available')
-      if (res.ok) {
-        const data = await res.json()
-        setAvailableMonths(data.months)
-        const now = new Date()
-        const cur = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-        setSelectedMonth(data.months.includes(cur) ? cur : data.months[0] || cur)
-      }
-    }
-    loadMonths()
+    const refresh = () => setRevision((value) => value + 1)
+    window.addEventListener('vynta:transaction-created', refresh)
+    return () => window.removeEventListener('vynta:transaction-created', refresh)
   }, [])
 
-  // Chart data
-  const [categoryData, setCategoryData] = useState<{ category: string; amount: number }[]>([])
-  const [trendData, setTrendData] = useState<{ month: string; income: number; expense: number }[]>([])
-  const [chartsLoading, setChartsLoading] = useState(false)
-
   useEffect(() => {
-    if (!selectedMonth) return
-    setChartsLoading(true)
-    const [year, month] = selectedMonth.split('-').map(Number)
-
-    Promise.all([
-      fetch(`/api/transactions/monthly?type=categories&year=${year}&month=${month}`).then(async (r) => r.ok ? r.json() : { categories: [] }),
-      fetch('/api/transactions/monthly?type=trend').then(async (r) => r.ok ? r.json() : { trend: [] }),
-    ]).then(([catData, trendDataResp]) => {
-      setCategoryData(catData.categories || [])
-      setTrendData(trendDataResp.trend || [])
-      setChartsLoading(false)
-    })
-  }, [selectedMonth])
-
-  // Monthly summary for selected month
-  const [monthlySummary, setMonthlySummary] = useState<{ income: number; expense: number; balance: number; transactionCount: number } | null>(null)
-
-  useEffect(() => {
-    if (!selectedMonth) return
-    const [year, month] = selectedMonth.split('-').map(Number)
-    fetch(`/api/transactions/monthly?type=summary&year=${year}&month=${month}`)
-      .then(async (r) => r.ok ? r.json() : null)
-      .then((data) => {
-        if (data?.summary) {
-          setMonthlySummary({
-            income: Number(data.summary.income),
-            expense: Number(data.summary.expense),
-            balance: Number(data.summary.balance),
-            transactionCount: data.summary.transactionCount,
-          })
-        }
+    if (selectedMonth === initialReport.period && revision === 0) {
+      setReport(initialReport)
+      setLoading(false)
+      setError('')
+      return
+    }
+    const controller = new AbortController()
+    const [year, month] = selectedMonth.split('-')
+    setLoading(true)
+    setError('')
+    fetch(`/api/transactions/monthly?type=report&year=${year}&month=${month}`, { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Não foi possível carregar este período.')
+        return response.json() as Promise<ReportSnapshot>
       })
-  }, [selectedMonth])
-
-  const getMonthName = (monthNumber: number): string => {
-    const keys = ['month.january','month.february','month.march','month.april','month.may','month.june','month.july','month.august','month.september','month.october','month.november','month.december']
-    return t(keys[monthNumber - 1])
-  }
-
-  // AI Insights
-  const [aiInsights, setAiInsights] = useState<AIInsight[]>([])
-  const [insightsLoading, setInsightsLoading] = useState(false)
+      .then((data) => { if (!controller.signal.aborted) setReport(data) })
+      .catch(() => { if (!controller.signal.aborted) setError('Não foi possível carregar este período. Seus dados estão salvos.') })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false) })
+    return () => controller.abort()
+  }, [selectedMonth, initialReport, revision])
 
   useEffect(() => {
-    if (!selectedMonth) return
+    if (report.period !== selectedMonth || loading || error) return
+    if (!report.summary.transactionCount) { setInsights([]); setInsightsLoading(false); return }
+    const controller = new AbortController()
+    const [year, month] = report.period.split('-').map(Number)
     setInsightsLoading(true)
+    setInsights([])
+    setInsightsFallback(false)
     fetch('/api/insights', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ language: locale }),
-    })
-      .then(async (r) => r.ok ? r.json() : null)
-      .then((data) => {
-        if (data?.insights) {
-          setAiInsights(normalizeInsightsForDisplay(data.insights))
-        } else {
-          setAiInsights(
-            generateStaticFallbackInsights(
-              categoryData,
-              comparison,
-              formatCurrency,
-              isBRL,
-              localizeCategoryLabel
-            )
-          )
-        }
-        setInsightsLoading(false)
-      })
-      .catch(() => {
-        setAiInsights(
-          generateStaticFallbackInsights(
-            categoryData,
-            comparison,
-            formatCurrency,
-            isBRL,
-            localizeCategoryLabel
-          )
-        )
-        setInsightsLoading(false)
-      })
-  }, [selectedMonth, locale, categoryData, comparison, formatCurrency, isBRL, localizeCategoryLabel])
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ language: 'pt-BR', year, month }), signal: controller.signal,
+    }).then(async (response) => {
+      if (!response.ok) throw new Error('Análise indisponível')
+      return response.json()
+    }).then((data) => {
+      if (controller.signal.aborted) return
+      const valid = Array.isArray(data.insights) ? data.insights.filter((item: ReportInsight) => typeof item?.text === 'string' && ['positive', 'negative', 'tip'].includes(item.type)).slice(0, 4) : []
+      if (!valid.length) throw new Error('Análise vazia')
+      setInsights(valid)
+      setInsightsFallback(data.source === 'summary')
+    }).catch(() => {
+      if (!controller.signal.aborted) { setInsights(localInsights(report)); setInsightsFallback(true) }
+    }).finally(() => { if (!controller.signal.aborted) setInsightsLoading(false) })
+    return () => controller.abort()
+  }, [report, selectedMonth, insightRetry, loading, error])
 
-  const displaySummary = monthlySummary ?? monthly
-
-  const pieColors = isBRL ? CATEGORY_COLORS : CATEGORY_COLORS_LIGHT
+  const busy = loading || report.period !== selectedMonth
+  const months = Array.from(new Set([selectedMonth, ...initialReport.months, ...report.months])).sort().reverse()
+  const monthIndex = months.indexOf(selectedMonth)
+  const { summary, comparison } = report
+  const monthResult = summary.income - summary.expense
+  const savingsRate = summary.income > 0 ? monthResult / summary.income * 100 : null
+  const maxTrend = Math.max(1, ...report.trend.flatMap((item) => [item.income, item.expense]))
+  const top = report.categories[0]
+  const topShare = top && summary.expense > 0 ? Math.round(top.amount / summary.expense * 100) : 0
+  const empty = summary.transactionCount === 0
 
   return (
-    <div className="min-h-screen bg-surface-50 dark:bg-surface-950 transition-colors duration-300 reports-page-enter">
-      {/* Header */}
-      <header className="border-b border-surface-200/80 bg-white dark:bg-surface-900 dark:border-surface-800 transition-colors duration-300">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="flex h-9 w-9 items-center justify-center rounded-xl text-surface-500 hover:bg-surface-100 hover:text-surface-700 dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-surface-200 transition-all duration-200"
-              title={'Voltar ao Dashboard'}
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <div className="min-w-0">
-              <h1 className="truncate text-base font-semibold tracking-tight text-surface-900 dark:text-surface-100">
-                {'Relatórios'}
-              </h1>
-              <p className="hidden text-xs text-surface-500 dark:text-surface-400 sm:block">
-                {'Visão mensal e tendências'}
-              </p>
-            </div>
+    <div className="min-h-screen bg-surface-50 text-surface-900 dark:bg-surface-950 dark:text-surface-100">
+      <header className="border-b border-surface-200/70 bg-white dark:border-surface-800 dark:bg-surface-900">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400"><BarChart3 className="h-5 w-5" /></div>
+            <div><h1 className="font-display text-lg font-bold tracking-tight">Relatórios</h1><p className="hidden text-xs text-surface-500 sm:block">Clareza para decidir o próximo passo.</p></div>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <span className="hidden sm:inline text-sm text-surface-500 dark:text-surface-400">
-              {`Olá`}, {session.name}
-            </span>
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="text-sm text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition-colors font-medium"
-            >
-              {'Dashboard'}
-            </button>
-          </div>
+          <button className="report-button shrink-0" onClick={() => setExportOpen(true)} disabled={busy || !!error} aria-label="Exportar relatório do período"><Download className="h-4 w-4" /><span>Exportar</span></button>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-8 space-y-6">
-        {/* Title + Filters Row */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-surface-900 dark:text-surface-100 tracking-tight">
-              {'Relatórios Financeiros'}
-            </h1>
-            <p className="text-sm text-surface-500 dark:text-surface-400 mt-1">
-              {'Análise mensal dos seus gastos'}
-            </p>
+      <main className="mx-auto max-w-6xl space-y-5 px-4 py-5 sm:space-y-6 sm:px-6 sm:py-8">
+        <section className="report-hero relative overflow-hidden rounded-3xl border border-violet-200/60 p-5 dark:border-violet-500/20 sm:p-8">
+          <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="max-w-lg">
+              <p className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-violet-600 dark:text-violet-300"><span className="h-1.5 w-1.5 rounded-full bg-violet-500" /> Seu dinheiro, com perspectiva</p>
+              <h2 className="font-display text-2xl font-bold leading-tight tracking-tight sm:text-3xl">Entenda seu mês.<br /><span className="text-surface-500 dark:text-surface-400">Planeje o que vem depois.</span></h2>
+              <p className="mt-3 max-w-md text-sm leading-relaxed text-surface-600 dark:text-surface-400">Seus números e uma análise personalizada, reunidos para ajudar nas escolhas do dia a dia.</p>
+            </div>
+            <div className="w-full shrink-0 rounded-2xl border border-white/80 bg-white/75 p-3 dark:border-surface-700 dark:bg-surface-900/80 sm:w-64">
+              <label htmlFor="report-month" className="mb-2 flex items-center gap-2 px-1 text-xs font-medium text-surface-500 dark:text-surface-400"><CalendarDays className="h-3.5 w-3.5" /> Período do relatório</label>
+              <div className="flex items-center gap-1">
+                <button className="report-icon-button" aria-label="Mês anterior disponível" disabled={monthIndex >= months.length - 1} onClick={() => setSelectedMonth(months[monthIndex + 1])}><ChevronLeft className="h-4 w-4" /></button>
+                <select id="report-month" className="min-h-11 min-w-0 flex-1 cursor-pointer rounded-lg bg-transparent text-center text-sm font-semibold capitalize outline-offset-2 dark:bg-surface-900" value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)}>
+                  {months.map((month) => <option key={month} value={month}>{reportMonth(month)}</option>)}
+                </select>
+                <button className="report-icon-button" aria-label="Próximo mês disponível" disabled={monthIndex <= 0} onClick={() => setSelectedMonth(months[monthIndex - 1])}><ChevronRight className="h-4 w-4" /></button>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            {/* Month Filter */}
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="input-field w-full sm:w-52 py-2.5 transition-all duration-200 focus:ring-brand-500/30"
-            >
-              {availableMonths.length === 0 && <option value={selectedMonth}>{selectedMonth}</option>}
-              {availableMonths.map((m) => {
-                const [y, mo] = m.split('-').map(Number)
-                return <option key={m} value={m}>{getMonthName(mo)} {y}</option>
-              })}
-            </select>
-            <button
-              onClick={() => setIsExportModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-brand-600 rounded-xl hover:bg-brand-700 transition-colors shadow-sm active:scale-95"
-            >
-              <Lucide.Download className="w-4 h-4" />
-              Exportar
-            </button>
+        </section>
+
+        <div className="flex items-center justify-between gap-3">
+          <div className="inline-flex rounded-xl border border-surface-200 bg-surface-100/80 p-1 dark:border-surface-800 dark:bg-surface-900" aria-label="Seções do relatório">
+            <button aria-pressed={tab === 'overview'} className={`report-tab ${tab === 'overview' ? 'report-tab-active' : ''}`} onClick={() => setTab('overview')}><BarChart3 className="h-4 w-4" />Visão geral</button>
+            <button aria-pressed={tab === 'goals'} className={`report-tab ${tab === 'goals' ? 'report-tab-active' : ''}`} onClick={() => setTab('goals')}><Target className="h-4 w-4" />Metas</button>
           </div>
+          <span className="hidden text-xs text-surface-500 sm:block">{busy ? 'Atualizando período…' : `${summary.transactionCount} lançamentos no período`}</span>
         </div>
 
-        {/* Tabs */}
-        <div className="flex p-1 space-x-1 bg-surface-100 dark:bg-surface-800/50 rounded-xl w-full sm:w-fit mb-2">
-          <button
-            onClick={() => setActiveTab('geral')}
-            className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
-              activeTab === 'geral'
-                ? 'bg-white dark:bg-surface-700 text-surface-900 dark:text-white shadow-sm ring-1 ring-surface-200 dark:ring-surface-600'
-                : 'text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200 hover:bg-surface-200/50 dark:hover:bg-surface-700/50'
-            }`}
-          >
-            Resumo Geral
-          </button>
-          <button
-            onClick={() => setActiveTab('metas')}
-            className={`flex-1 sm:flex-none px-6 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
-              activeTab === 'metas'
-                ? 'bg-white dark:bg-surface-700 text-surface-900 dark:text-white shadow-sm ring-1 ring-surface-200 dark:ring-surface-600'
-                : 'text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200 hover:bg-surface-200/50 dark:hover:bg-surface-700/50'
-            }`}
-          >
-            Metas e Caixinhas
-          </button>
-        </div>
+        {error ? <div role="alert" className="report-panel text-center"><p className="text-sm text-surface-600 dark:text-surface-300">{error}</p><button className="report-button mx-auto mt-4" onClick={() => setRevision((value) => value + 1)}><RefreshCw className="h-4 w-4" />Tentar novamente</button></div>
+          : busy ? <div className="space-y-5" aria-busy="true"><div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{[0, 1, 2].map((index) => <div key={index} className={`skeleton h-36 rounded-2xl ${index === 2 ? 'col-span-2 sm:col-span-1' : ''}`} />)}</div><SectionSkeleton /></div>
+          : tab === 'goals' ? <MonthlyGoalsReport selectedMonth={selectedMonth} formatCurrency={money} />
+          : <div className="report-content space-y-5 sm:space-y-6" key={report.period}>
+            <section aria-label="Resumo financeiro" className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+              <article className="report-panel !p-4 sm:!p-5">
+                <div className="mb-4 flex items-center justify-between gap-2"><h3 className="text-xs font-medium text-surface-500 dark:text-surface-400 sm:text-sm">Receitas</h3><ArrowDownLeft className="h-5 w-5 text-emerald-500" /></div>
+                <p className="break-words text-lg font-bold tracking-tight tabular-nums sm:text-2xl">{money(summary.income)}</p><Change amount={comparison.incomeChange} />
+              </article>
+              <article className="report-panel !p-4 sm:!p-5">
+                <div className="mb-4 flex items-center justify-between gap-2"><h3 className="text-xs font-medium text-surface-500 dark:text-surface-400 sm:text-sm">Despesas</h3><ArrowUpRight className="h-5 w-5 text-rose-400" /></div>
+                <p className="break-words text-lg font-bold tracking-tight tabular-nums sm:text-2xl">{money(summary.expense)}</p><Change amount={comparison.expenseChange} expense />
+              </article>
+              <article className="report-panel col-span-2 !border-violet-200 !bg-violet-50/60 !p-4 dark:!border-violet-500/20 dark:!bg-violet-500/5 sm:col-span-1 sm:!p-5">
+                <div className="mb-4 flex items-center justify-between"><h3 className="text-xs font-medium text-violet-700 dark:text-violet-300 sm:text-sm">Resultado do mês</h3><Wallet className="h-5 w-5 text-violet-500" /></div>
+                <p className={`break-words text-2xl font-bold tracking-tight tabular-nums ${monthResult < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-violet-700 dark:text-violet-300'}`}>{money(monthResult)}</p>
+                <p className="mt-3 text-xs text-surface-500 dark:text-surface-400">{savingsRate === null ? 'Receitas menos despesas do período' : monthResult >= 0 ? `${savingsRate.toFixed(0)}% das receitas restaram no mês` : `Despesas ${Math.abs(savingsRate).toFixed(0)}% acima das receitas`}</p>
+              </article>
+            </section>
 
-        {activeTab === 'geral' ? (
-          <>
-            {/* Summary Cards */}
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-          <div className="card group relative overflow-hidden transition-all duration-200 hover:shadow-card-hover hover:border-surface-200 dark:hover:border-surface-700">
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/50 to-transparent dark:from-emerald-900/10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative">
-              <p className="text-xs font-medium text-surface-500 dark:text-surface-400 uppercase tracking-wider mb-2">
-                {'Receita do Mês'}
-              </p>
-              <p className="text-2xl font-semibold text-emerald-600 dark:text-emerald-400">
-                +{formatCurrency(displaySummary.income)}
-              </p>
-              <p className="text-xs text-surface-400 dark:text-surface-500 mt-1.5">
-                Total acumulado: +{formatCurrency(balance.income)}
-              </p>
-            </div>
-          </div>
-          <div className="card group relative overflow-hidden transition-all duration-200 hover:shadow-card-hover hover:border-surface-200 dark:hover:border-surface-700">
-            <div className="absolute inset-0 bg-gradient-to-br from-rose-50/50 to-transparent dark:from-rose-900/10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative">
-              <p className="text-xs font-medium text-surface-500 dark:text-surface-400 uppercase tracking-wider mb-2">
-                {'Despesas do Mês'}
-              </p>
-              <p className="text-2xl font-semibold text-rose-600 dark:text-rose-400">
-                -{formatCurrency(displaySummary.expense)}
-              </p>
-              <p className="text-xs text-surface-400 dark:text-surface-500 mt-1.5">
-                Total acumulado: -{formatCurrency(balance.expense)}
-              </p>
-            </div>
-          </div>
-          <div className="card group relative overflow-hidden transition-all duration-200 hover:shadow-card-hover hover:border-surface-200 dark:hover:border-surface-700">
-            <div className={`absolute inset-0 bg-gradient-to-br transition-opacity pointer-events-none opacity-0 group-hover:opacity-100 ${displaySummary.balance >= 0 ? 'from-brand-50/50 to-transparent dark:from-brand-900/10' : 'from-rose-50/50 to-transparent dark:from-rose-900/10'}`} />
-            <div className="relative">
-              <p className="text-xs font-medium text-surface-500 dark:text-surface-400 uppercase tracking-wider mb-2">
-                {'Saldo Acumulado'}
-              </p>
-              <p className={`text-2xl font-semibold ${displaySummary.balance >= 0 ? 'text-brand-600 dark:text-brand-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                {formatCurrency(displaySummary.balance)}
-              </p>
-              <p className="text-xs text-surface-400 dark:text-surface-500 mt-1.5">
-                Saldo do mês: {formatCurrency(displaySummary.income - displaySummary.expense)}
-              </p>
-            </div>
-          </div>
-        </div>
+            {empty ? <section className="report-panel py-10 text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-50 text-violet-500 dark:bg-violet-500/10"><BarChart3 className="h-7 w-7" /></div>
+              <h2 className="text-lg font-semibold">Seu próximo passo começa com um registro</h2>
+              <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-surface-500">Não há lançamentos em {reportMonth(selectedMonth)}. Escolha outro período ou registre uma receita ou despesa para acompanhar seus números.</p>
+              <button className="btn-primary mx-auto mt-5 inline-flex items-center gap-2" onClick={() => openQuickAdd('EXPENSE')}>Registrar lançamento<ArrowRight className="h-4 w-4" /></button>
+            </section> : <section className="report-panel !border-violet-200/70 dark:!border-violet-500/20" aria-labelledby="insights-title" aria-busy={insightsLoading}>
+              <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+                <div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-300"><Sparkles className="h-5 w-5" /></div><div><h2 id="insights-title" className="font-semibold">Um olhar sobre seu mês</h2><p className="mt-0.5 text-xs text-surface-500">O que merece sua atenção em {reportMonth(selectedMonth)}.</p></div></div>
+                <span className="rounded-full bg-violet-50 px-2.5 py-1 text-[11px] font-medium text-violet-700 dark:bg-violet-500/10 dark:text-violet-300">{insightsFallback ? 'Resumo dos seus números' : 'Análise com IA'}</span>
+              </div>
+              {insightsLoading ? <div className="grid gap-3 sm:grid-cols-2" role="status" aria-label="Analisando seus números">{[0, 1, 2, 3].map((item) => <div key={item} className="rounded-2xl bg-surface-50 p-4 dark:bg-surface-800/40"><div className="skeleton mb-3 h-3 w-24" /><div className="skeleton mb-2 h-3 w-full" /><div className="skeleton h-3 w-4/5" /></div>)}</div>
+                : <div className="grid gap-3 sm:grid-cols-2">{insights.map((insight, index) => {
+                  const tone = insight.type === 'negative' ? 'text-amber-600 dark:text-amber-400' : insight.type === 'positive' ? 'text-emerald-600 dark:text-emerald-400' : 'text-violet-600 dark:text-violet-400'
+                  const Icon = insight.type === 'tip' ? Lightbulb : insight.type === 'positive' ? TrendingUp : ArrowUpRight
+                  return <article key={index} className="rounded-2xl border border-surface-100 bg-surface-50/70 p-4 dark:border-surface-800 dark:bg-surface-800/30"><p className={`mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider ${tone}`}><Icon className="h-3.5 w-3.5" />{insight.type === 'negative' ? 'Ponto de atenção' : insight.type === 'positive' ? 'Bom sinal' : 'Próximo passo'}</p><p className="break-words text-sm leading-relaxed text-surface-700 dark:text-surface-300">{insight.text}</p></article>
+                })}</div>}
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-[11px] leading-relaxed text-surface-500">
+                <p>{insightsFallback ? 'A IA está indisponível. Este resumo foi calculado com seus lançamentos.' : 'Baseado nos seus lançamentos. Confira os valores antes de tomar decisões.'}</p>
+                {insightsFallback && <button className="inline-flex min-h-11 items-center gap-1.5 font-medium text-violet-600 dark:text-violet-400" onClick={() => setInsightRetry((value) => value + 1)}><RefreshCw className="h-3 w-3" />Tentar análise com IA</button>}
+              </div>
+            </section>}
 
-        {/* Insights */}
-        <div className="card">
-          <h2 className="text-base font-semibold text-surface-900 dark:text-surface-100 mb-4 flex items-center gap-2">
-            <svg className="w-5 h-5 text-violet-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-            </svg>
-            <span>{'Insights com IA'}</span>
-            {insightsLoading && (
-              <svg className="w-4 h-4 text-surface-400 animate-spin ml-auto shrink-0" fill="none" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" strokeWidth="4" />
-                <path d="M12 2a10 10 0 019.95 9" fill="currentColor" />
-              </svg>
-            )}
-          </h2>
-          {aiInsights.length === 0 && !insightsLoading ? (
-            <div className="py-8 text-center text-sm text-surface-400 dark:text-surface-500">
-              {'Adicione transações para receber insights'}
-            </div>
-          ) : (
-            <div className="grid gap-2.5 sm:grid-cols-2">
-              {aiInsights.slice(0, MAX_INSIGHTS).map((insight, i) => (
-                <div
-                  key={i}
-                  className={`flex items-start gap-2.5 rounded-xl border p-3.5 transition-all duration-200 sm:gap-3 sm:p-4 ${
-                    insight.type === 'positive'
-                      ? 'bg-emerald-50/80 border-emerald-200/70 dark:bg-emerald-900/20 dark:border-emerald-800/50 hover:bg-emerald-50 dark:hover:bg-emerald-900/25 hover:shadow-sm'
-                      : insight.type === 'negative'
-                      ? 'bg-rose-50/80 border-rose-200/70 dark:bg-rose-900/20 dark:border-rose-800/50 hover:bg-rose-50 dark:hover:bg-rose-900/25 hover:shadow-sm'
-                      : 'bg-violet-50/80 border-violet-200/70 dark:bg-violet-900/20 dark:border-violet-800/50 hover:bg-violet-50 dark:hover:bg-violet-900/25 hover:shadow-sm'
-                  }`}
-                >
-                  <div className="flex-shrink-0 mt-0.5">
-                    {insight.type === 'positive' ? (
-                      <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-800/40 flex items-center justify-center">
-                        <svg className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                        </svg>
-                      </div>
-                    ) : insight.type === 'negative' ? (
-                      <div className="w-7 h-7 rounded-full bg-rose-100 dark:bg-rose-800/40 flex items-center justify-center">
-                        <svg className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
-                        </svg>
-                      </div>
-                    ) : (
-                      <div className="w-7 h-7 rounded-full bg-violet-100 dark:bg-violet-800/40 flex items-center justify-center">
-                        <svg className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                  <p className={`break-words text-[13px] leading-5 sm:text-sm sm:leading-6 ${
-                    insight.type === 'positive'
-                      ? 'text-emerald-700 dark:text-emerald-300'
-                      : insight.type === 'negative'
-                      ? 'text-rose-700 dark:text-rose-300'
-                      : 'text-violet-700 dark:text-violet-300'
-                  }`}>
-                    {insight.text}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Charts */}
-        {chartsLoading ? (
-          <div className="card flex items-center justify-center py-16">
-            <svg className="w-8 h-8 text-brand-600 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" strokeWidth="4" />
-              <path d="M12 2a10 10 0 019.95 9" fill="currentColor" />
-            </svg>
-          </div>
-        ) : (
-          <>
-            <div className="grid gap-6 lg:grid-cols-2">
-              {/* Category Donut */}
-              <div className="card relative overflow-hidden transition-all duration-200">
-                <h2 className="text-base font-semibold text-surface-900 dark:text-surface-100 mb-4">
-                  {'Despesas por Categoria'}
-                </h2>
-                {categoryData.length === 0 ? (
-                  <div className="py-14 text-center text-sm text-surface-400 dark:text-surface-500">
-                    {'Nenhuma despesa neste mês'}
-                  </div>
-                ) : (
-                  <>
-                    <div style={{ width: '100%', height: 260 }} className="opacity-100 animate-fade-in mb-2">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={categoryData}
-                            dataKey="amount"
-                            nameKey="category"
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={65}
-                            outerRadius={95}
-                            paddingAngle={2.5}
-                            strokeWidth={0}
-                          >
-                            {categoryData.map((entry, i) => (
-                              <Cell key={`cell-${i}`} fill={pieColors[entry.category] || pieColors['Other']} />
-                            ))}
-                          </Pie>
-                          <RechartsTooltip
-                            formatter={(value, name) => [formatCurrency(Number(value)), t(`category.${name}`) ?? name]}
-                            contentStyle={{
-                              backgroundColor: '#16171d',
-                              border: 'none',
-                              borderRadius: '12px',
-                              color: '#f1f3f7',
-                              fontSize: '13px',
-                            }}
-                            wrapperStyle={{ outline: 'none' }}
-                          />
-                        </PieChart>
-                      </ResponsiveContainer>
+            <div className="grid gap-5 lg:grid-cols-[1fr_1.15fr]">
+              <section className="report-panel" aria-labelledby="categories-title">
+                <h2 id="categories-title" className="font-semibold">Para onde foi o dinheiro</h2><p className="mt-1 text-xs text-surface-500">Distribuição das despesas do período.</p>
+                {!top ? <p className="py-16 text-center text-sm text-surface-500">Nenhuma despesa neste mês.</p> : <>
+                  <div className="my-6 flex items-center gap-5">
+                    <div className="relative h-28 w-28 shrink-0" aria-hidden="true">
+                      <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90"><circle cx="60" cy="60" r="48" fill="none" stroke="currentColor" strokeWidth="13" className="text-surface-100 dark:text-surface-800" />
+                        {report.categories.map((category, index) => {
+                          const before = report.categories.slice(0, index).reduce((sum, item) => sum + item.amount, 0) / summary.expense * 100
+                          const share = category.amount / summary.expense * 100
+                          return <circle key={category.category} cx="60" cy="60" r="48" fill="none" pathLength="100" stroke={colors[index % colors.length]} strokeWidth="13" strokeDasharray={`${Math.max(0, share - 0.8)} ${100 - Math.max(0, share - 0.8)}`} strokeDashoffset={-before} />
+                        })}
+                      </svg><span className="absolute inset-0 flex items-center justify-center text-lg font-bold tabular-nums">{topShare}%</span>
                     </div>
-                    
-                    <div className="flex flex-col gap-2 mt-4 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
-                      {categoryData.map((item, i) => {
-                        const total = categoryData.reduce((acc, curr) => acc + curr.amount, 0);
-                        const percent = total > 0 ? ((item.amount / total) * 100).toFixed(1) : '0';
-                        return (
-                          <div key={i} className="flex flex-row items-center justify-between gap-3 text-sm p-2 rounded-lg bg-surface-50 dark:bg-surface-800/40 border border-surface-100 dark:border-surface-800">
-                            <div className="flex items-center gap-2.5 overflow-hidden">
-                              <div className="h-3 w-3 rounded-full ring-2 ring-transparent ring-offset-1 dark:ring-offset-surface-900 flex-shrink-0" style={{ backgroundColor: pieColors[item.category] || pieColors['Other'], '--tw-ring-color': pieColors[item.category] || pieColors['Other'] } as React.CSSProperties} />
-                              <span className="text-surface-700 dark:text-surface-300 font-medium truncate" title={t(`category.${item.category}`) ?? item.category}>
-                                {t(`category.${item.category}`) ?? item.category}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-3 flex-shrink-0">
-                              <span className="text-surface-500 dark:text-surface-400 font-medium">{percent}%</span>
-                              <span className="text-surface-900 dark:text-surface-100 font-semibold text-right min-w-[70px]">
-                                {formatCurrency(item.amount)}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
-              </div>
+                    <div className="min-w-0"><p className="text-[11px] font-medium uppercase tracking-wider text-surface-500">Maior categoria</p><p className="mt-1 break-words font-semibold">{localizeCategoryName(top.category)}</p><p className="mt-1 text-sm text-surface-500">{money(top.amount)} · {topShare}% do total</p></div>
+                  </div>
+                  <ul className="space-y-4">{report.categories.slice(0, 5).map((category, index) => <li key={category.category}>
+                    <div className="mb-2 flex items-baseline justify-between gap-3 text-xs"><span className="min-w-0 break-words text-surface-600 dark:text-surface-300">{localizeCategoryName(category.category)}</span><span className="shrink-0 font-semibold tabular-nums">{money(category.amount)}</span></div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-surface-100 dark:bg-surface-800"><div className="h-full rounded-full" style={{ width: `${category.amount / summary.expense * 100}%`, backgroundColor: colors[index % colors.length] }} /></div>
+                  </li>)}</ul>
+                  {report.categories.length > 5 && <details className="mt-4 text-xs"><summary className="cursor-pointer py-2 font-medium text-violet-600 dark:text-violet-400">Ver outras {report.categories.length - 5} categorias</summary><ul className="space-y-3 pt-2">{report.categories.slice(5).map((item) => <li key={item.category} className="flex justify-between gap-3"><span>{localizeCategoryName(item.category)}</span><span className="shrink-0 tabular-nums">{money(item.amount)}</span></li>)}</ul></details>}
+                </>}
+              </section>
 
-              {/* Trend Bar Chart */}
-              <div className="card relative overflow-hidden transition-all duration-200">
-                <h2 className="text-base font-semibold text-surface-900 dark:text-surface-100 mb-4">
-                  {'Receitas vs Despesas'}
-                </h2>
-                {trendData.length === 0 || trendData.every(d => d.income === 0 && d.expense === 0) ? (
-                  <div className="py-14 text-center text-sm text-surface-400 dark:text-surface-500">
-                    {'Sem dados suficientes'}
-                  </div>
-                ) : (
-                  <div style={{ width: '100%', height: 280 }} className="opacity-100 animate-fade-in">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={trendData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-surface-200 dark:text-surface-700/60" />
-                        <XAxis
-                          dataKey="month"
-                          tick={{ fontSize: 12, fill: '#8f93a1' }}
-                          axisLine={false}
-                          tickLine={false}
-                        />
-                        <YAxis
-                          tick={{ fontSize: 11, fill: '#8f93a1' }}
-                          axisLine={false}
-                          tickLine={false}
-                          tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`}
-                        />
-                        <RechartsTooltip
-                          formatter={(value) => formatCurrency(Number(value))}
-                          contentStyle={{
-                            backgroundColor: '#16171d',
-                            border: 'none',
-                            borderRadius: '12px',
-                            color: '#f1f3f7',
-                            fontSize: '13px',
-                            boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
-                          }}
-                          wrapperStyle={{ outline: 'none' }}
-                        />
-                        <Bar
-                          dataKey="income"
-                          name={'Receita'}
-                          fill="#22c55e"
-                          radius={[6, 6, 0, 0]}
-                        />
-                        <Bar
-                          dataKey="expense"
-                          name={'Despesa'}
-                          fill="#f43f5e"
-                          radius={[6, 6, 0, 0]}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Monthly Comparison */}
-            <div className="card relative overflow-hidden bg-gradient-to-br from-brand-50 to-brand-100/40 dark:from-brand-900/20 dark:to-brand-800/8 border-brand-200/50 dark:border-brand-800/30 transition-all duration-200 hover:shadow-card-hover">
-              <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-transparent dark:from-white/5 pointer-events-none" />
-              <div className="relative">
-                <p className="text-sm font-semibold text-surface-900 dark:text-surface-100 mb-5">
-                  {'Comparação Mensal'}
-                </p>
-                <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-                  {/* Income Change */}
-                  <div className="group flex flex-col rounded-xl bg-white/70 dark:bg-surface-900/40 p-4 transition-all duration-200 hover:bg-white dark:hover:bg-surface-800/50 ring-1 ring-transparent hover:ring-emerald-200/50 dark:hover:ring-emerald-800/20">
-                    <p className="text-xs text-surface-500 dark:text-surface-400 mb-2">
-                      {'Variação de Receita'}
-                    </p>
-                    <p className={`text-lg font-semibold ${
-                      comparison.comparison.incomeChange >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
-                    }`}>
-                      {comparison.comparison.incomeChange >= 0 ? '+' : ''}{formatCurrency(Math.abs(comparison.comparison.incomeChange))}
-                    </p>
-                  </div>
-                  {/* Expense Change */}
-                  <div className="group flex flex-col rounded-xl bg-white/70 dark:bg-surface-900/40 p-4 transition-all duration-200 hover:bg-white dark:hover:bg-surface-800/50 ring-1 ring-transparent hover:ring-emerald-200/50 dark:hover:ring-emerald-800/20">
-                    <p className="text-xs text-surface-500 dark:text-surface-400 mb-2">
-                      {'Variação de Despesa'}
-                    </p>
-                    <p className={`text-lg font-semibold ${
-                      comparison.comparison.expenseChange <= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
-                    }`}>
-                      {comparison.comparison.expenseChange <= 0 ? '-' : '+'}{formatCurrency(Math.abs(comparison.comparison.expenseChange))}
-                    </p>
-                  </div>
-                  {/* Balance Change */}
-                  <div className="group flex flex-col rounded-xl bg-white/70 dark:bg-surface-900/40 p-4 transition-all duration-200 hover:bg-white dark:hover:bg-surface-800/50 ring-1 ring-transparent hover:ring-emerald-200/50 dark:hover:ring-emerald-800/20">
-                    <p className="text-xs text-surface-500 dark:text-surface-400 mb-2">
-                      {'Variação de Saldo'}
-                    </p>
-                    <p className={`text-lg font-semibold ${
-                      comparison.comparison.balanceChange >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
-                    }`}>
-                      {comparison.comparison.balanceChange >= 0 ? '+' : ''}{formatCurrency(Math.abs(comparison.comparison.balanceChange))}
-                    </p>
-                  </div>
+              <section className="report-panel" aria-labelledby="trend-title">
+                <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 id="trend-title" className="font-semibold">Sua evolução</h2><p className="mt-1 text-xs text-surface-500">Seis meses até {reportMonth(selectedMonth)}.</p></div><div className="flex gap-3 text-[11px] text-surface-500"><span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-emerald-400" />Receitas</span><span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-violet-400" />Despesas</span></div></div>
+                <div className="relative mb-5 mt-8" role="img" aria-label="Gráfico de receitas e despesas dos últimos seis meses. Valores detalhados na tabela abaixo.">
+                  <div className="pointer-events-none absolute inset-x-0 bottom-7 top-0 flex flex-col justify-between" aria-hidden="true">{[0, 1, 2, 3].map((line) => <div key={line} className="border-t border-dashed border-surface-200 dark:border-surface-800" />)}</div>
+                  <div className="relative grid grid-cols-6 gap-2">{report.trend.map((item, index) => <div key={index} className="min-w-0"><div className="flex h-44 items-end justify-center gap-1.5 sm:h-52"><div className="w-3 max-w-5 rounded-t-md bg-emerald-400 sm:w-5" style={{ height: `${item.income / maxTrend * 100}%`, minHeight: item.income > 0 ? 3 : 0 }} title={`Receitas: ${money(item.income)}`} /><div className="w-3 max-w-5 rounded-t-md bg-violet-400 sm:w-5" style={{ height: `${item.expense / maxTrend * 100}%`, minHeight: item.expense > 0 ? 3 : 0 }} title={`Despesas: ${money(item.expense)}`} /></div><p className={`mt-3 text-center text-[11px] ${index === 5 ? 'font-bold text-violet-600 dark:text-violet-300' : 'text-surface-500'}`}>{item.month}</p></div>)}</div>
                 </div>
-              </div>
+                <details className="border-t border-surface-100 pt-3 dark:border-surface-800"><summary className="cursor-pointer py-2 text-xs font-medium text-surface-600 dark:text-surface-400">Ver valores por mês</summary><div className="overflow-x-auto"><table className="mt-2 w-full text-xs tabular-nums"><caption className="sr-only">Receitas e despesas por mês</caption><thead><tr className="text-surface-500"><th className="py-2 text-left">Mês</th><th className="text-right">Receitas</th><th className="text-right">Despesas</th></tr></thead><tbody>{report.trend.map((item, index) => <tr key={index}><th className="py-2 text-left font-normal">{item.month} {item.year}</th><td className="text-right">{money(item.income)}</td><td className="text-right">{money(item.expense)}</td></tr>)}</tbody></table></div></details>
+                <div className="mt-4 rounded-xl bg-surface-50 p-4 dark:bg-surface-800/40"><p className="flex items-center justify-between gap-3 text-xs text-surface-500"><span>Saldo acumulado até este mês</span><span className="font-semibold tabular-nums text-surface-800 dark:text-surface-200">{money(summary.balance)}</span></p><p className="mt-2 text-[11px] leading-relaxed text-surface-500">Inclui o saldo dos meses anteriores. O resultado do mês considera apenas este período.</p></div>
+              </section>
             </div>
-          </>
-        )}
 
-        {/* Advanced Reports Section */}
-        <AdvancedReports formatCurrency={formatCurrency} isBRL={isBRL} />
-          </>
-        ) : (
-          <MonthlyGoalsReport selectedMonth={selectedMonth} formatCurrency={formatCurrency} />
-        )}
+            <section className="report-panel !p-0 overflow-hidden">
+              <button className="flex w-full items-center justify-between gap-3 p-5 text-left sm:p-6" aria-expanded={showAdvanced} aria-controls="advanced-report" onClick={() => setShowAdvanced((value) => !value)}>
+                <span className="flex items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-100 text-violet-500 dark:bg-surface-800"><TrendingUp className="h-5 w-5" /></span><span><span className="block text-sm font-semibold">Saúde financeira hoje</span><span className="mt-1 block text-xs leading-relaxed text-surface-500">Pontuação, gastos fora do padrão e visão semanal atual.</span></span></span>
+                <ChevronDown className={`h-4 w-4 shrink-0 text-surface-400 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
+              </button>
+              {showAdvanced && <div id="advanced-report" className="border-t border-surface-100 p-3 dark:border-surface-800 sm:p-5"><AdvancedReports formatCurrency={money} isBRL /></div>}
+            </section>
+            <p className="px-1 text-center text-xs leading-relaxed text-surface-500">Um lançamento faz diferença no seu relatório. <Link href="/finances" className="font-medium text-violet-600 underline-offset-4 hover:underline dark:text-violet-400">Conferir minhas finanças</Link></p>
+          </div>}
       </main>
-      
-      <ExportModal 
-        isOpen={isExportModalOpen} 
-        onClose={() => setIsExportModalOpen(false)} 
-        selectedMonth={selectedMonth} 
-      />
+      {exportOpen && <ExportModal isOpen onClose={() => setExportOpen(false)} selectedMonth={selectedMonth} />}
     </div>
   )
-}
-
-const cacheKey = 'vynta_exchange_rate'
-const cacheTimeKey = 'vynta_exchange_rate_time'
-let cachedRate: { value: number; time: number } | null = null
-
-async function getExchangeRate(): Promise<number> {
-  if (cachedRate && Date.now() - cachedRate.time < 5 * 60 * 1000) return cachedRate.value
-  try {
-    const res = await fetch('https://v6.exchangerate-api.com/v6/latest/USD')
-    const data = await res.json()
-    const rate = Number(data.conversion_rates?.BRL)
-    if (rate > 0) { cachedRate = { value: rate, time: Date.now() }; return rate }
-  } catch { /* fallback */ }
-  return cachedRate?.value ?? 5.5
 }

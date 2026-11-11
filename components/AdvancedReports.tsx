@@ -85,6 +85,8 @@ const t = (key: string): string => {
 export default function AdvancedReports({ formatCurrency, isBRL }: AdvancedReportsProps) {
   
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [retry, setRetry] = useState(0)
   const [score, setScore] = useState<FinancialScore | null>(null)
   const [anomalies, setAnomalies] = useState<SpendingAnomaly[]>([])
   const [weekly, setWeekly] = useState<WeeklyAnalysis[]>([])
@@ -92,20 +94,23 @@ export default function AdvancedReports({ formatCurrency, isBRL }: AdvancedRepor
   const [activeTab, setActiveTab] = useState<'score' | 'weekly' | 'anomalies'>('score')
 
   useEffect(() => {
+    const controller = new AbortController()
     setLoading(true)
+    setLoadError(false)
     const lang = 'pt-BR'
-    fetch(`/api/reports/advanced?language=${lang}`)
-      .then((r) => (r.ok ? r.json() : null))
+    fetch(`/api/reports/advanced?language=${lang}`, { signal: controller.signal })
+      .then((r) => { if (!r.ok) throw new Error('Unavailable'); return r.json() })
       .then((data) => {
-        if (data) {
+        if (data && !controller.signal.aborted) {
           setScore(data.score)
           setAnomalies(data.anomalies)
           setWeekly(data.weekly)
         }
       })
-      .catch(() => { /* silent fail */ })
-      .finally(() => setLoading(false))
-  }, [isBRL])
+      .catch(() => { if (!controller.signal.aborted) setLoadError(true) })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false) })
+    return () => controller.abort()
+  }, [isBRL, retry])
 
   const weeklyChartData = weekly.map((w) => ({
     week: w.week,
@@ -124,6 +129,8 @@ export default function AdvancedReports({ formatCurrency, isBRL }: AdvancedRepor
       </div>
     )
   }
+
+  if (loadError) return <div role="alert" className="card text-center"><p className="text-sm text-surface-500">Não foi possível carregar a análise avançada.</p><button className="report-button mt-4" onClick={() => setRetry((value) => value + 1)}>Tentar novamente</button></div>
 
   if (weekly.length === 0 && !score) {
     return (

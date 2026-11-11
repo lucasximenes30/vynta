@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { transactionInputSchema } from '@/lib/transactionValidation'
+import { enforceRateLimits } from '@/lib/rateLimit'
+import { readBoundedText } from '@/lib/boundedBody'
 
 export async function DELETE(
   _request: NextRequest,
@@ -64,7 +67,11 @@ export async function PUT(
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-  const body = await request.json()
+  const limited = await enforceRateLimits([{ key: `transaction-write:${session.userId}`, limit: 120, windowSec: 60 }])
+  if (limited) return limited
+  const parsed = transactionInputSchema.safeParse(await readBoundedText(request, 16 * 1024).then(JSON.parse).catch(() => null))
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Dados inválidos' }, { status: 400 })
+  const body = parsed.data
   const { title, amount, type, category, date, isInstallment, totalInstallments, purchaseDate, dueDay, isRecurring, recurringDay, cardId, paymentMethod } = body
 
   if (!title || typeof title !== 'string') return NextResponse.json({ error: 'Título inválido' }, { status: 400 })
@@ -83,8 +90,8 @@ export async function PUT(
       date,
       ...(isInstallment !== undefined && { isInstallment }),
       totalInstallments: totalInstallments ?? undefined,
-      purchaseDate,
-      dueDay,
+      purchaseDate: purchaseDate ?? undefined,
+      dueDay: dueDay ?? undefined,
       ...(isRecurring !== undefined && { isRecurring }),
       ...(recurringDay !== undefined && { recurringDay: recurringDay ?? undefined }),
       cardId,

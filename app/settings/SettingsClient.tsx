@@ -1,5 +1,7 @@
 'use client'
 
+import { logoutAndRedirect } from '@/lib/logout'
+
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import * as Lucide from 'lucide-react'
@@ -227,8 +229,7 @@ export default function SettingsClient({ session }: SettingsClientProps) {
           </button>
           <button
             onClick={async () => {
-              await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
-              window.location.replace('/login')
+              await logoutAndRedirect('/login')
             }}
             className="inline-flex items-center gap-1.5 rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-1.5 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-colors"
           >

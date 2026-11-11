@@ -5,6 +5,7 @@ import { createPromoCheckout, createSubscriptionCheckout } from '@/services/abac
 import { getPromoEligibility } from '@/services/subscription.service'
 import { normalizeTier, PLANS, PROMO_FIRST_MONTH } from '@/lib/plans'
 import { notifyAdminsPendingSale } from '@/services/push.service'
+import { enforceRateLimits } from '@/lib/rateLimit'
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,6 +15,9 @@ export async function POST(req: NextRequest) {
       console.log('[Payments/Create] 401 - No session found in cookies')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const limited = await enforceRateLimits([{ key: `checkout:${session.userId}`, limit: 6, windowSec: 600 }])
+    if (limited) return limited
 
     const user = await prisma.user.findUnique({
       where: { id: session.userId },

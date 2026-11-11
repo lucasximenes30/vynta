@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import * as Lucide from 'lucide-react'
 
 interface ExportModalProps {
@@ -13,6 +13,25 @@ export default function ExportModal({ isOpen, onClose, selectedMonth }: ExportMo
   const [period, setPeriod] = useState<'monthly' | 'annual'>('monthly')
   const [includeExtract, setIncludeExtract] = useState(true)
   const [isExporting, setIsExporting] = useState(false)
+  const dialog = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!isOpen) return
+    const previous = document.activeElement as HTMLElement | null
+    const overflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    dialog.current?.focus()
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); onClose() }
+      if (event.key !== 'Tab') return
+      const items = Array.from(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), [href]') ?? [])
+      const first = items[0], last = items[items.length - 1]
+      if (!first) { event.preventDefault(); return }
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog.current)) { event.preventDefault(); last.focus() }
+      else if (!event.shiftKey && (document.activeElement === last || document.activeElement === dialog.current)) { event.preventDefault(); first.focus() }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = overflow; previous?.focus() }
+  }, [isOpen, onClose])
 
   const handleExport = async (format: 'pdf' | 'xlsx' | 'csv') => {
     setIsExporting(true)
@@ -57,16 +76,18 @@ export default function ExportModal({ isOpen, onClose, selectedMonth }: ExportMo
           />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
             <div
-              className="animate-in fade-in zoom-in-95 slide-in-from-bottom-2 w-full max-w-md overflow-hidden rounded-2xl bg-white dark:bg-surface-900 shadow-xl pointer-events-auto border border-surface-200 dark:border-surface-800"
+              ref={dialog} role="dialog" aria-modal="true" aria-labelledby="export-title" tabIndex={-1}
+              className="animate-in fade-in zoom-in-95 slide-in-from-bottom-2 max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl bg-white dark:bg-surface-900 shadow-xl pointer-events-auto border border-surface-200 dark:border-surface-800"
             >
               {/* Header */}
               <div className="flex items-center justify-between border-b border-surface-100 dark:border-surface-800 px-6 py-4 bg-surface-50/50 dark:bg-surface-950/50">
-                <h2 className="text-lg font-semibold text-surface-900 dark:text-white flex items-center gap-2">
+                <h2 id="export-title" className="text-lg font-semibold text-surface-900 dark:text-white flex items-center gap-2">
                   <Lucide.Download className="w-5 h-5 text-brand-500" />
                   Exportar Relatório
                 </h2>
                 <button
                   onClick={onClose}
+                  aria-label="Fechar exportação"
                   className="rounded-full p-2 text-surface-400 hover:bg-surface-200 hover:text-surface-600 dark:hover:bg-surface-800 dark:hover:text-surface-300 transition-colors"
                 >
                   <Lucide.X className="w-5 h-5" />
@@ -91,7 +112,7 @@ export default function ExportModal({ isOpen, onClose, selectedMonth }: ExportMo
                       }`}
                     >
                       <Lucide.Calendar className="w-4 h-4" />
-                      Este Mês
+                      Mês selecionado
                     </button>
                     <button
                       onClick={() => setPeriod('annual')}

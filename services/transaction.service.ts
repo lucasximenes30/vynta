@@ -12,6 +12,7 @@ import {
 } from '@/lib/invoice'
 import { effectivePayDay, firstPayMonthIdx } from '@/lib/payday'
 import { cache } from 'react'
+import { transactionInputSchema } from '@/lib/transactionValidation'
 
 export interface CreateTransactionInput {
   title: string
@@ -47,6 +48,7 @@ export interface UpdateTransactionInput {
 }
 
 export async function createTransaction(input: CreateTransactionInput) {
+  transactionInputSchema.parse(input)
   const installmentAmount =
     input.isInstallment && input.totalInstallments
       ? input.amount / input.totalInstallments
@@ -74,9 +76,14 @@ export async function createTransaction(input: CreateTransactionInput) {
 }
 
 export async function updateTransaction(id: string, userId: string, input: UpdateTransactionInput) {
+  transactionInputSchema.parse(input)
   const existing = await prisma.transaction.findUnique({ where: { id } })
   if (!existing || existing.userId !== userId) {
     throw new Error('Transaction not found or unauthorized')
+  }
+  if (input.cardId) {
+    const ownedCard = await prisma.card.findFirst({ where: { id: input.cardId, userId }, select: { id: true } })
+    if (!ownedCard) throw new Error('Card not found or unauthorized')
   }
 
   const installmentAmount =
@@ -450,7 +457,10 @@ export const getMonthComparison = cache(async (userId: string, refYear: number, 
 // Only expands recurring months if the user actually has recurring transactions.
 // Always includes current month as minimum (for new users with no data).
 export const getAvailableMonths = cache(async (userId: string) => {
-  const transactions = await loadUserTransactions(userId)
+  return computeAvailableMonths(await loadUserTransactions(userId))
+})
+
+function computeAvailableMonths(transactions: LoadedTransaction[]) {
 
   const months = new Set<string>()
 
@@ -516,11 +526,14 @@ export const getAvailableMonths = cache(async (userId: string) => {
   }
 
   return Array.from(months).sort().reverse()
-})
+}
 
 // 🆕 Get expenses by category for a specific month (installment + recurring aware)
 export const getExpensesByCategory = cache(async (userId: string, year: number, month: number) => {
-  const transactions = await loadUserTransactions(userId)
+  return computeCategoryTotals(await loadUserTransactions(userId), year, month)
+})
+
+function computeCategoryTotals(transactions: LoadedTransaction[], year: number, month: number) {
   const categoryMap = new Map<string, number>()
 
   for (const t of transactions) {
@@ -533,7 +546,31 @@ export const getExpensesByCategory = cache(async (userId: string, year: number, 
   return Array.from(categoryMap.entries())
     .map(([category, amount]) => ({ category, amount }))
     .sort((a, b) => b.amount - a.amount)
-})
+}
+
+/** One read per report, including route handlers where React.cache does not memoize. */
+export async function getReportSnapshot(userId: string, year: number, month: number) {
+  const transactions = await loadUserTransactions(userId)
+  const previousDate = new Date(year, month - 2, 1)
+  const current = computeMonthSummaryWithBalance(transactions, year, month)
+  const previous = computeMonthSummaryWithBalance(transactions, previousDate.getFullYear(), previousDate.getMonth() + 1)
+  return {
+    period: `${year}-${String(month).padStart(2, '0')}`,
+    summary: current, previous,
+    comparison: {
+      incomeChange: current.income - previous.income,
+      expenseChange: current.expense - previous.expense,
+      balanceChange: current.balance - previous.balance,
+    },
+    categories: computeCategoryTotals(transactions, year, month),
+    months: computeAvailableMonths(transactions),
+    trend: Array.from({ length: 6 }, (_, index) => {
+      const date = new Date(year, month - 6 + index, 1)
+      const totals = computeMonthTotals(transactions, date.getFullYear(), date.getMonth() + 1)
+      return { month: date.toLocaleDateString('pt-BR', { month: 'short' }), year: date.getFullYear(), income: totals.income, expense: totals.expense }
+    }),
+  }
+}
 
 // 🆕 Get monthly trend data (last 6 months) — installment-aware
 export const getMonthlyTrend = cache(async (userId: string) => {

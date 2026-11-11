@@ -1,0 +1,15 @@
+{
+  "entries": [
+    {
+      "name": "Expensive operations without effective ceilings",
+      "paths": [
+        "lib/rateLimit.ts",
+        "app/api/insights/route.ts",
+        "app/api/payments/create/route.ts",
+        "app/api/calendar/feed/route.ts",
+        "app/api/cards/import/route.ts",
+        "app/api/export/route.ts"
+      ]
+    }
+  ]
+}

@@ -104,7 +104,11 @@ function normalizeWhitespace(value: string): string {
 }
 
 function stripOuterPunctuation(value: string): string {
-  return value.replace(/^[\W_]+|[\W_]+$/g, '')
+  let start = 0
+  let end = value.length
+  while (start < end && /[\W_]/.test(value[start])) start++
+  while (end > start && /[\W_]/.test(value[end - 1])) end--
+  return value.slice(start, end)
 }
 
 function titleCase(value: string): string {
@@ -129,7 +133,7 @@ function sanitizeName(value: string | null | undefined): string {
   const normalized = stripOuterPunctuation(normalizeWhitespace(value))
   if (!normalized) return ''
 
-  const compact = normalized.replace(/\s*[-]\s*/g, ' - ')
+  const compact = normalized.split('-').map((part) => part.trim()).join(' - ')
   return titleCase(compact).slice(0, 80)
 }
 
@@ -139,7 +143,7 @@ function hasMachineLikeArtifacts(value: string): boolean {
   if (value.includes('_')) return true
   if (/\s{2,}/.test(value)) return true
   if (/^[0-9]/.test(value)) return true
-  if (/[a-zA-Z]{1,}[0-9]{2,}/.test(value)) return true
+  if (/[a-zA-Z][0-9]{2}/.test(value)) return true
   if (/^[A-Z\s\-0-9]{8,}$/.test(value)) return true
 
   return false

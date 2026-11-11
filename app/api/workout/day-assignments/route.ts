@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     const message =
       error instanceof z.ZodError
-        ? error.errors[0]?.message ?? 'Dados invalidos'
+        ? error.issues[0]?.message ?? 'Dados invalidos'
         : error instanceof Error
           ? error.message
           : 'Something went wrong'
