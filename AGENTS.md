@@ -30,15 +30,16 @@
 - Login (`/api/auth/login` e `/api/admin/auth/login`): a busca do usuário roda em paralelo com o rate limit; reset do contador vai para `after()` de `next/server`. Upgrade de senha legada ocorre antes da assinatura, pois a sessão fica vinculada ao hash final.
 - Deploy na Vercel em `gru1` (`vercel.json`) para ficar junto do banco em São Paulo.
 - `services/transaction.service.ts`: todas as leituras derivam de um único `loadUserTransactions` (1 query) — não reintroduzir queries por mês/loop.
+- Categorias: `lib/categories.ts` centraliza traduções; `lib/quickCategorize.ts` sugere instantaneamente por descrição e normaliza legados em Geral, preservando categorias personalizadas. Reutilize esses helpers em listas, relatórios e sugestões.
 - Ícones referenciados por nome: use `getIconByName` de `lib/icons.ts` (nunca `(Lucide as any)[name]`, que põe todos os ícones no bundle).
 - Bibliotecas pesadas (recharts, exceljs, jspdf) devem ser carregadas via `next/dynamic` / `import()`.
-- Relatórios: `getReportSnapshot` deriva resumo, comparação, categorias e tendência de uma leitura de transações. Visão principal usa SVG/CSS; Recharts só entra ao expandir a análise avançada. Cache de insights inclui usuário, período e hash de todos os dados do prompt.
+- Relatórios: `getReportSnapshot` deriva resumo, comparação, categorias e tendência de uma leitura de transações. A análise avançada usa `getFinancialOccurrences` (uma leitura, com parcelas/recorrências/faturas) + `lib/financialHealth.ts`; todo o painel usa SVG/CSS, sem Recharts. O período é limitado ao mês atual e anteriores; `ReportMonthPicker` tem seletor próprio no desktop. Cache de insights inclui usuário, período e hash de todos os dados do prompt.
 
 ## Mobile / PWA
 - Lançamento rápido: `openQuickAdd('EXPENSE'|'INCOME')` de `lib/quickAdd.ts` abre a sheet global (host em `AppShell`). Também abre via `?add=expense|income` (shortcuts do manifest), tecla `n` e drawer "Mais".
 - Após criar/apagar uma transação, dispare `vynta:transaction-created` — as telas com dados financeiros escutam e fazem `router.refresh()`.
 - Datas de transação são sempre `<dia local>T12:00:00Z` (ver `todayDateValue`), nunca horário real em UTC.
-- Fila e cache offline (48h): `readQueue/enqueueTransaction/enqueueMutation/syncQueue` em `lib/quickAdd.ts` + interceptação de mutações offline em `components/RouterCacheSync.tsx`; SW em `public/sw.js` mantém cache de estáticos (`STATIC_CACHE`) e cache de páginas/RSC/GETs autenticados com TTL de 48h (`DATA_CACHE`, limpo em `/api/auth/logout|login|register`).
+- Offline: páginas/RSC/GETs têm TTL de 48h (`DATA_CACHE` em `public/sw.js`), com aquecimento explícito de HTML + assets e invalidação na troca de conta. `scripts/offline-assets.mjs` gera o manifesto dos chunks após o build. A fila em `public/offline-queue.js` usa CacheStorage separado, é vinculada à conta e NÃO expira; `lib/quickAdd.ts` acessa via mensagens assíncronas. Nunca descarte registros em 400/401/429/5xx. Criações suportadas usam IDs idempotentes derivados da conta (`lib/offlineMutation.ts`); o replay remapeia IDs temporários. `x-vynta-owner` é conferido no middleware, além da sessão ativa das rotas. Background Sync quando disponível; no iOS, retomada ao abrir/voltar/ficar online. Rascunhos legados sem conta exigem revisão na interface. Ver `docs/reports-offline-help-2026-11-10.md`.
 - Pagamentos: webhook `subscription.completed/renewed` ativa via `activateRecurringSubscription` (idempotente por charge); `subscription.cancelled` via `cancelRecurringSubscription` (acesso até o fim do período pago). O segredo na URL ou header autentica o evento; o HMAC usa chave pública e serve só de integridade.
 
 ## Notificações push (PWA)

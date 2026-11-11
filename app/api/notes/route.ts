@@ -1,3 +1,4 @@
+import { offlineRecordId } from '@/lib/offlineMutation'
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -38,19 +39,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Conteúdo é obrigatório' }, { status: 400 })
     }
 
-    const note = await prisma.note.create({
-      data: {
-        userId: session.userId,
-        title,
-        content,
-        category,
-        color: color || 'default',
-        isPinned: isPinned || false,
-        financialGoalId,
-        eventId,
-        transactionId
-      }
-    })
+    const createData = {
+      userId: session.userId,
+      title,
+      content,
+      category,
+      color: color || 'default',
+      isPinned: isPinned || false,
+      financialGoalId,
+      eventId,
+      transactionId
+    }
+    const id = offlineRecordId(req, session.userId)
+    const note = id
+      ? await prisma.note.upsert({ where: { id }, create: { ...createData, id }, update: {} })
+      : await prisma.note.create({ data: createData })
 
     return NextResponse.json(note)
   } catch (error: any) {

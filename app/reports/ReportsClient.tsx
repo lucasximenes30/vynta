@@ -1,5 +1,6 @@
 'use client'
 
+import ReportMonthPicker, { currentReportMonth } from '@/components/ReportMonthPicker'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -37,6 +38,13 @@ function localInsights(report: ReportSnapshot): ReportInsight[] {
 
 export default function ReportsClient({ initialReport }: { initialReport: ReportSnapshot }) {
   const [selectedMonth, setSelectedMonth] = useState(initialReport.period)
+  const [currentMonth, setCurrentMonth] = useState(currentReportMonth)
+  useEffect(() => {
+    const update = () => setCurrentMonth(currentReportMonth())
+    const timer = setInterval(update, 60_000)
+    window.addEventListener('focus', update)
+    return () => { clearInterval(timer); window.removeEventListener('focus', update) }
+  }, [])
   const [report, setReport] = useState(initialReport)
   const [tab, setTab] = useState<'overview' | 'goals'>('overview')
   const [revision, setRevision] = useState(0)
@@ -104,7 +112,7 @@ export default function ReportsClient({ initialReport }: { initialReport: Report
   }, [report, selectedMonth, insightRetry, loading, error])
 
   const busy = loading || report.period !== selectedMonth
-  const months = Array.from(new Set([selectedMonth, ...initialReport.months, ...report.months])).sort().reverse()
+  const months = Array.from(new Set([currentMonth, selectedMonth, ...initialReport.months, ...report.months])).filter(month => month <= currentMonth).sort().reverse()
   const monthIndex = months.indexOf(selectedMonth)
   const { summary, comparison } = report
   const monthResult = summary.income - summary.expense
@@ -138,9 +146,7 @@ export default function ReportsClient({ initialReport }: { initialReport: Report
               <label htmlFor="report-month" className="mb-2 flex items-center gap-2 px-1 text-xs font-medium text-surface-500 dark:text-surface-400"><CalendarDays className="h-3.5 w-3.5" /> Período do relatório</label>
               <div className="flex items-center gap-1">
                 <button className="report-icon-button" aria-label="Mês anterior disponível" disabled={monthIndex >= months.length - 1} onClick={() => setSelectedMonth(months[monthIndex + 1])}><ChevronLeft className="h-4 w-4" /></button>
-                <select id="report-month" className="min-h-11 min-w-0 flex-1 cursor-pointer rounded-lg bg-transparent text-center text-sm font-semibold capitalize outline-offset-2 dark:bg-surface-900" value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)}>
-                  {months.map((month) => <option key={month} value={month}>{reportMonth(month)}</option>)}
-                </select>
+                <ReportMonthPicker value={selectedMonth} months={months} onChange={value => { if (value <= currentReportMonth()) setSelectedMonth(value) }} />
                 <button className="report-icon-button" aria-label="Próximo mês disponível" disabled={monthIndex <= 0} onClick={() => setSelectedMonth(months[monthIndex - 1])}><ChevronRight className="h-4 w-4" /></button>
               </div>
             </div>
@@ -171,7 +177,7 @@ export default function ReportsClient({ initialReport }: { initialReport: Report
               <article className="report-panel col-span-2 !border-violet-200 !bg-violet-50/60 !p-4 dark:!border-violet-500/20 dark:!bg-violet-500/5 sm:col-span-1 sm:!p-5">
                 <div className="mb-4 flex items-center justify-between"><h3 className="text-xs font-medium text-violet-700 dark:text-violet-300 sm:text-sm">Resultado do mês</h3><Wallet className="h-5 w-5 text-violet-500" /></div>
                 <p className={`break-words text-2xl font-bold tracking-tight tabular-nums ${monthResult < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-violet-700 dark:text-violet-300'}`}>{money(monthResult)}</p>
-                <p className="mt-3 text-xs text-surface-500 dark:text-surface-400">{savingsRate === null ? 'Receitas menos despesas do período' : monthResult >= 0 ? `${savingsRate.toFixed(0)}% das receitas restaram no mês` : `Despesas ${Math.abs(savingsRate).toFixed(0)}% acima das receitas`}</p>
+                <p className="mt-3 text-xs text-surface-500 dark:text-surface-400">{savingsRate === null ? 'Receitas menos despesas do período' : monthResult >= 0 ? `${savingsRate.toFixed(0)}% das receitas restaram no mês` : 'Confira receitas ainda não registradas e gastos previstos'}</p>
               </article>
             </section>
 
@@ -234,10 +240,10 @@ export default function ReportsClient({ initialReport }: { initialReport: Report
 
             <section className="report-panel !p-0 overflow-hidden">
               <button className="flex w-full items-center justify-between gap-3 p-5 text-left sm:p-6" aria-expanded={showAdvanced} aria-controls="advanced-report" onClick={() => setShowAdvanced((value) => !value)}>
-                <span className="flex items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-100 text-violet-500 dark:bg-surface-800"><TrendingUp className="h-5 w-5" /></span><span><span className="block text-sm font-semibold">Saúde financeira hoje</span><span className="mt-1 block text-xs leading-relaxed text-surface-500">Pontuação, gastos fora do padrão e visão semanal atual.</span></span></span>
+                <span className="flex items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-100 text-violet-500 dark:bg-surface-800"><TrendingUp className="h-5 w-5" /></span><span><span className="block text-sm font-semibold">Saúde financeira do período</span><span className="mt-1 block text-xs leading-relaxed text-surface-500">Pontuação, gastos fora do padrão e semanas do mês selecionado.</span></span></span>
                 <ChevronDown className={`h-4 w-4 shrink-0 text-surface-400 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
               </button>
-              {showAdvanced && <div id="advanced-report" className="border-t border-surface-100 p-3 dark:border-surface-800 sm:p-5"><AdvancedReports formatCurrency={money} isBRL /></div>}
+              {showAdvanced && <div id="advanced-report" className="border-t border-surface-100 p-3 dark:border-surface-800 sm:p-5"><AdvancedReports formatCurrency={money} isBRL period={selectedMonth} revision={revision} /></div>}
             </section>
             <p className="px-1 text-center text-xs leading-relaxed text-surface-500">Um lançamento faz diferença no seu relatório. <Link href="/finances" className="font-medium text-violet-600 underline-offset-4 hover:underline dark:text-violet-400">Conferir minhas finanças</Link></p>
           </div>}

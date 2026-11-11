@@ -6,8 +6,8 @@ import {
   X, Check, Utensils, Coffee, ShoppingCart, Car, ShoppingBag, Receipt, HeartPulse, Clapperboard,
   House, Dumbbell, GraduationCap, TrendingUp, Wallet, Laptop, MoreHorizontal, CalendarDays, Loader2, Sparkles,
 } from 'lucide-react'
-import { localizeCategoryName } from '@/lib/categories'
-import { guessCategory, normalizeText, QUICK_EXPENSE_CATEGORIES, QUICK_INCOME_CATEGORIES } from '@/lib/quickCategorize'
+import { localizeCategoryName, resolveCanonicalCategory } from '@/lib/categories'
+import { resolveTransactionCategory, guessCategory, normalizeText, QUICK_EXPENSE_CATEGORIES, QUICK_INCOME_CATEGORIES } from '@/lib/quickCategorize'
 import { todayDateValue, type QuickAddType } from '@/lib/quickAdd'
 
 export interface QuickAddSubmit {
@@ -186,7 +186,7 @@ export default function QuickAddSheet({ initialType, onClose, onSubmit }: {
     if (categoryTouched) return
     const q = normalizeText(title)
     const fromHistory = q && allSuggestions.find((s) => s.type === type && normalizeText(s.title) === q)
-    setCategory(fromHistory ? fromHistory.category : guessCategory(title, type) ?? 'General')
+    setCategory(fromHistory && resolveCanonicalCategory(fromHistory.category) !== 'General' ? fromHistory.category : guessCategory(title, type) ?? 'General')
   }, [title, type, categoryTouched, allSuggestions])
 
   const categories = type === 'EXPENSE' ? QUICK_EXPENSE_CATEGORIES : QUICK_INCOME_CATEGORIES
@@ -196,7 +196,7 @@ export default function QuickAddSheet({ initialType, onClose, onSubmit }: {
 
   const pickSuggestion = (s: Suggestion) => {
     setTitle(s.title)
-    setCategory(s.category)
+    setCategory(resolveTransactionCategory(s.title, s.type, s.category))
     setCategoryTouched(true)
     if (cents === 0) amountRef.current?.focus()
   }

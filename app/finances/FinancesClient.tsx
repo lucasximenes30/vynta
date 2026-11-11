@@ -1,5 +1,8 @@
 'use client'
 
+import { guessCategory } from '@/lib/quickCategorize'
+import { localizeCategoryName } from '@/lib/categories'
+
 import { logoutAndRedirect } from '@/lib/logout'
 
 import { useState, useEffect, useCallback, useRef, useMemo, useTransition } from 'react'
@@ -56,6 +59,7 @@ const categoryTranslations: Record<string, string> = {
 }
 
 const t = (key: string): string => {
+  if (key.startsWith('category.')) return localizeCategoryName(key.slice(9))
   return categoryTranslations[key] || key.replace(/^(category|month)\./, '');
 }
 
@@ -182,6 +186,8 @@ export default function FinancesClient({
   const [amount, setAmount] = useState('')
   const [type, setType] = useState<'INCOME' | 'EXPENSE'>('EXPENSE')
   const [category, setCategory] = useState('')
+  const [categoryTouched, setCategoryTouched] = useState(false)
+  useEffect(() => { if (!categoryTouched) setCategory(guessCategory(title, type) || 'General') }, [title, type, categoryTouched])
   const [date, setDate] = useState(getLocalToday())
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
@@ -271,7 +277,7 @@ export default function FinancesClient({
         return
       }
 
-      setTitle(''); setAmount(''); setCategory('')
+      setTitle(''); setAmount(''); setCategory(''); setCategoryTouched(false)
       setDate(getLocalToday())
       setIsInstallment(false); setTotalInstallments(''); setPurchaseDate(getLocalToday()); setDueDay('')
       setIsRecurring(false); setRecurringDay('')
@@ -671,7 +677,7 @@ export default function FinancesClient({
                 </div>
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-surface-700 dark:text-surface-200 uppercase tracking-wider">{"Categoria"}</label>
-                  <CategorySelect value={category} onChange={setCategory} type={type} />
+                  <CategorySelect value={category} onChange={value => { setCategory(value); setCategoryTouched(true) }} type={type} />
                 </div>
                 <div className="space-y-2 sm:col-span-2 min-w-0 w-full">
                   <label className="block text-sm font-semibold text-surface-700 dark:text-surface-200 uppercase tracking-wider">{"Data"}</label>
@@ -921,7 +927,7 @@ export default function FinancesClient({
               <div className="mt-8 flex flex-col-reverse sm:flex-row gap-3">
                 <button
                   type="button"
-                  onClick={() => { setShowForm(false); setTitle(''); setAmount(''); setCategory(''); setDate(getLocalToday()); setIsInstallment(false); setTotalInstallments(''); setPurchaseDate(getLocalToday()); setDueDay(''); setAllocateToGoal(false); setGoalId(''); setGoalAmount(''); }}
+                  onClick={() => { setShowForm(false); setTitle(''); setAmount(''); setCategory(''); setCategoryTouched(false); setDate(getLocalToday()); setIsInstallment(false); setTotalInstallments(''); setPurchaseDate(getLocalToday()); setDueDay(''); setAllocateToGoal(false); setGoalId(''); setGoalAmount(''); }}
                   className="btn-secondary w-full sm:w-auto h-12 sm:h-auto text-base sm:text-sm font-semibold"
                   disabled={submitting}
                 >

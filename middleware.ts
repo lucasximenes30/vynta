@@ -13,6 +13,11 @@ export async function middleware(request: NextRequest) {
     if (!isAllowedMutationOrigin(request)) {
       return NextResponse.json({ error: 'Origem da solicitação não permitida.' }, { status: 403 })
     }
+    const offlineOwner = request.headers.get('x-vynta-owner')
+    if (offlineOwner) {
+      const session = sessionToken ? await verifyToken(sessionToken) : null
+      if (!session || session.userId !== offlineOwner) return NextResponse.json({ error: 'Entre na conta que criou estes dados para sincronizar.' }, { status: 401 })
+    }
     const length = Number(request.headers.get('content-length'))
     if (Number.isFinite(length) && length > apiBodyLimit(path)) {
       return NextResponse.json({ error: 'Conteúdo muito grande.' }, { status: 413 })

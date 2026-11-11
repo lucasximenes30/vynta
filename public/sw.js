@@ -1,22 +1,19 @@
 /* Vynta service worker: fast shell, 48h offline cache (pages, RSC & GET APIs), Web Push and local offline notifications. */
-const STATIC_CACHE = 'vynta-static-v7'
-const DATA_CACHE = 'vynta-data-v6'
+const STATIC_CACHE = 'vynta-static-v8'
+const DATA_CACHE = 'vynta-data-v7'
+importScripts('/offline-queue.js')
 const CACHE_TTL_MS = 48 * 60 * 60 * 1000 // 48 hours
-const PRECACHE = ['/', '/offline', '/manifest.json', '/icons/icon-192.png', '/icons/icon-maskable-192.png', '/icons/badge-96.png', '/sounds/sale-approved.mp3']
+const PRECACHE = ['/offline', '/manifest.json', '/icons/icon-192.png', '/icons/icon-maskable-192.png', '/icons/badge-96.png', '/sounds/sale-approved.mp3']
 const STATIC_RE = /\.(?:js|css|woff2?|png|jpe?g|webp|svg|ico|gif|avif|mp3)$/
 const APP_NAV_RE = /^\/(?:dashboard|finances|habits|workout|calendar|goals|notes|reports|settings|cards)(?:\/|$)/
 
-function buildColdStartShellResponse(targetUrl) {
-  const html = `<!doctype html><html lang="pt-BR" class="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#050505"><title>Vynta</title><style>html,body{margin:0;height:100%;background:#07080c;color:#f1f3f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;overflow:hidden}.wrap{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:radial-gradient(ellipse at top,rgba(66,88,249,.24),transparent 60%),#07080c}.ring{position:relative;width:76px;height:76px;display:flex;align-items:center;justify-content:center}.spin{position:absolute;inset:-6px;border-radius:24px;border:2px solid rgba(99,127,253,.18);border-top-color:#637ffd;animation:s .85s linear infinite}img{width:64px;height:64px;border-radius:18px;box-shadow:0 12px 32px rgba(48,64,235,.35);animation:p 1.5s ease-in-out infinite}.t{font-size:18px;font-weight:700;letter-spacing:-.01em;text-align:center}.sub{font-size:12px;color:#8f93a1;margin-top:4px;text-align:center}@keyframes s{to{transform:rotate(360deg)}}@keyframes p{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}</style></head><body><div class="wrap"><div class="ring"><div class="spin"></div><img src="/icons/icon-192.png" alt=""></div><div><div class="t">Vynta</div><div class="sub">Abrindo seu painel…</div></div></div><script>window.location.replace(${JSON.stringify(targetUrl)});</script></body></html>`
-  return new Response(html, {
-    status: 200,
-    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
-  })
-}
-
-async function stampAndStore(cacheName, key, response) {
+async function stampAndStore(cacheName, key, response, expectedEpoch = accountEpoch) {
   try {
     const headers = new Headers(response.headers)
+    // arrayBuffer() is already decoded; retaining wire encoding/length corrupts reconstructed HTML.
+    headers.delete('content-encoding')
+    headers.delete('content-length')
+    headers.delete('transfer-encoding')
     headers.set('x-vynta-cached-at', String(Date.now()))
     const body = await response.clone().arrayBuffer()
     const stamped = new Response(body, {
@@ -25,6 +22,7 @@ async function stampAndStore(cacheName, key, response) {
       headers,
     })
     const cache = await caches.open(cacheName)
+    if (cacheName === DATA_CACHE && expectedEpoch !== accountEpoch) return
     await cache.put(key, stamped)
   } catch {}
 }
@@ -287,7 +285,7 @@ self.addEventListener('activate', (event) => {
     const names = await caches.keys()
     await Promise.all(
       names
-        .filter((n) => n !== STATIC_CACHE && n !== DATA_CACHE)
+        .filter((n) => n.startsWith('vynta-') && n !== STATIC_CACHE && n !== DATA_CACHE && n !== QUEUE_CACHE)
         .map((n) => caches.delete(n))
     )
     if (self.registration.navigationPreload) await self.registration.navigationPreload.enable()
@@ -299,8 +297,11 @@ self.addEventListener('message', (event) => {
   const data = event.data
   if (!data || typeof data !== 'object') return
 
-  if (data.type === 'vynta:clear-user-cache') {
-    event.waitUntil(caches.delete(DATA_CACHE))
+  if (data.type === 'vynta:warm-offline') {
+    event.waitUntil(warmOfflinePages())
+  } else if (data.type === 'vynta:clear-user-cache') {
+    accountEpoch++
+    event.waitUntil(Promise.all([caches.delete(DATA_CACHE), caches.open(QUEUE_CACHE).then(c => c.delete(QUEUE_META))]))
   } else if (data.type === 'vynta:show-local-notification' && data.payload) {
     event.waitUntil(showVyntaNotification(data.payload))
   } else if (data.type === 'vynta:evaluate-local-notifications') {
@@ -324,6 +325,7 @@ self.addEventListener('message', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const { request } = event
+  const epoch = accountEpoch
   const url = new URL(request.url)
 
   if (url.origin !== self.location.origin) return
@@ -331,7 +333,8 @@ self.addEventListener('fetch', (event) => {
   // Wipe user data cache on logout, login or register so accounts never share cached screens.
   if (request.method !== 'GET') {
     if (/^\/api\/auth\/(logout|login|register)\b/.test(url.pathname)) {
-      event.waitUntil(caches.delete(DATA_CACHE))
+      accountEpoch++
+      event.waitUntil(Promise.all([caches.delete(DATA_CACHE), caches.open(QUEUE_CACHE).then(c => c.delete(QUEUE_META))]))
     }
     return
   }
@@ -375,7 +378,8 @@ self.addEventListener('fetch', (event) => {
     event.respondWith((async () => {
       try {
         const res = await fetch(request)
-        if (res.ok) stampAndStore(DATA_CACHE, cacheKey, res)
+        if (res.ok && epoch === accountEpoch) event.waitUntil(stampAndStore(DATA_CACHE, cacheKey, res.clone()))
+        if (res.status >= 500) { const cached = await matchFresh(DATA_CACHE, cacheKey); if (cached) return cached }
         return res
       } catch {
         const cached = await matchFresh(DATA_CACHE, cacheKey)
@@ -392,12 +396,13 @@ self.addEventListener('fetch', (event) => {
   // RSC payloads (client-side tab switches & router.prefetch): network-first + 48h cache fallback
   // so switching between Dashboard, Finanças, Hábitos, Agenda, Notas, Metas works offline.
   if (request.headers.get('rsc') === '1' || url.searchParams.has('_rsc')) {
-    const rscKey = `rsc:${url.pathname}`
+    const rscUrl = new URL(url); rscUrl.searchParams.delete('_rsc')
+    const rscKey = `/__rsc__/${encodeURIComponent(rscUrl.pathname + rscUrl.search)}?tree=${encodeURIComponent(request.headers.get('next-router-state-tree') || '')}&prefetch=${request.headers.get('next-router-prefetch') || ''}`
     event.respondWith((async () => {
       try {
         const res = await fetch(request)
-        if (res.ok && APP_NAV_RE.test(url.pathname)) {
-          stampAndStore(DATA_CACHE, rscKey, res)
+        if (res.ok && epoch === accountEpoch && APP_NAV_RE.test(url.pathname)) {
+          event.waitUntil(stampAndStore(DATA_CACHE, rscKey, res.clone()))
         }
         return res
       } catch {
@@ -411,38 +416,20 @@ self.addEventListener('fetch', (event) => {
 
   // Full page loads (PWA cold start / reload):
   if (request.mode === 'navigate') {
-    const src = url.searchParams.get('source')
-    if ((src === 'pwa' || src === 'shortcut') && APP_NAV_RE.test(url.pathname)) {
-      const clean = new URL(url.href)
-      clean.searchParams.delete('source')
-      const cleanUrl = clean.pathname + clean.search
-      event.respondWith((async () => {
-        if (!self.navigator.onLine) {
-          const cached = (await matchFresh(DATA_CACHE, `html:${clean.pathname}`)) || (await matchFresh(DATA_CACHE, 'html:/dashboard'))
-          if (cached) return cached
-        }
-        return buildColdStartShellResponse(cleanUrl)
-      })())
-      return
-    }
-
-    const pageKey = `html:${normalizePageKey(url)}`
+    const pageKey = htmlKey(url.pathname === '/' ? new URL('/dashboard', url) : url)
     event.respondWith((async () => {
       try {
         const preload = await event.preloadResponse
         const res = preload || (await fetch(request))
-        if (res && res.ok && APP_NAV_RE.test(url.pathname) && !res.redirected) {
-          stampAndStore(DATA_CACHE, pageKey, res)
+        if (res && res.ok && epoch === accountEpoch && APP_NAV_RE.test(url.pathname) && !res.redirected) {
+          event.waitUntil(stampAndStore(DATA_CACHE, pageKey, res.clone()))
         }
         return res
       } catch {
-        const cachedPage =
-          (await matchFresh(DATA_CACHE, pageKey)) ||
-          (await matchFresh(DATA_CACHE, `html:${url.pathname}`)) ||
-          (APP_NAV_RE.test(url.pathname) ? await matchFresh(DATA_CACHE, 'html:/dashboard') : null)
+        const cachedPage = await matchFresh(DATA_CACHE, pageKey)
         if (cachedPage) return cachedPage
 
-        const staticCached = await caches.match(request)
+        const staticCached = url.pathname === '/' ? null : await caches.match(request)
         if (staticCached) return staticCached
 
         const off = await caches.match('/offline')
@@ -513,3 +500,55 @@ self.addEventListener('pushsubscriptionchange', (event) => {
     })
   })())
 })
+
+function htmlKey(url) { return `/__html__/${encodeURIComponent(normalizePageKey(url))}` }
+let warming = null
+function warmOfflinePages() {
+  if (warming) return warming
+  warming = (async () => {
+    const owner = await bindQueueOwner()
+    const epoch = accountEpoch
+    const staticCache = await caches.open(STATIC_CACHE)
+    for (const path of ['/dashboard', '/finances', '/habits', '/calendar', '/notes', '/goals', '/workout', '/cards', '/reports', '/settings', '/settings/help']) {
+      if (epoch !== accountEpoch) return
+      try {
+        const response = await fetch(path, { credentials: 'same-origin', headers: { Accept: 'text/html' } })
+        if (!response.ok || response.redirected || !response.headers.get('content-type')?.includes('text/html')) continue
+        const html = await response.clone().text()
+        const assets = [...html.matchAll(/(?:src|href)="([^" ]*\/_next\/static\/[^" ]+)"/g)].map(m => m[1].replaceAll('&amp;', '&'))
+        await Promise.all([...new Set(assets)].map(async asset => {
+          const url = new URL(asset, self.location.origin)
+          if (url.origin !== self.location.origin || await staticCache.match(url)) return
+          const res = await fetch(url)
+          if (res.ok) await staticCache.put(url, res)
+        }))
+        if (epoch === accountEpoch && (await queueOwner())?.id === owner) await stampAndStore(DATA_CACHE, htmlKey(new URL(path, self.location.origin)), response)
+      } catch {}
+    }
+    const now = new Date()
+    const period = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit' }).format(now)
+    const start = new Date(now.getFullYear(), now.getMonth(), 1)
+    start.setDate(start.getDate() - start.getDay())
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+    end.setDate(end.getDate() + 6 - end.getDay())
+    const apiUrls = ['/api/categories', '/api/habits', '/api/notes', '/api/goals', '/api/notifications', '/api/push/preferences', '/api/transactions/suggestions', `/api/reports/advanced?period=${period}`, `/api/calendar/events?start=${start.toISOString()}&end=${end.toISOString()}`]
+    for (const url of apiUrls) {
+      if (epoch !== accountEpoch) return
+      try {
+        const res = await fetch(url, { credentials: 'same-origin' })
+        if (res.ok && res.headers.get('content-type')?.includes('application/json')) await stampAndStore(DATA_CACHE, url, res, epoch)
+      } catch {}
+    }
+    // Lazy modals and feature chunks must also be available after an offline cold start.
+    try {
+      const manifest = await fetch('/offline-assets.json', { cache: 'no-store' })
+      if (manifest.ok) for (const asset of await manifest.json()) {
+        if (!asset.startsWith('/_next/static/') || await staticCache.match(asset)) continue
+        const res = await fetch(asset)
+        if (res.ok) await staticCache.put(asset, res)
+      }
+    } catch {}
+    for (const client of await self.clients.matchAll({type:'window'})) client.postMessage({type:'vynta:offline-ready'})
+  })().finally(() => { warming = null })
+  return warming
+}

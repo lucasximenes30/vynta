@@ -10,3 +10,5 @@ dist/
 .claude
 .qwen
 .idea/
+# Generated after next build for offline lazy chunks
+/public/offline-assets.json

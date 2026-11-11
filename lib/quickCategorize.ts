@@ -1,3 +1,4 @@
+import { resolveCanonicalCategory } from './categories'
 // Guesses a default category from a free-text description ("uber", "mercado", "ifood"...).
 // Pure and client-safe. Category names match the seeded default categories.
 
@@ -43,4 +44,11 @@ export function guessCategory(description: string, type: 'INCOME' | 'EXPENSE'): 
     if (keywords.some((k) => text.includes(` ${k} `) || (k.length >= 4 && text.includes(` ${k}`)))) return category
   }
   return null
+}
+
+/** Normalize legacy names and recover recognizable General entries without a network call. */
+export function resolveTransactionCategory(title: string, type: 'INCOME' | 'EXPENSE', category: string): string {
+  const canonical = resolveCanonicalCategory(category)
+  if (!category || canonical === 'General') return guessCategory(title, type) || 'General'
+  return canonical || category
 }

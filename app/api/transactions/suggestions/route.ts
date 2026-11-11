@@ -1,3 +1,4 @@
+import { resolveTransactionCategory } from '@/lib/quickCategorize'
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -33,7 +34,7 @@ export async function GET() {
       return true
     })
     .slice(0, 16)
-    .map((g) => ({ title: g.title, category: g.category, type: g.type, count: g._count._all }))
+    .map((g) => ({ title: g.title, category: resolveTransactionCategory(g.title, g.type, g.category), type: g.type, count: g._count._all }))
 
   return NextResponse.json({ suggestions }, { headers: { 'Cache-Control': 'private, max-age=300' } })
 }

@@ -76,7 +76,7 @@ const t = (key: string): string => {
 export default function CategorySelect({ value, onChange, type }: CategorySelectProps) {
   
   const isBRL = true;
-  const [categories, setCategories] = useState<Category[]>([])
+  const [categories, setCategories] = useState<Category[]>(() => Object.entries(CATEGORY_DEFAULTS).map(([name, style]) => ({ id: name, name, ...style })))
   const [open, setOpen] = useState(false)
   const [showManage, setShowManage] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -85,8 +85,8 @@ export default function CategorySelect({ value, onChange, type }: CategorySelect
     if (!open) return
     fetch('/api/categories')
       .then((r) => (r.ok ? r.json() : { categories: [] }))
-      .then((data) => setCategories(data.categories || []))
-      .catch(() => setCategories([]))
+      .then((data) => { if (data.categories?.length) setCategories([...data.categories, ...Object.entries(CATEGORY_DEFAULTS).filter(([name]) => !data.categories.some((c: Category) => localizeCategoryName(c.name) === localizeCategoryName(name))).map(([name, style]) => ({ id: name, name, ...style }))]) })
+      .catch(() => {})
   }, [open, showManage])
 
   useEffect(() => {

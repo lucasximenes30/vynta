@@ -1,3 +1,4 @@
+import { offlineRecordId } from '@/lib/offlineMutation'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getSession } from '@/lib/auth'
@@ -58,6 +59,7 @@ export async function POST(request: NextRequest) {
     }
 
     const transaction = await createTransaction({
+      ...(!goalId && { id: offlineRecordId(request, session.userId) }),
       ...rest,
       userId: session.userId,
       ...(isInstallment !== undefined && { isInstallment }),

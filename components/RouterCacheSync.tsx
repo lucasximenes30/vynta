@@ -2,23 +2,19 @@
 
 import { useEffect, useRef } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { enqueueMutation, syncQueue } from '@/lib/quickAdd'
+import { enqueueMutation, syncQueue, offlineQueueRequest } from '@/lib/quickAdd'
 import { API_MUTATION_EVENT } from '@/lib/tour'
 
+const QUEUEABLE_API_RE = /^\/api\/(?:transactions(?:\/[a-f0-9-]+)?|habits(?:\/checkin|\/[a-f0-9-]+)?|notes(?:\/[a-f0-9-]+)?|goals(?:\/[a-f0-9-]+)?|calendar\/events(?:\/[a-f0-9-]+)?)$/i
 const NON_QUEUEABLE_API_RE = /^\/api\/(auth|billing|payments|webhooks|cron|track|export|insights|reports|admin)\b/
 
-/**
- * Synthesizes an optimistic 200 JSON response when the device is offline so client screens
- * (Habits, Calendar, Notes, Goals, Finances, Cards, Workout) can keep working seamlessly while
- * the mutation is queued in localStorage and replayed automatically once connectivity returns.
- */
-function buildOptimisticOfflineResponse(pathname: string, method: string, rawBody?: string): Response {
+/** Return an optimistic response only after a supported mutation has been durably saved. */
+function buildOptimisticOfflineResponse(pathname: string, method: string, rawBody?: string, localId = crypto.randomUUID()): Response {
   let parsed: Record<string, any> = {}
   if (rawBody) {
     try { parsed = JSON.parse(rawBody) } catch {}
   }
   const nowIso = new Date().toISOString()
-  const localId = `offline-${crypto.randomUUID()}`
 
   let payload: Record<string, any> = { success: true, offlineQueued: true, id: localId }
 
@@ -91,59 +87,9 @@ function buildOptimisticOfflineResponse(pathname: string, method: string, rawBod
         title: parsed.title || 'Lançamento',
         amount: String(parsed.amount ?? 0),
         type: parsed.type || 'EXPENSE',
-        category: parsed.category || 'General',
+        category: parsed.category || 'Geral',
         date: parsed.date || nowIso,
       },
-    }
-  } else if (pathname === '/api/push/preferences') {
-    payload = {
-      offlineQueued: true,
-      bills: parsed.bills ?? true,
-      agenda: parsed.agenda ?? true,
-      habits: parsed.habits ?? true,
-      dailyLog: parsed.dailyLog ?? true,
-    }
-  } else if (pathname === '/api/cards/import') {
-    payload = {
-      success: true,
-      offlineQueued: true,
-      imported: Array.isArray(parsed.items) ? parsed.items.length : 0,
-      skippedDuplicates: 0,
-      limitAmount: null,
-      card: parsed.card
-        ? {
-            id: parsed.cardId || localId,
-            name: parsed.card.name || 'Cartão',
-            lastFourDigits: parsed.card.lastFourDigits || '0000',
-            dueDay: parsed.card.dueDay || 1,
-            closingDay: parsed.card.closingDay || 1,
-            color: parsed.card.color || 'purple',
-            limitAmount: '0',
-            provider: parsed.card.provider || 'nubank',
-            createdAt: nowIso,
-          }
-        : null,
-    }
-  } else if (pathname.startsWith('/api/cards')) {
-    payload = {
-      success: true,
-      offlineQueued: true,
-      card: {
-        id: parsed.cardId || localId,
-        name: parsed.name || 'Cartão',
-        lastFourDigits: parsed.lastFourDigits || '0000',
-        dueDay: parsed.dueDay || 1,
-        closingDay: parsed.closingDay || 1,
-        color: parsed.color || 'blue',
-        limitAmount: String(parsed.limitAmount ?? 0),
-        provider: parsed.provider ?? null,
-        createdAt: nowIso,
-      },
-    }
-  } else if (pathname === '/api/notifications') {
-    payload = {
-      success: true,
-      offlineQueued: true,
     }
   }
 
@@ -153,14 +99,7 @@ function buildOptimisticOfflineResponse(pathname: string, method: string, rawBod
   })
 }
 
-/**
- * 1) Marks the Next client router cache dirty after any successful non-GET `/api/*` call and
- *    triggers `router.refresh()` on the next screen change (or after offline queue replay).
- * 2) When offline, intercepts user mutations (POST/PUT/PATCH/DELETE to `/api/*`), queues them
- *    in localStorage (up to 48h) and returns an optimistic response so the UI keeps working.
- * 3) Pre-warms main app routes into the Service Worker 48h cache while idle so the user can
- *    open the PWA offline and navigate across Dashboard, Finanças, Hábitos, Agenda, Notas, Metas.
- */
+/** Refresh changed routes, queue supported offline writes and prepare HTML/assets through the worker. */
 export default function RouterCacheSync() {
   const router = useRouter()
   const pathname = usePathname()
@@ -186,17 +125,27 @@ export default function RouterCacheSync() {
         method !== 'HEAD' &&
         parsedUrl &&
         parsedUrl.origin === window.location.origin &&
-        parsedUrl.pathname.startsWith('/api/') &&
+        QUEUEABLE_API_RE.test(parsedUrl.pathname) &&
         !NON_QUEUEABLE_API_RE.test(parsedUrl.pathname) &&
         !(parsedUrl.pathname.startsWith('/api/push/') && parsedUrl.pathname !== '/api/push/preferences')
 
-      const rawBody = typeof init?.body === 'string' ? init.body : undefined
-
-      if (isQueueableMutation && !navigator.onLine && parsedUrl) {
-        enqueueMutation({ url: parsedUrl.pathname + parsedUrl.search, method, body: rawBody })
+      const rawBody = typeof init?.body === 'string' ? init.body : input instanceof Request && !['GET','HEAD'].includes(method) ? await input.clone().text() : undefined
+      const mutationId = crypto.randomUUID()
+      let bodyData: Record<string, unknown> = {}
+      try { bodyData = rawBody ? JSON.parse(rawBody) : {} } catch {}
+      const canQueue = isQueueableMutation && !bodyData.goalId && (method !== 'POST' || ['/api/transactions', '/api/habits', '/api/habits/checkin', '/api/notes', '/api/goals', '/api/calendar/events'].includes(parsedUrl!.pathname))
+      const saveOffline = async () => {
+        await enqueueMutation({ url: parsedUrl!.pathname + parsedUrl!.search, method, body: rawBody, localId: mutationId })
         dirty.current = true
-        return buildOptimisticOfflineResponse(parsedUrl.pathname, method, rawBody)
+        return buildOptimisticOfflineResponse(parsedUrl!.pathname, method, rawBody, mutationId)
       }
+      if (canQueue) {
+        const headers = new Headers(init?.headers || (input instanceof Request ? input.headers : undefined))
+        headers.set('x-vynta-mutation-id', mutationId)
+        init = { ...init, headers }
+      }
+
+      if (canQueue && !navigator.onLine) return saveOffline()
 
       try {
         const res = await originalFetch(input, init)
@@ -210,61 +159,48 @@ export default function RouterCacheSync() {
         }
         return res
       } catch (err) {
-        if (isQueueableMutation && parsedUrl) {
-          enqueueMutation({ url: parsedUrl.pathname + parsedUrl.search, method, body: rawBody })
-          dirty.current = true
-          return buildOptimisticOfflineResponse(parsedUrl.pathname, method, rawBody)
-        }
+        if (canQueue && !(err instanceof DOMException && err.name === 'AbortError')) return saveOffline()
         throw err
       }
     }
     window.fetch = patched
 
     const onOnline = async () => {
-      const synced = await syncQueue()
+      const synced = await syncQueue().catch(() => 0)
       if (synced > 0) router.refresh()
     }
     window.addEventListener('online', onOnline)
 
-    // Warm the Service Worker's 48h HTML + API cache for the main screens in the background
-    const warmOfflineCache = () => {
-      if (!navigator.onLine) return
-      const now = new Date()
-      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString()
-      const end = new Date(now.getFullYear(), now.getMonth() + 2, 0).toISOString()
-      const urls = [
-        '/dashboard',
-        '/finances',
-        '/habits',
-        '/calendar',
-        '/notes',
-        '/goals',
-        '/workout',
-        '/cards',
-        `/api/calendar/events?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`,
-        '/api/notifications',
-        '/api/push/preferences',
-        '/api/habits',
-        '/api/notes',
-        '/api/goals',
-        '/api/transactions/suggestions',
-      ]
-      urls.forEach((u, i) => {
-        setTimeout(() => {
-          if (navigator.onLine) originalFetch(u, { credentials: 'same-origin' }).catch(() => {})
-        }, 1200 + i * 350)
-      })
+    let cancelled = false
+    const warmOfflineCache = async () => {
+      if (!navigator.onLine || !('serviceWorker' in navigator)) return
+      try {
+        const registration = await navigator.serviceWorker.ready
+        if (cancelled) return
+        await offlineQueueRequest('bind')
+        ;(navigator.serviceWorker.controller || registration.active)?.postMessage({ type: 'vynta:warm-offline' })
+      } catch {}
     }
-
-    let warmTimer: ReturnType<typeof setTimeout> | undefined
-    if ('requestIdleCallback' in window) {
-      window.requestIdleCallback(warmOfflineCache)
-    } else {
-      warmTimer = setTimeout(warmOfflineCache, 2500)
+    const warmTimer = setTimeout(warmOfflineCache, 1500)
+    const onController = () => { void warmOfflineCache() }
+    navigator.serviceWorker?.addEventListener('controllerchange', onController)
+    window.addEventListener('online', onController)
+    const onOfflineNavigation = (event: MouseEvent) => {
+      if (navigator.onLine || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return
+      const anchor = (event.target as Element).closest<HTMLAnchorElement>('a[href]')
+      if (!anchor || anchor.target === '_blank' || anchor.hasAttribute('download')) return
+      const url = new URL(anchor.href)
+      if (url.origin !== location.origin || !/^\/(dashboard|finances|habits|calendar|notes|goals|workout|cards|reports|settings)(\/|$)/.test(url.pathname)) return
+      event.preventDefault(); event.stopPropagation(); location.assign(url.href)
     }
+    document.addEventListener('click', onOfflineNavigation, true)
 
     return () => {
-      if (warmTimer) clearTimeout(warmTimer)
+      cancelled = true
+      clearTimeout(warmTimer)
+      navigator.serviceWorker?.removeEventListener('controllerchange', onController)
+      window.removeEventListener('online', onController)
+      document.removeEventListener('click', onOfflineNavigation, true)
       window.removeEventListener('online', onOnline)
       if (window.fetch === patched) window.fetch = originalFetch
     }

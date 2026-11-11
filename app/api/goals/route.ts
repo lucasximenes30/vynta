@@ -1,3 +1,4 @@
+import { offlineRecordId } from '@/lib/offlineMutation'
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -40,19 +41,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Título e valor alvo são obrigatórios' }, { status: 400 })
     }
 
-    const goal = await prisma.financialGoal.create({
-      data: {
-        userId: session.userId,
-        title,
-        targetAmount: parseFloat(targetAmount),
-        currentAmount: 0,
-        deadline: deadline ? new Date(deadline) : null,
-        category,
-        description,
-        color: color || 'bg-brand-500',
-        icon: icon || 'Target',
-      }
-    })
+    const createData = {
+      userId: session.userId,
+      title,
+      targetAmount: parseFloat(targetAmount),
+      currentAmount: 0,
+      deadline: deadline ? new Date(deadline) : null,
+      category,
+      description,
+      color: color || 'bg-brand-500',
+      icon: icon || 'Target',
+    }
+    const id = offlineRecordId(req, session.userId)
+    const goal = id
+      ? await prisma.financialGoal.upsert({ where: { id }, create: { ...createData, id }, update: {} })
+      : await prisma.financialGoal.create({ data: createData })
 
     return NextResponse.json(goal)
   } catch (error: any) {

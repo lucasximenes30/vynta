@@ -108,7 +108,7 @@ export default function PushBridge() {
             const data = await habitsRes.json()
             if (Array.isArray(data?.habits)) {
               const queuedCheckins = new Map<string, boolean>()
-              for (const m of readMutationQueue()) {
+              for (const m of await readMutationQueue()) {
                 if (m.url === '/api/habits/checkin' && m.body) {
                   try {
                     const b = JSON.parse(m.body)
@@ -127,7 +127,9 @@ export default function PushBridge() {
           }
         } catch {}
 
-        const queuedTodayTx = readQueue().some((q) => q.date.slice(0, 10) === todayStr || new Date(q.queuedAt).toISOString().slice(0, 10) === todayStr)
+        const queuedTodayTx = (await readQueue()).some(q => {
+          try { return JSON.parse(q.body || '{}').date?.slice(0, 10) === todayStr } catch { return false }
+        })
 
         reg.active.postMessage({
           type: 'vynta:evaluate-local-notifications',

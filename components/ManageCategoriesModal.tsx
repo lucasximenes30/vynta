@@ -1,5 +1,7 @@
 'use client'
 
+import { localizeCategoryName } from '@/lib/categories'
+
 import { useState, useEffect, useCallback } from 'react'
 
 import * as Lucide from 'lucide-react'
@@ -56,6 +58,7 @@ const categoryTranslations: Record<string, string> = {
 }
 
 const t = (key: string): string => {
+  if (key.startsWith('category.')) return localizeCategoryName(key.slice(9))
   return categoryTranslations[key] || key.replace(/^(category)\./, '');
 }
 

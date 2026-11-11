@@ -16,16 +16,16 @@ export default function OfflinePage() {
           <circle cx="12" cy="20" r="1" />
         </svg>
       </div>
-      <h1 className="font-display text-2xl font-bold text-surface-900 dark:text-white">Você está sem internet</h1>
+      <h1 className="font-display text-2xl font-bold text-surface-900 dark:text-white">Esta tela ainda não está salva no aparelho</h1>
       <p className="mt-3 max-w-sm text-sm leading-relaxed text-surface-500 dark:text-surface-400">
-        O Vynta precisa de conexão para mostrar seus dados. Assim que a internet voltar, tente de novo — os gastos que você
-        anotou sem internet ficam salvos no aparelho e são enviados sozinhos.
+        Abra o Vynta com internet para preparar as telas para até 48 horas offline. Se o cache expirou, conecte novamente.
+        As alterações pendentes continuam salvas neste aparelho até serem sincronizadas.
       </p>
       <a
         href="/dashboard"
         className="mt-8 rounded-2xl bg-brand-600 px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-brand-600/25"
       >
-        Tentar novamente
+        Abrir painel salvo
       </a>
     </div>
   )

@@ -1,3 +1,4 @@
+import { offlineRecordId } from '@/lib/offlineMutation'
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -59,21 +60,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Título e data são obrigatórios' }, { status: 400 })
     }
 
-    const event = await prisma.calendarEvent.create({
-      data: {
-        userId: session.userId,
-        title,
-        description,
-        date: parseISO(date),
-        startTime,
-        endTime,
-        isAllDay: isAllDay ?? false,
-        category,
-        color: color || 'bg-brand-500',
-        isRecurring: isRecurring ?? false,
-        recurrence,
-      },
-    })
+    const createData = {
+      userId: session.userId,
+      title,
+      description,
+      date: parseISO(date),
+      startTime,
+      endTime,
+      isAllDay: isAllDay ?? false,
+      category,
+      color: color || 'bg-brand-500',
+      isRecurring: isRecurring ?? false,
+      recurrence,
+    }
+    const id = offlineRecordId(req, session.userId)
+    const event = id
+      ? await prisma.calendarEvent.upsert({ where: { id }, create: { ...createData, id }, update: {} })
+      : await prisma.calendarEvent.create({ data: createData })
 
     return NextResponse.json(event)
   } catch (error) {

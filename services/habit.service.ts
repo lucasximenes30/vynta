@@ -99,7 +99,8 @@ export const getHabitsByUser = cache(async (userId: string): Promise<HabitDTO[]>
 
 export async function createHabit(
   userId: string,
-  input: { title: string; description?: string; icon: string; color: string }
+  input: { title: string; description?: string; icon: string; color: string },
+  id?: string
 ): Promise<HabitDTO> {
   const maxOrderHabit = await prisma.habit.findFirst({
     where: { userId },
@@ -108,9 +109,8 @@ export async function createHabit(
   })
   const nextOrder = (maxOrderHabit?.order ?? -1) + 1
 
-  const habit = await prisma.habit.create({
-    data: { userId, order: nextOrder, ...input },
-  })
+  const data = { userId, order: nextOrder, ...input }
+  const habit = id ? await prisma.habit.upsert({ where: { id }, create: { ...data, id }, update: {} }) : await prisma.habit.create({ data })
   return {
     id: habit.id,
     title: habit.title,

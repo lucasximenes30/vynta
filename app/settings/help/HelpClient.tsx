@@ -1,10 +1,30 @@
 'use client'
 
-import { useState } from 'react'
+import { startTour } from '@/lib/tour'
+import { useState, isValidElement, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import * as Lucide from 'lucide-react'
 
 const HELP_SECTIONS = [
+  {
+    id: 'offline', title: 'Sem internet e sincronização', icon: Lucide.WifiOff, color: 'text-amber-500', bg: 'bg-amber-500/10',
+    content: <div className="space-y-3 text-sm leading-relaxed text-surface-600 dark:text-surface-400">
+      <p>Abra o app com internet e aguarde o preparo das telas. As páginas e os dados salvos ficam disponíveis por até <strong>48 horas</strong> desde a última atualização. O navegador precisa manter o armazenamento do site.</p>
+      <p>Você pode anotar receitas e despesas, marcar hábitos e criar ou editar notas, metas e compromissos. O indicador de pendências mostra o que ainda precisa ser enviado. Os totais das telas salvas só são recalculados pelo servidor após a sincronização.</p>
+      <p>As alterações pendentes não expiram após 48 horas. Elas ficam neste aparelho até o envio dar certo. Não limpe os dados do navegador enquanto houver pendências.</p>
+      <p><strong>No iPhone/iPad:</strong> reabra o Vynta com internet para enviar as alterações. O iOS não oferece sincronização automática com o app fechado. Em navegadores compatíveis, o Vynta também solicita o envio em segundo plano; o sistema decide quando executá-lo.</p>
+      <p>IA, pagamentos, importações, configuração de salário, registros de treino e operações de depósito/retirada nas metas precisam de conexão. Se a sessão expirar, entre na mesma conta para sincronizar.</p>
+    </div>
+  },
+  {
+    id: 'reports', title: 'Relatórios e score financeiro', icon: Lucide.BarChart3, color: 'text-violet-500', bg: 'bg-violet-500/10',
+    content: <div className="space-y-3 text-sm leading-relaxed text-surface-600 dark:text-surface-400">
+      <p>Escolha o mês atual ou um mês anterior. A saúde financeira e a visão semanal acompanham o período escolhido, incluindo valores previstos.</p>
+      <p>Compras parceladas contam pelo valor da parcela. Gastos no cartão entram no mês de vencimento da fatura. A sobra prevista não é uma confirmação de que esse dinheiro já foi guardado.</p>
+      <p>O score combina sobra, equilíbrio entre receitas e despesas, organização das categorias e dados registrados. Se não houver receitas, registre as entradas antes de interpretar a pontuação.</p>
+      <p>Os alertas comparam uma despesa com pelo menos três compras anteriores da mesma categoria. Sem histórico suficiente, o sistema avisa que ainda não pode comparar.</p>
+    </div>
+  },
   {
     id: 'finances',
     title: 'Finanças',
@@ -18,7 +38,7 @@ const HELP_SECTIONS = [
         </p>
         <ul className="list-disc pl-5 space-y-2 text-sm text-surface-600 dark:text-surface-400 marker:text-brand-500">
           <li><strong>Como usar:</strong> Adicione transações clicando no botão "Nova Transação". Você pode vincular despesas a cartões de crédito.</li>
-          <li><strong>Cartões:</strong> Quando você compra no crédito, o valor vai para a fatura do cartão. Pague a fatura para debitar o valor do seu saldo disponível.</li>
+          <li><strong>Cartões:</strong> Quando você compra no crédito, o valor vai para a fatura do cartão. As despesas são atribuídas ao mês de vencimento da fatura.</li>
           <li><strong>Dica:</strong> Sempre concilie suas contas bancárias verificando se o saldo no Vynta bate com o saldo real do seu banco.</li>
         </ul>
       </div>
@@ -38,7 +58,7 @@ const HELP_SECTIONS = [
         <ul className="list-disc pl-5 space-y-2 text-sm text-surface-600 dark:text-surface-400 marker:text-brand-500">
           <li><strong>Como usar:</strong> Clique em qualquer dia no calendário para visualizar ou adicionar eventos daquele dia.</li>
           <li><strong>Tipos de evento:</strong> Você pode definir horários de início e fim.</li>
-          <li><strong>Dica:</strong> Use notas para expandir as informações de um evento complexo (você pode vincular notas a eventos!).</li>
+          <li><strong>Dica:</strong> A agenda do Google pode ser importada em Ajustes. Essa conexão é somente leitura: eventos criados no Vynta não voltam ao Google.</li>
         </ul>
       </div>
     )
@@ -113,7 +133,7 @@ const HELP_SECTIONS = [
         </p>
         <ul className="list-disc pl-5 space-y-2 text-sm text-surface-600 dark:text-surface-400 marker:text-brand-500">
           <li><strong>Como usar:</strong> Crie notas com cores e categorias personalizadas. Você pode "Fixar" notas importantes no topo.</li>
-          <li><strong>Dica:</strong> Em atualizações futuras, você poderá integrar notas diretamente com transações financeiras.</li>
+          <li><strong>Dica:</strong> Use títulos curtos e a busca para encontrar suas notas.</li>
         </ul>
       </div>
     )
@@ -127,8 +147,8 @@ const HELP_SECTIONS = [
     content: (
       <div className="space-y-4">
         <div className="space-y-3">
-          <h4 className="font-semibold text-surface-900 dark:text-white text-sm">Onde altero a moeda ou idioma?</h4>
-          <p className="text-sm text-surface-600 dark:text-surface-400">O Vynta opera em BRL (Reais) nativamente. O idioma pode ser consultado na área de Configurações, porém o português é o padrão obrigatório.</p>
+          <h4 className="font-semibold text-surface-900 dark:text-white text-sm">Como funcionam as categorias automáticas?</h4>
+          <p className="text-sm text-surface-600 dark:text-surface-400">As categorias padrão aparecem em português brasileiro. Em Finanças, você pode escolher outra categoria ou criar uma categoria personalizada. Descrições como pizza, gasolina e curso recebem sugestões instantâneas.</p>
         </div>
         <div className="space-y-3">
           <h4 className="font-semibold text-surface-900 dark:text-white text-sm">Como excluo um registro errado?</h4>
@@ -175,8 +195,17 @@ const HELP_SECTIONS = [
   }
 ]
 
+const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+function sectionText(node: ReactNode): string {
+  if (typeof node === 'string') return node
+  if (Array.isArray(node)) return node.map(sectionText).join(' ')
+  if (isValidElement<{ children?: ReactNode }>(node)) return sectionText(node.props.children)
+  return ''
+}
+
 export default function HelpClient() {
   const router = useRouter()
+  const [query, setQuery] = useState('')
   const [openSection, setOpenSection] = useState<string | null>(null)
 
   const toggleSection = (id: string) => {
@@ -206,12 +235,18 @@ export default function HelpClient() {
           </div>
           <h2 className="font-display text-3xl font-bold tracking-tight">Como usar o Vynta</h2>
           <p className="text-surface-500 dark:text-surface-400 max-w-lg mx-auto">
-            Descubra como extrair o máximo do seu ecossistema de gestão pessoal. Clique em qualquer seção para expandir.
+            Encontre uma resposta ou refaça o passo a passo. Abra um assunto para ver como usar.
           </p>
         </div>
 
+        <div className="rounded-2xl border border-brand-200 bg-brand-50 p-5 dark:border-brand-900 dark:bg-brand-950/20">
+          <h3 className="font-semibold">Quer conhecer o app passo a passo?</h3><p className="mt-2 text-sm text-surface-500">O tutorial funciona no computador e no celular. Você pode pular qualquer etapa ou sair quando quiser e voltar por aqui.</p>
+          <button className="btn-primary mt-4 min-h-11" onClick={() => { startTour(); router.push('/dashboard') }}>Refazer tutorial</button>
+        </div>
+        <label className="block"><span className="mb-2 block text-sm font-medium">Buscar um assunto</span><input className="input-field" type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Ex.: offline, relatórios, cartão…" /></label>
+        {query && !HELP_SECTIONS.some(section => normalize(section.title + ' ' + section.id + ' ' + sectionText(section.content)).includes(normalize(query))) && <p role="status" className="text-sm text-surface-500">Nenhum assunto encontrado. Tente outro termo ou refaça o tutorial acima.</p>}
         <div className="space-y-4">
-          {HELP_SECTIONS.map((section) => {
+          {HELP_SECTIONS.filter(section => !query || normalize(section.title + ' ' + section.id + ' ' + sectionText(section.content)).includes(normalize(query))).map((section) => {
             const isOpen = openSection === section.id
             const Icon = section.icon
             
@@ -221,6 +256,8 @@ export default function HelpClient() {
                 className="rounded-2xl border border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 shadow-sm overflow-hidden transition-all duration-300"
               >
                 <button
+                  aria-expanded={isOpen}
+                  aria-controls={`help-${section.id}`}
                   onClick={() => toggleSection(section.id)}
                   className="w-full px-6 py-5 flex items-center justify-between hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-colors"
                 >
@@ -236,7 +273,7 @@ export default function HelpClient() {
                   />
                 </button>
 
-                <div className="collapse-grid" data-open={isOpen} aria-hidden={!isOpen}>
+                <div id={`help-${section.id}`} className="collapse-grid" data-open={isOpen} aria-hidden={!isOpen}>
                   <div>
                     <div className="px-6 pb-6 pt-2 border-t border-surface-100 dark:border-surface-800 sm:ml-[4.5rem]">
                       {section.content}

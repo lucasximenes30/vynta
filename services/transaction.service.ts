@@ -12,9 +12,12 @@ import {
 } from '@/lib/invoice'
 import { effectivePayDay, firstPayMonthIdx } from '@/lib/payday'
 import { cache } from 'react'
+import { resolveTransactionCategory } from '@/lib/quickCategorize'
+import type { FinancialOccurrence } from '@/lib/financialHealth'
 import { transactionInputSchema } from '@/lib/transactionValidation'
 
 export interface CreateTransactionInput {
+  id?: string
   title: string
   amount: number
   type: 'INCOME' | 'EXPENSE'
@@ -54,25 +57,26 @@ export async function createTransaction(input: CreateTransactionInput) {
       ? input.amount / input.totalInstallments
       : null
 
-  return prisma.transaction.create({
-    data: {
-      title: input.title,
-      amount: new Decimal(input.amount),
-      installmentAmount: installmentAmount ? new Decimal(installmentAmount) : null,
-      type: input.type,
-      category: input.category,
-      date: new Date(input.date.includes('T') ? input.date : `${input.date}T12:00:00Z`),
-      userId: input.userId,
-      ...(input.isInstallment !== undefined && { isInstallment: input.isInstallment }),
-      ...(input.totalInstallments !== undefined && { totalInstallments: input.totalInstallments }),
-      ...(input.purchaseDate && { purchaseDate: new Date(input.purchaseDate.includes('T') ? input.purchaseDate : `${input.purchaseDate}T12:00:00Z`) }),
-      ...(input.dueDay !== undefined && { dueDay: input.dueDay }),
-      ...(input.isRecurring !== undefined && { isRecurring: input.isRecurring }),
-      ...(input.recurringDay !== undefined && { recurringDay: input.recurringDay }),
-      ...(input.cardId !== undefined && { cardId: input.cardId ?? null }),
-      ...(input.paymentMethod !== undefined && { paymentMethod: input.paymentMethod ?? null }),
-    },
-  })
+  const data = {
+    title: input.title,
+    amount: new Decimal(input.amount),
+    installmentAmount: installmentAmount ? new Decimal(installmentAmount) : null,
+    type: input.type,
+    category: resolveTransactionCategory(input.title, input.type, input.category),
+    date: new Date(input.date.includes('T') ? input.date : `${input.date}T12:00:00Z`),
+    userId: input.userId,
+    ...(input.isInstallment !== undefined && { isInstallment: input.isInstallment }),
+    ...(input.totalInstallments !== undefined && { totalInstallments: input.totalInstallments }),
+    ...(input.purchaseDate && { purchaseDate: new Date(input.purchaseDate.includes('T') ? input.purchaseDate : `${input.purchaseDate}T12:00:00Z`) }),
+    ...(input.dueDay !== undefined && { dueDay: input.dueDay }),
+    ...(input.isRecurring !== undefined && { isRecurring: input.isRecurring }),
+    ...(input.recurringDay !== undefined && { recurringDay: input.recurringDay }),
+    ...(input.cardId !== undefined && { cardId: input.cardId ?? null }),
+    ...(input.paymentMethod !== undefined && { paymentMethod: input.paymentMethod ?? null }),
+  }
+  return input.id
+    ? prisma.transaction.upsert({ where: { id: input.id }, create: { ...data, id: input.id }, update: {} })
+    : prisma.transaction.create({ data })
 }
 
 export async function updateTransaction(id: string, userId: string, input: UpdateTransactionInput) {
@@ -100,7 +104,7 @@ export async function updateTransaction(id: string, userId: string, input: Updat
       amount: new Decimal(input.amount),
       installmentAmount: installmentAmount ? new Decimal(installmentAmount) : null,
       type: input.type,
-      category: input.category,
+      category: resolveTransactionCategory(input.title, input.type, input.category),
       date: new Date(input.date.includes('T') ? input.date : `${input.date}T12:00:00Z`),
       ...(input.isInstallment !== undefined && { isInstallment: input.isInstallment }),
       totalInstallments: input.totalInstallments ?? null,
@@ -183,7 +187,7 @@ const loadUserTransactions = cache(async (userId: string) => {
 type LoadedTransaction = Awaited<ReturnType<typeof loadUserTransactions>>[number]
 
 function stripCard({ card: _card, ...rest }: LoadedTransaction) {
-  return rest
+  return { ...rest, category: resolveTransactionCategory(rest.title, rest.type, rest.category) }
 }
 
 function monthBounds(year: number, month: number) {
@@ -539,8 +543,9 @@ function computeCategoryTotals(transactions: LoadedTransaction[], year: number, 
   for (const t of transactions) {
     if (t.type !== 'EXPENSE' || !txInMonth(t, year, month)) continue
     const value = t.isInstallment && t.installmentAmount ? Number(t.installmentAmount) : Number(t.amount)
-    const current = categoryMap.get(t.category) ?? 0
-    categoryMap.set(t.category, current + value)
+    const category = resolveTransactionCategory(t.title, t.type, t.category)
+    const current = categoryMap.get(category) ?? 0
+    categoryMap.set(category, current + value)
   }
 
   return Array.from(categoryMap.entries())
@@ -597,3 +602,25 @@ export const getMonthlyTrend = cache(async (userId: string) => {
     }
   })
 })
+
+/** Expand the same monthly attribution used by reports into dated, per-installment entries. */
+export async function getFinancialOccurrences(userId: string, year: number, month: number): Promise<FinancialOccurrence[]> {
+  const transactions = await loadUserTransactions(userId)
+  const result: FinancialOccurrence[] = []
+  for (let offset = -3; offset <= 0; offset++) {
+    const target = new Date(Date.UTC(year, month - 1 + offset, 1))
+    const y = target.getUTCFullYear(), m = target.getUTCMonth() + 1
+    const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate()
+    for (const t of transactions) {
+      if (!txInMonth(t, y, m)) continue
+      const day = t.card && t.cardId ? t.card.dueDay
+        : t.isRecurring ? effectivePayDay(y, m - 1, t.payDayType, t.recurringDay || t.date.getUTCDate())
+        : t.isInstallment ? (t.dueDay || t.purchaseDate?.getUTCDate() || t.date.getUTCDate()) : t.date.getUTCDate()
+      result.push({ id: t.id, title: t.title, type: t.type,
+        category: resolveTransactionCategory(t.title, t.type, t.category),
+        amount: Number(t.isInstallment && t.installmentAmount ? t.installmentAmount : t.amount),
+        date: `${y}-${String(m).padStart(2, '0')}-${String(Math.min(day, lastDay)).padStart(2, '0')}` })
+    }
+  }
+  return result.sort((a,b) => a.date.localeCompare(b.date))
+}

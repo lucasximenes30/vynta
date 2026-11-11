@@ -1,3 +1,7 @@
+import { analyzeFinancialHealth } from '../lib/financialHealth'
+import { guessCategory, resolveTransactionCategory } from '../lib/quickCategorize'
+import { localizeCategoryName } from '../lib/categories'
+import { offlineRecordId } from '../lib/offlineMutation'
 import assert from 'node:assert/strict'
 import { resolve } from 'node:path'
 import Module from 'node:module'
@@ -182,6 +186,41 @@ async function main() {
   const october = await transactions.getReportSnapshot('alice', 2026, 10)
   assert.equal(october.trend[5].expense, 200)
   assert.equal(october.summary.income, 1000)
+
+  assert.equal(guessCategory('Estacionamento shopping', 'EXPENSE'), 'Transport')
+  assert.equal(guessCategory('Gasolina', 'EXPENSE'), 'Transport')
+  assert.equal(guessCategory('Faixa do jiu-jitsu', 'EXPENSE'), 'Gym')
+  assert.equal(resolveTransactionCategory('Curso do Biel', 'EXPENSE', 'Geral'), 'Education')
+  assert.equal(resolveTransactionCategory('Pizza', 'EXPENSE', 'Minha categoria'), 'Minha categoria')
+  for (const [key, label] of [['Restaurant','Restaurante'],['Gym','Academia'],['Education','Educação']]) assert.equal(localizeCategoryName(key), label)
+  const entries = [10,10,10,100].map((amount, i) => ({ id: String(i), title: 'Restaurante', category: i % 2 ? 'Restaurante' : 'Restaurant', type: 'EXPENSE', amount, date: `2026-11-0${i+1}` }))
+  const health = analyzeFinancialHealth(entries, '2026-11')
+  assert.equal(health.anomalies.length, 1, 'a peak must not inflate its own baseline, including zero-variance history')
+  assert.equal(health.anomalies[0].averageInCategory, 10)
+  assert.equal(health.comparedCount, 1)
+  assert.equal(health.score?.label, 'Faltam receitas')
+  assert.equal(health.weekly.reduce((sum, w) => sum + w.expense, 0), 130)
+  assert.equal(health.weekly[0].week, '2026-11-01')
+  assert.equal(health.weekly[0].end, '2026-11-01', 'Sunday starts a partial month week')
+  assert.equal(health.weekly.at(-1)?.end, '2026-11-30')
+  assert.equal(analyzeFinancialHealth(entries, '2026-10').score, null)
+  const deficit = analyzeFinancialHealth([...entries, { ...entries[0], id: 'income', type: 'INCOME', amount: 12.35 }], '2026-11')
+  assert(deficit.score?.recommendations[0].includes('superam'))
+  assert(!deficit.score?.recommendations.some(text => /-\d+%/.test(text)), 'negative savings rates are replaced by a monetary shortfall')
+  state.__reportRows = [
+    { ...base, id: 'salary', title: 'Salário', category: 'Salary', type: 'INCOME', amount: 1500, isRecurring: true, recurringDay: 5, salarySlot: null, payDayType: 'fixed', date: new Date('2026-09-01T12:00:00Z') },
+    { ...base, id: 'card', title: 'Compra parcelada', type: 'EXPENSE', amount: 1200, isInstallment: true, installmentAmount: 100, totalInstallments: 12, purchaseDate: new Date('2026-10-20T12:00:00Z'), date: new Date('2026-10-20T12:00:00Z'), cardId: 'card1', card: { dueDay: 10, closingDay: 25 } },
+  ]
+  state.__reportReads = 0
+  const occurrences = await transactions.getFinancialOccurrences('alice', 2026, 11)
+  assert.equal(state.__reportReads, 1, 'advanced analysis expands all months from one read')
+  const novemberHealth = analyzeFinancialHealth(occurrences, '2026-11')
+  assert.equal(novemberHealth.weekly.reduce((sum, w) => sum + w.expense, 0), 100, 'card installment lands in the invoice due month at installment value')
+  assert.equal(novemberHealth.weekly.reduce((sum, w) => sum + w.income, 0), 1500, 'recurring salary configured earlier still counts')
+  const requestId = randomUUID()
+  const replayRequest = new Request('https://example.test', {headers: {'x-vynta-mutation-id':requestId}})
+  assert.equal(offlineRecordId(replayRequest, 'alice'), offlineRecordId(replayRequest, 'alice'))
+  assert.notEqual(offlineRecordId(replayRequest, 'alice'), offlineRecordId(replayRequest, 'bob'), 'offline IDs are scoped to accounts')
 
   state.__testCookie = token
   const tokenClaims = (await verifyToken(token))!

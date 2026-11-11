@@ -1,3 +1,4 @@
+import { offlineRecordId } from '@/lib/offlineMutation'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getSession } from '@/lib/auth'
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const data = createHabitSchema.parse(body)
-    const habit = await createHabit(session.userId, data)
+    const habit = await createHabit(session.userId, data, offlineRecordId(request, session.userId))
     return NextResponse.json({ habit }, { status: 201 })
   } catch (error: any) {
     const message =

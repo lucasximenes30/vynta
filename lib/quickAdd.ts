@@ -1,8 +1,6 @@
 'use client'
 
-// Client-side helpers for the quick-add sheet and the universal 48h offline mutation queue:
-// transactions, habit check-ins/creations, agenda events, notes, goals and workouts made while
-// offline are saved on the device and synced in order when connectivity returns.
+// Client helpers for the durable service-worker queue. Reads expire after 48h; pending writes do not.
 
 export type QuickAddType = 'INCOME' | 'EXPENSE'
 
@@ -29,7 +27,7 @@ export const TRANSACTION_CREATED_EVENT = 'vynta:transaction-created'
 export const OFFLINE_QUEUE_CHANGED_EVENT = 'vynta:offline-queue-changed'
 export const QUEUE_KEY = 'vynta_tx_queue'
 export const MUTATION_QUEUE_KEY = 'vynta_mutation_queue'
-const QUEUE_TTL_MS = 48 * 60 * 60 * 1000 // 48 hours
+
 
 export function openQuickAdd(type: QuickAddType = 'EXPENSE') {
   window.dispatchEvent(new CustomEvent(QUICK_ADD_OPEN_EVENT, { detail: { type } }))
@@ -41,124 +39,81 @@ export function todayDateValue(now = new Date()): string {
   return `${local}T12:00:00.000Z`
 }
 
-export function readQueue(): QueuedTransaction[] {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]')
-    if (!Array.isArray(parsed)) return []
-    const now = Date.now()
-    return parsed.filter((item) => !item?.queuedAt || now - item.queuedAt <= QUEUE_TTL_MS)
-  } catch {
-    return []
-  }
+
+export async function offlineQueueRequest(action: string, item?: QueuedMutation): Promise<any> {
+  if (!('serviceWorker' in navigator)) throw new Error('Este navegador não permite salvar offline.')
+  const registration = await navigator.serviceWorker.ready
+  const worker = navigator.serviceWorker.controller || registration.active
+  if (!worker) throw new Error('Abra o app com internet para preparar o modo offline.')
+  return new Promise((resolve, reject) => {
+    const channel = new MessageChannel()
+    const timer = setTimeout(() => { channel.port1.close(); reject(new Error('Não foi possível acessar os dados offline. Tente novamente.')) }, action === 'sync' ? 60_000 : 15_000)
+    channel.port1.onmessage = event => {
+      clearTimeout(timer); channel.port1.close()
+      event.data.error ? reject(new Error(event.data.error)) : resolve(event.data.result)
+    }
+    worker.postMessage({ type: 'vynta:queue', action, item }, [channel.port2])
+  })
 }
 
-function writeQueue(queue: QueuedTransaction[]) {
-  localStorage.setItem(QUEUE_KEY, JSON.stringify(queue))
+export async function readMutationQueue(): Promise<(QueuedMutation & { error?: string })[]> {
+  return offlineQueueRequest('list')
+}
+export async function readQueue() { return (await readMutationQueue()).filter(item => item.url === '/api/transactions') }
+export async function getTotalQueuedCount() { return (await readMutationQueue()).length }
+
+export async function enqueueMutation(entry: Omit<QueuedMutation, 'localId' | 'queuedAt'> & { localId?: string }) {
+  const item = { ...entry, localId: entry.localId || crypto.randomUUID(), queuedAt: Date.now() }
+  await offlineQueueRequest('enqueue', item)
   window.dispatchEvent(new CustomEvent(OFFLINE_QUEUE_CHANGED_EVENT))
+  return item.localId
+}
+export async function enqueueTransaction(tx: Omit<QueuedTransaction, 'localId' | 'queuedAt'>, localId = crypto.randomUUID()) {
+  return enqueueMutation({ url: '/api/transactions', method: 'POST', body: JSON.stringify(tx), localId })
 }
 
-export function readMutationQueue(): QueuedMutation[] {
+export async function postTransaction(tx: Pick<QueuedTransaction, 'title' | 'amount' | 'type' | 'category' | 'date'>, mutationId = crypto.randomUUID()) {
   try {
-    const parsed = JSON.parse(localStorage.getItem(MUTATION_QUEUE_KEY) || '[]')
-    if (!Array.isArray(parsed)) return []
-    const now = Date.now()
-    return parsed.filter((item) => !item?.queuedAt || now - item.queuedAt <= QUEUE_TTL_MS)
-  } catch {
-    return []
-  }
+    const res = await fetch('/api/transactions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-vynta-sync': '1', 'x-vynta-mutation-id': mutationId },
+      body: JSON.stringify(tx),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || !data.success) throw Object.assign(new Error(data.error || `HTTP ${res.status}`), { status: res.status })
+    return data.transaction as { id: string }
+  } catch (error) { throw Object.assign(error as Error, { mutationId }) }
 }
 
-function writeMutationQueue(queue: QueuedMutation[]) {
-  localStorage.setItem(MUTATION_QUEUE_KEY, JSON.stringify(queue))
-  window.dispatchEvent(new CustomEvent(OFFLINE_QUEUE_CHANGED_EVENT))
+export async function syncQueue(): Promise<number> {
+  if (!navigator.onLine) return 0
+  const synced = await offlineQueueRequest('sync')
+  if (synced > 0) window.dispatchEvent(new CustomEvent(TRANSACTION_CREATED_EVENT, { detail: { source: 'offline-sync' } }))
+  return synced
 }
 
-export function getTotalQueuedCount(): number {
-  return readQueue().length + readMutationQueue().length
-}
-
-export function enqueueTransaction(tx: Omit<QueuedTransaction, 'localId' | 'queuedAt'>) {
-  writeQueue([...readQueue(), { ...tx, localId: crypto.randomUUID(), queuedAt: Date.now() }])
-}
-
-export function enqueueMutation(entry: Omit<QueuedMutation, 'localId' | 'queuedAt'>) {
-  const current = readMutationQueue()
-  // Collapse duplicate habit check-in toggles on the same (habitId, date) while offline
-  if (entry.url === '/api/habits/checkin' && entry.body) {
+/** Older drafts had no account ID. Show them for review instead of silently assigning another account's data. */
+export function readLegacyDrafts(): QueuedMutation[] {
+  const result: QueuedMutation[] = []
+  for (const key of [QUEUE_KEY, MUTATION_QUEUE_KEY]) {
     try {
-      const parsed = JSON.parse(entry.body)
-      const filtered = current.filter((m) => {
-        if (m.url !== '/api/habits/checkin' || !m.body) return true
-        try {
-          const prev = JSON.parse(m.body)
-          return !(prev.habitId === parsed.habitId && prev.date === parsed.date)
-        } catch {
-          return true
-        }
-      })
-      writeMutationQueue([...filtered, { ...entry, localId: crypto.randomUUID(), queuedAt: Date.now() }])
-      return
+      const rows = JSON.parse(localStorage.getItem(key) || '[]')
+      if (!Array.isArray(rows)) continue
+      for (const item of rows) {
+        if (!item?.localId) continue
+        result.push(key === QUEUE_KEY ? { localId: item.localId, queuedAt: item.queuedAt, url: '/api/transactions', method: 'POST', body: JSON.stringify(item) } : item)
+      }
     } catch {}
   }
-  writeMutationQueue([...current, { ...entry, localId: crypto.randomUUID(), queuedAt: Date.now() }])
+  return result
 }
-
-export async function postTransaction(tx: Pick<QueuedTransaction, 'title' | 'amount' | 'type' | 'category' | 'date'>) {
-  const res = await fetch('/api/transactions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-vynta-sync': '1' },
-    body: JSON.stringify(tx),
-  })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok || !data.success || data.offlineQueued) {
-    const error = new Error(data.error || `HTTP ${res.status}`) as Error & { status?: number }
-    error.status = data.offlineQueued ? 0 : res.status
-    throw error
+export async function recoverLegacyDraft(item: QueuedMutation) {
+  await offlineQueueRequest('enqueue', item)
+  for (const key of [QUEUE_KEY, MUTATION_QUEUE_KEY]) {
+    try {
+      const rows = JSON.parse(localStorage.getItem(key) || '[]')
+      if (Array.isArray(rows)) localStorage.setItem(key, JSON.stringify(rows.filter(row => row.localId !== item.localId)))
+    } catch {}
   }
-  return data.transaction as { id: string }
-}
-
-let syncing = false
-
-/** Sends queued transactions and offline mutations; returns how many were synced. */
-export async function syncQueue(): Promise<number> {
-  if (syncing || !navigator.onLine) return 0
-  const txQueue = readQueue()
-  const mutQueue = readMutationQueue()
-  if (txQueue.length === 0 && mutQueue.length === 0) return 0
-
-  syncing = true
-  let synced = 0
-  let syncedTx = 0
-  try {
-    for (const item of txQueue) {
-      try {
-        await postTransaction(item)
-        synced++
-        syncedTx++
-      } catch (err: any) {
-        if (!err?.status || err.status >= 500 || err.status === 401) break
-      }
-      writeQueue(readQueue().filter((q) => q.localId !== item.localId))
-    }
-
-    for (const item of readMutationQueue()) {
-      try {
-        const res = await fetch(item.url, {
-          method: item.method,
-          headers: { 'Content-Type': 'application/json', 'x-vynta-sync': '1' },
-          body: item.body,
-        })
-        if (!res.ok && (res.status >= 500 || res.status === 401)) break
-        synced++
-      } catch {
-        break
-      }
-      writeMutationQueue(readMutationQueue().filter((q) => q.localId !== item.localId))
-    }
-  } finally {
-    syncing = false
-  }
-  if (syncedTx > 0) window.dispatchEvent(new CustomEvent(TRANSACTION_CREATED_EVENT))
-  return synced
+  window.dispatchEvent(new CustomEvent(OFFLINE_QUEUE_CHANGED_EVENT))
 }

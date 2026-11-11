@@ -69,7 +69,7 @@ const STEPS: Record<TourStepId, StepDef> = {
     tile: 'bg-rose-500 shadow-rose-500/30',
     title: 'Anote seu primeiro gasto',
     description: 'Pensa no último gasto que você fez: um café, um iFood, um Uber... Coloca aí! Leva uns 5 segundos.',
-    tips: () => ['Só o valor e um nome já bastam — o resto é opcional.'],
+    tips: () => ['Digite um nome como gasolina, estacionamento ou pizza: a categoria é sugerida na hora. Você pode mudar antes de salvar.'],
     cta: 'Anotar meu primeiro gasto',
     skip: 'Faço isso depois',
     success: 'Primeiro gasto anotado! É esse hábito que muda o jogo.',
@@ -83,8 +83,8 @@ const STEPS: Record<TourStepId, StepDef> = {
     description: 'O segredo de quem controla o dinheiro é anotar NA HORA. Por isso o gasto rápido está sempre a um toque:',
     tips: (desktop) =>
       desktop
-        ? ['Aperte a tecla N em qualquer tela', 'Ou clique em "Anotar gasto" no painel', 'Funciona até sem internet — sincroniza sozinho depois']
-        : ['Toque no botão + no meio da barra lá embaixo', 'Com o app instalado, segure o ícone do Vynta → "Anotar gasto"', 'Funciona até sem internet — sincroniza sozinho depois'],
+        ? ['Aperte a tecla N em qualquer tela', 'Ou clique em "Anotar gasto" no painel', 'Com o modo offline preparado, salva no aparelho. No iPhone, reabra o app com internet para sincronizar.']
+        : ['Toque no botão + no meio da barra lá embaixo', 'Com o app instalado, segure o ícone do Vynta → "Anotar gasto"', 'Com o modo offline preparado, salva no aparelho. No iPhone, reabra o app com internet para sincronizar.'],
     cta: 'Entendi!',
     skip: 'Testar agora',
     success: 'Show! Agora você anota qualquer gasto em segundos.',
@@ -95,7 +95,7 @@ const STEPS: Record<TourStepId, StepDef> = {
     icon: CreditCard,
     tile: 'bg-cyan-500 shadow-cyan-500/30',
     title: 'Cadastre seu cartão',
-    description: 'Coloque o dia de fechamento e de vencimento: o Vynta monta a fatura certinha e te avisa antes de vencer. Chega de juros por esquecimento.',
+    description: 'Coloque o dia de fechamento e de vencimento: o Vynta monta a fatura certinha e te avisa antes de vencer. Ative os lembretes em Ajustes para receber avisos.',
     tips: () => ['Usa Nubank? Dá pra importar a fatura inteira de uma vez.'],
     cta: 'Adicionar meu cartão',
     skip: 'Não uso cartão',
@@ -197,7 +197,7 @@ export default function TourHost() {
       const id = path && method ? stepForMutation(path, method) : null
       if (id) markDone(id)
     }
-    const onTransaction = () => markDone('expense')
+    const onTransaction = (event: Event) => { if ((event as CustomEvent).detail?.source !== 'offline-sync') markDone('expense') }
     window.addEventListener(API_MUTATION_EVENT, onMutation)
     window.addEventListener(TRANSACTION_CREATED_EVENT, onTransaction)
     return () => {
@@ -205,6 +205,13 @@ export default function TourHost() {
       window.removeEventListener(TRANSACTION_CREATED_EVENT, onTransaction)
     }
   }, [markDone])
+
+  useEffect(() => {
+    if (!tour?.active) return
+    const onEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setConfirmExit(true) }
+    document.addEventListener('keydown', onEscape)
+    return () => document.removeEventListener('keydown', onEscape)
+  }, [tour?.active])
 
   if (!tour?.active) return null
 
@@ -218,7 +225,7 @@ export default function TourHost() {
     <div className="space-y-4 text-center animate-in fade-in zoom-in-95">
       <p className="font-display text-lg font-bold text-surface-900 dark:text-white">Quer sair do tutorial?</p>
       <p className="text-sm leading-relaxed text-surface-500 dark:text-surface-400">
-        Sem problema! Se mudar de ideia, é só abrir <strong className="text-surface-800 dark:text-surface-200">Ajustes → Refazer tutorial</strong>
+        Sem problema! Se mudar de ideia, é só abrir <strong className="text-surface-800 dark:text-surface-200">Ajustes → Central de Ajuda → Refazer tutorial</strong>
         {!desktop && <> (ou o menu <strong className="text-surface-800 dark:text-surface-200">Mais → Tutorial</strong>)</>}.
       </p>
       <div className="flex flex-col-reverse gap-2 sm:flex-row">
@@ -255,7 +262,7 @@ export default function TourHost() {
             <p className="mt-2 text-sm leading-relaxed text-white/85">
               {finishing
                 ? `Você completou ${tour.done.length} de ${TOTAL} passos. Agora é só usar um pouquinho todo dia — é aí que a mágica acontece.`
-                : 'Em uns 2 minutinhos você configura o essencial, já vê pra onde vai seu dinheiro e coloca a rotina nos eixos.'}
+                : 'Conheça os atalhos e configure o que faz sentido para você. Os lançamentos criados aqui são reais e podem ser editados depois.'}
             </p>
           </div>
 
@@ -288,7 +295,7 @@ export default function TourHost() {
                   </div>
                 ) : (
                   <p className="text-center text-xs text-surface-500 dark:text-surface-400">
-                    Cada passo é opcional — pule o que não fizer sentido pra você.
+                    Todos os passos são opcionais. Você pode pular agora e refazer em Ajustes → Central de Ajuda.
                   </p>
                 )}
 
@@ -312,7 +319,7 @@ export default function TourHost() {
 
                 {!finishing && (
                   <p className="text-center text-[11px] leading-relaxed text-surface-400">
-                    Dá pra refazer quando quiser em <strong>Ajustes → Refazer tutorial</strong>.
+                    Dá pra refazer quando quiser em <strong>Ajustes → Central de Ajuda → Refazer tutorial</strong>.
                   </p>
                 )}
               </>
