@@ -36,7 +36,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#050505',
+  themeColor: '#14121c',
   width: 'device-width',
   initialScale: 1,
   // Enables env(safe-area-inset-*) so the bottom nav clears the iPhone home indicator.
@@ -79,7 +79,7 @@ export default function RootLayout({
               align-items: center;
               justify-content: center;
               gap: 18px;
-              background: radial-gradient(ellipse at top, rgba(50,104,91, 0.22), transparent 60%), #07080c;
+              background: radial-gradient(ellipse at top, rgba(173,166,206, 0.16), transparent 60%), #14121c;
               color: #f1f3f7;
               transition: opacity 220ms ease-out, visibility 220ms ease-out;
             }
@@ -98,7 +98,7 @@ export default function RootLayout({
           <div style={{ position: 'relative', width: 72, height: 72, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ position: 'absolute', inset: -6, borderRadius: 24, border: '2px solid rgba(120,183,156, 0.18)', borderTopColor: '#78b79c', animation: 'vyntaBootSpin 0.9s linear infinite' }} />
             <img
-              src="/icons/broto-icon-192.png"
+              src="/icons/broto-v2-icon-192.png"
               alt=""
               width={64}
               height={64}

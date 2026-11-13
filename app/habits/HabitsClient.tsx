@@ -508,7 +508,7 @@ export default function HabitsClient({
             </div>
 
             {/* Day column headers FIXED TO GRID */}
-            <div className="hidden sm:grid grid-cols-[minmax(160px,1fr)_repeat(7,40px)_68px] items-end gap-2 mb-2 px-1 pl-6">
+            <div className="hidden sm:grid grid-cols-[minmax(0,1fr)_repeat(7,40px)_68px] items-end gap-2 mb-2 px-1 pl-6">
               {/* Spacer for habit name column */}
               <div />
               {weekDates.map((date, i) => {
@@ -546,7 +546,7 @@ export default function HabitsClient({
                     onDragStart={(e) => handleDragStart(e, habit.id)}
                     onDragOver={(e) => handleDragOver(e, habit.id)}
                     onDragEnd={handleDragEnd}
-                    className={`flex flex-col sm:grid sm:grid-cols-[minmax(160px,1fr)_repeat(7,40px)_68px] gap-3 sm:gap-2 items-start sm:items-center py-4 sm:py-3 px-4 sm:px-2 group transition-transform duration-200 ${
+                    className={`flex min-w-0 flex-col sm:grid sm:grid-cols-[minmax(0,1fr)_repeat(7,40px)_68px] gap-3 sm:gap-2 items-start sm:items-center py-4 sm:py-3 px-4 sm:px-2 group transition-transform duration-200 ${
                       isDragging ? 'opacity-40 scale-95 origin-center' : 'opacity-100'
                     } hover:bg-surface-50/50 dark:hover:bg-surface-800/30 rounded-xl relative sm:pl-6 border border-surface-200 dark:border-surface-700/60 sm:border-transparent sm:dark:border-transparent shadow-sm sm:shadow-none bg-white sm:bg-transparent dark:bg-surface-900 sm:dark:bg-transparent`}
                   >
@@ -556,7 +556,7 @@ export default function HabitsClient({
                     </div>
 
                     {/* Habit info */}
-                    <div className="flex flex-row items-center justify-between w-full sm:w-auto pr-0 sm:pr-2">
+                    <div className="flex min-w-0 flex-row items-center justify-between w-full sm:w-auto pr-0 sm:pr-2">
                       <div className="flex items-center gap-2.5 overflow-hidden">
                         {/* Drag handle for mobile */}
                         <div className="sm:hidden flex items-center justify-center p-1 -ml-1 text-surface-400 active:text-brand-500 cursor-grab">
@@ -594,7 +594,7 @@ export default function HabitsClient({
                     </div>
 
                     {/* Day cells */}
-                    <div className="flex sm:contents justify-between w-full mt-2 sm:mt-0">
+                    <div className="grid min-w-0 grid-cols-7 gap-1 sm:contents w-full mt-2 sm:mt-0">
                       {weekDates.map((date, i) => {
                         const checked = isChecked(habit.id, date)
                         const isFuture = date > today
@@ -603,7 +603,7 @@ export default function HabitsClient({
                         const isToggling = togglingKey === key
 
                         return (
-                          <div key={date} className="flex flex-col items-center gap-1.5 sm:contents">
+                          <div key={date} className="flex min-w-0 flex-col items-center gap-1.5 sm:contents">
                             {/* Mobile Day Label */}
                             <span className={`sm:hidden text-[10px] font-semibold uppercase ${isToday ? 'text-brand-600 dark:text-brand-400' : 'text-surface-400 dark:text-surface-500'}`}>
                               {DAY_LABELS[i]}
@@ -611,7 +611,7 @@ export default function HabitsClient({
                             <button
                               onClick={() => !isFuture && handleToggle(habit.id, date)}
                               disabled={isFuture || isToggling}
-                              className={`w-[42px] h-[42px] sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all duration-200 justify-self-center shrink-0 ${
+                              className={`w-full max-w-[42px] h-[42px] sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all duration-200 justify-self-center shrink-0 ${
                                 isFuture
                                   ? 'opacity-25 cursor-not-allowed bg-surface-100 dark:bg-surface-800/40 border border-dashed border-surface-300 dark:border-surface-700'
                                   : checked

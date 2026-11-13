@@ -63,7 +63,7 @@ export function NotificationsMock() {
         {PUSHES.map((p, i) => (
           <li key={p.title} className="pop-in rounded-2xl bg-white/[0.12] p-3 backdrop-blur-md" style={{ ['--d' as string]: `${0.25 + i * 0.35}s` }}>
             <div className="flex items-start gap-2.5">
-              <img src="/icons/broto-icon-192.png" alt="" width={28} height={28} className="mt-0.5 h-7 w-7 shrink-0 rounded-lg bg-[#07080c]" loading="lazy" />
+              <img src="/icons/broto-v2-icon-192.png" alt="" width={28} height={28} className="mt-0.5 h-7 w-7 shrink-0 rounded-lg bg-[#07080c]" loading="lazy" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2">
                   <p className="truncate text-[13px] font-semibold text-white">{p.title}</p>

@@ -50,7 +50,7 @@ function card(subject: string, { preheader, title, paragraphs, cta, footnote }: 
 <tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:20px;overflow:hidden">
 <tr><td style="background:#0b0c12;padding:24px 32px">
-<a href="${APP_URL}" style="text-decoration:none"><img src="${APP_URL}/icons/broto-icon-192.png" width="36" height="36" alt="" style="vertical-align:middle;border-radius:8px;border:0">
+<a href="${APP_URL}" style="text-decoration:none"><img src="${APP_URL}/icons/broto-v2-icon-192.png" width="36" height="36" alt="" style="vertical-align:middle;border-radius:8px;border:0">
 <span style="vertical-align:middle;color:#ffffff;font-size:20px;font-weight:700;margin-left:10px">Vynta</span></a>
 </td></tr>
 <tr><td style="padding:32px">

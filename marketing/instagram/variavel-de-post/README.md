@@ -9,7 +9,8 @@ post, preservado para referência dos próximos).
 
 A identidade oficial agora é o broto B1. Leia `../../branding/README.md`.
 O exemplo `001-dia-25` é histórico, não referência de marca atual.
-Use creme #F7F8F2, verde #294E48, lima #C8E88B e lavanda #ADA6CE,
+Use fundo lavanda escuro #14121C, superfícies #211D2C, texto #F5F2FA,
+lima #C8E88B e lavanda #ADA6CE,
 com `public/assets/logo/broto-mark.png`. Não copiar glow azul/roxo.
 Antes de publicar um PNG antigo, migrar o HTML e renderizar novamente.
 

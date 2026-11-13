@@ -14,7 +14,7 @@ Use este guia sempre que for escrever ou revisar texto que precisa fazer alguém
 ## Atualização de 13/11/2026 — identidade e copy
 
 Consultar `marketing/branding/README.md` e `marketing/branding/2026-11-rebrand/COPY.md`.
-Nova marca: broto B1; creme, verde profundo, lima e lavanda. CTA padrão:
+Nova marca: broto B1; base lavanda escura, verde profundo, lima e lavanda. CTA padrão:
 “Testar 7 dias grátis”. Tempos de 5s/30s/1min abaixo são referências antigas,
 não promessas aprovadas: usar “lançamento rápido” e explicar o fluxo. Não reutilizar
 as estatísticas de exemplo sem fonte primária verificada. Não prometer lembrete

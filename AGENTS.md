@@ -86,7 +86,7 @@
 
 ## Branding — broto (13/11/2026)
 - Identidade oficial: `marketing/branding/README.md`. Símbolo B1 aprovado; substitui as camadas azul/roxo. Novos materiais devem usar `public/assets/logo/broto-mark.png` e `mascot.webp`.
-- Paleta: creme, verde profundo, lima e lavanda. Não copiar branding neon antigo de posts arquivados. `scripts/build-brand-assets.mjs` gera exports técnicos preservando a matriz.
+- Paleta: lavanda escura (#14121C), verde profundo, lima e lavanda; creme apenas como apoio. Não copiar branding neon antigo de posts arquivados. `scripts/build-brand-assets.mjs` gera exports técnicos preservando a matriz.
 - Copy atual e evidências: `marketing/branding/2026-11-rebrand/COPY.md`. Não transformar tempos ilustrativos (5s/30s) em garantias. CTA: teste de 7 dias, não plano gratuito permanente.
 
 ## Landing page (`app/page.tsx`)

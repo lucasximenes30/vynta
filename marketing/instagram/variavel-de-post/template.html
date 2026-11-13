@@ -30,8 +30,8 @@
     width: 1080px;
     height: 1350px;
     overflow: hidden;
-    background: #f7f8f2;
-    color: #10231f;
+    background: #14121c;
+    color: #f5f2fa;
     display: flex;
     flex-direction: column;
     padding: 90px 80px;
@@ -40,11 +40,7 @@
     content: '';
     position: absolute;
     inset: 0;
-    background:
-      radial-gradient(ellipse 90% 55% at 50% -12%, rgba(173,166,206,0.28), transparent 65%),
-      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
-    background-size: auto, 72px 72px, 72px 72px;
+    background: radial-gradient(ellipse 90% 55% at 50% -12%, rgba(173,166,206,0.12), transparent 65%);
     pointer-events: none;
   }
   .slide > * { position: relative; }
@@ -54,33 +50,33 @@
     display: inline-flex; align-items: center; gap: 10px; align-self: flex-start;
     border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05);
     backdrop-filter: blur(4px); border-radius: 999px; padding: 12px 26px;
-    font-size: 26px; font-weight: 600; color: #53675e; letter-spacing: 0.02em;
+    font-size: 26px; font-weight: 600; color: #c1bacf; letter-spacing: 0.02em;
   }
   .eyebrow .dot { width: 12px; height: 12px; border-radius: 999px; background: #34d399; }
   .eyebrow .dot.red { background: #f87171; }
   .eyebrow .dot.amber { background: #fbbf24; }
 
-  h1, h2 { font-family: 'Sora', sans-serif; font-weight: 800; letter-spacing: -0.035em; line-height: 1.08; color: #10231f; }
+  h1, h2 { font-family: 'Sora', sans-serif; font-weight: 800; letter-spacing: -0.035em; line-height: 1.08; color: #f5f2fa; }
   .xl { font-size: 96px; margin-top: 44px; }
   .lg { font-size: 76px; margin-top: 44px; }
   .md { font-size: 60px; margin-top: 44px; }
-  .grad { background: linear-gradient(92deg, #294e48 10%, #ada6ce 55%, #c4b5fd 90%); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .red { color: #f87171; } .amber { color: #fbbf24; } .green { color: #34d399; } .brand { color: #294e48; }
+  .grad { background: linear-gradient(92deg, #c8e88b 10%, #ada6ce 55%, #c4b5fd 90%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .red { color: #f87171; } .amber { color: #fbbf24; } .green { color: #34d399; } .brand { color: #c8e88b; }
 
-  .sub { margin-top: 40px; font-size: 36px; line-height: 1.45; color: #53675e; max-width: 880px; font-weight: 500; }
-  .sub strong { color: #294e48; font-weight: 700; }
+  .sub { margin-top: 40px; font-size: 36px; line-height: 1.45; color: #c1bacf; max-width: 880px; font-weight: 500; }
+  .sub strong { color: #c8e88b; font-weight: 700; }
 
-  .swipe { position: absolute; bottom: 78px; right: 80px; display: flex; align-items: center; gap: 14px; font-size: 28px; font-weight: 700; color: #294e48; }
+  .swipe { position: absolute; bottom: 78px; right: 80px; display: flex; align-items: center; gap: 14px; font-size: 28px; font-weight: 700; color: #c8e88b; }
   .foot { position: absolute; left: 80px; bottom: 78px; display: flex; align-items: center; gap: 22px; font-size: 26px; font-weight: 600; color: #7a7d8b; }
   .dots { display: flex; gap: 10px; }
   .dots i { width: 10px; height: 10px; border-radius: 999px; background: rgba(255,255,255,0.18); }
-  .dots i.on { background: #32685b; width: 28px; }
+  .dots i.on { background: #ada6ce; width: 28px; }
 
   .card { border: 1px solid rgba(255,255,255,0.09); background: rgba(255,255,255,0.04); border-radius: 32px; padding: 44px 48px; width: 100%; }
   .card + .card { margin-top: 28px; }
   .card .row { display: flex; align-items: center; gap: 28px; }
-  .card .t { font-family: 'Sora', sans-serif; font-size: 38px; font-weight: 700; color: #10231f; letter-spacing: -0.02em; }
-  .card .d { font-size: 30px; color: #53675e; margin-top: 8px; font-weight: 500; }
+  .card .t { font-family: 'Sora', sans-serif; font-size: 38px; font-weight: 700; color: #f5f2fa; letter-spacing: -0.02em; }
+  .card .d { font-size: 30px; color: #c1bacf; margin-top: 8px; font-weight: 500; }
 
   /* Ícones Lucide inline — NUNCA emoji nativo */
   .icbox {
@@ -96,14 +92,14 @@
   .chip {
     border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.045);
     border-radius: 999px; padding: 16px 30px; font-size: 28px; font-weight: 600;
-    color: #53675e; display: inline-flex; align-items: center; gap: 12px;
+    color: #c1bacf; display: inline-flex; align-items: center; gap: 12px;
   }
   .chip svg { width: 28px; height: 28px; }
 
   .bigcheck { display: flex; gap: 26px; align-items: flex-start; margin-top: 38px; }
   .bigcheck .ic { flex: none; width: 48px; height: 48px; margin-top: 6px; display: flex; align-items: center; justify-content: center; }
   .bigcheck .ic svg { width: 46px; height: 46px; }
-  .bigcheck p { font-size: 38px; font-weight: 600; color: #294e48; line-height: 1.35; }
+  .bigcheck p { font-size: 38px; font-weight: 600; color: #c8e88b; line-height: 1.35; }
 
   .phone {
     position: relative; width: 430px; border-radius: 56px; border: 10px solid #1a1c22;
@@ -114,15 +110,15 @@
 
   .cta-pill {
     display: inline-flex; align-items: center; gap: 18px;
-    background: linear-gradient(92deg, #32685b, #5b6cff); color: #10231f;
+    background: #c8e88b; color: #294e48;
     font-family: 'Sora', sans-serif; font-weight: 700; font-size: 34px;
     border-radius: 999px; padding: 26px 48px; margin-top: 46px;
-    box-shadow: 0 20px 60px rgba(173,166,206,0.45);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.16);
   }
   .ghost {
     display: inline-flex; align-items: center; gap: 16px; margin-top: 26px;
     border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.05);
-    border-radius: 999px; padding: 22px 40px; font-size: 30px; font-weight: 700; color: #10231f;
+    border-radius: 999px; padding: 22px 40px; font-size: 30px; font-weight: 700; color: #f5f2fa;
   }
   .ghost svg { width: 34px; height: 34px; }
 
@@ -183,8 +179,8 @@
       <h2 style="font-family:'Sora'; font-size:56px; margin-top:36px; line-height:1.12">【 Ação simples<br />do app. 】</h2>
       <p class="sub" style="font-size:30px; margin-top:32px">【 O que acontece em segundos. <strong>Detalhe que surpreende.</strong> 】</p>
       <div class="chiprow" style="margin-top:40px">
-        <span class="chip"><svg viewBox="0 0 24 24" fill="#fbbf24" stroke="#fbbf24" stroke-width="1" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> 【 5 segundos 】</span>
-        <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="#294e48" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" x2="22" y1="2" y2="22"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M2 8.82a15 15 0 0 1 4.17-2.65"/><path d="M10.66 5c4.01-.36 8.14.9 11.34 3.76"/><path d="M16.85 11.25a10 10 0 0 1 2.22 1.68"/><path d="M5 13a10 10 0 0 1 5.24-2.76"/><line x1="12" x2="12.01" y1="20" y2="20"/></svg> 【 funciona offline 】</span>
+        <span class="chip"><svg viewBox="0 0 24 24" fill="#fbbf24" stroke="#fbbf24" stroke-width="1" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> 【 lançamento rápido 】</span>
+        <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="#c8e88b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" x2="22" y1="2" y2="22"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M2 8.82a15 15 0 0 1 4.17-2.65"/><path d="M10.66 5c4.01-.36 8.14.9 11.34 3.76"/><path d="M16.85 11.25a10 10 0 0 1 2.22 1.68"/><path d="M5 13a10 10 0 0 1 5.24-2.76"/><line x1="12" x2="12.01" y1="20" y2="20"/></svg> 【 funciona offline 】</span>
       </div>
     </div>
     <div class="phone"><img src="/public/images/landing/finances-mobile.webp" alt="Vynta app" /></div>
@@ -199,7 +195,7 @@
   <div style="margin-top:44px">
     <div class="bigcheck"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></span><p><strong>【 Benefício 1 】</strong> — detalhe</p></div>
     <div class="bigcheck"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg></span><p><strong>【 Benefício 2 】</strong> — detalhe</p></div>
-    <div class="bigcheck"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#294e48" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span><p><strong>【 Benefício 3 】</strong> — detalhe</p></div>
+    <div class="bigcheck"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#c8e88b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span><p><strong>【 Benefício 3 】</strong> — detalhe</p></div>
     <div class="bigcheck"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1.5"/><rect width="7" height="7" x="14" y="3" rx="1.5"/><rect width="7" height="7" x="14" y="14" rx="1.5"/><rect width="7" height="7" x="3" y="14" rx="1.5"/></svg></span><p>【 E ainda junta <strong>tudo num lugar só</strong> 】</p></div>
   </div>
   <div class="foot"><span>@somosvynta</span><div class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i><i class=""></i></div></div>
@@ -208,14 +204,14 @@
 <!-- ═══ ARQUÉTIPO 6: CTA FINAL (send + follow + trial) ═══ -->
 <section class="slide center" style="align-items:center; text-align:center">
   <img src="/public/assets/logo/broto-mark.png" alt="Vynta" style="width:140px; margin-bottom:40px" />
-  <h2 style="font-size:56px; line-height:1.15">【 Manda pra quem<br />[situação identificável]<br /><span class="grad">[a graça]</span> 】&nbsp;<span class="icline" style="font-size:56px"><svg viewBox="0 0 24 24" fill="none" stroke="#294e48" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M18 13a6 6 0 0 1-6 5 6 6 0 0 1-6-5h12Z"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg></span></h2>
+  <h2 style="font-size:56px; line-height:1.15">【 Manda pra quem<br />[situação identificável]<br /><span class="grad">[a graça]</span> 】&nbsp;<span class="icline" style="font-size:56px"><svg viewBox="0 0 24 24" fill="none" stroke="#c8e88b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M18 13a6 6 0 0 1-6 5 6 6 0 0 1-6-5h12Z"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg></span></h2>
   <p class="sub" style="font-size:30px; margin-top:30px; text-align:center">【 Salva esse post pra reler quando [momento]. 】</p>
   <div class="ghost">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
     Segue @somosvynta
   </div>
   <div class="cta-pill">Testa 7 dias grátis → link na bio</div>
-  <p style="margin-top:26px; font-size:24px; color:#7a7d8b; font-weight:600">Sem cartão, sem CPF. Leva 30 segundos.</p>
+  <p style="margin-top:26px; font-size:24px; color:#c1bacf; font-weight:600">Teste de 7 dias. Sem cartão e sem cobrança automática ao fim do teste.</p>
   <div class="foot"><div class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div></div>
 </section>
 

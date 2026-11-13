@@ -54,13 +54,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   ]
 
   return (
-    <div className="flex min-h-screen relative pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0 bg-surface-50 dark:bg-surface-950 transition-colors duration-300">
+    <div className="app-shell flex min-h-[100dvh] w-full relative pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0 bg-surface-50 dark:bg-surface-950 transition-colors duration-300">
       {/* Desktop Sidebar */}
       <Sidebar />
       
       {/* Main Content Area */}
       {/* Offset content on desktop (pl-20 for collapsed sidebar) */}
-      <div className="flex-1 min-w-0 md:pl-20">
+      <div className="app-content flex-1 min-w-0 md:pl-20 lg:pl-56">
         <RouteMotion>{children}</RouteMotion>
       </div>
 
@@ -158,7 +158,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/80 dark:bg-surface-900/80 backdrop-blur-lg border-t border-surface-200/80 dark:border-surface-800/80 pb-safe">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/80 dark:bg-[#1e1a28]/95 backdrop-blur-lg border-t border-surface-200/80 dark:border-surface-800/80 pb-safe">
         <div className="flex items-center justify-around h-16 px-2">
           {MOBILE_NAV_ITEMS.map((item) => {
             if (item.isAction) {
@@ -197,10 +197,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href as string}
-                className="flex flex-col items-center justify-center w-16 h-full gap-0.5 transition-colors group"
+                aria-current={isActive ? 'page' : undefined}
+                className="relative flex flex-col items-center justify-center w-16 h-full gap-0.5 transition-colors group"
               >
-                <Icon className={`w-5 h-5 transition-transform group-active:scale-90 ${isActive ? 'text-brand-600 dark:text-brand-400' : 'text-surface-400 dark:text-surface-500'}`} />
-                <span className={`text-[9px] font-semibold transition-colors uppercase tracking-wider ${isActive ? 'text-brand-600 dark:text-brand-400 font-bold' : 'text-surface-400 dark:text-surface-500'}`}>
+                {isActive && <span aria-hidden className="absolute top-1 h-8 w-12 rounded-xl bg-brand-100/60 dark:bg-sprout-lavender/10" />}
+                <Icon className={`relative w-5 h-5 transition-transform group-active:scale-90 ${isActive ? 'text-brand-600 dark:text-brand-400' : 'text-surface-400 dark:text-surface-500'}`} />
+                <span className={`relative text-[9px] font-semibold transition-colors uppercase tracking-wider ${isActive ? 'text-brand-600 dark:text-brand-400 font-bold' : 'text-surface-400 dark:text-surface-500'}`}>
                   {item.label}
                 </span>
               </Link>

@@ -56,7 +56,7 @@ marketing/
 ## Identidade visual (não negociável)
 
 - Canvas: `1080×1350` CSS nos posts, `1080×1920` nos stories; render @2x.
-- Fundo creme `#F7F8F2`, títulos verde profundo `#294E48`, destaque lima
+- Fundo lavanda escuro `#14121C`, superfícies `#211D2C`, títulos `#F5F2FA`, destaque lima
   `#C8E88B`, apoio lavanda `#ADA6CE`. Sem glow azul/roxo ou grid como padrão.
 - Símbolo oficial: broto B1. Não recolorir, espelhar ou recriar o personagem.
   Guia completo e arquivos oficiais em `branding/README.md`.

@@ -174,7 +174,7 @@ export default function DashboardClient({
         <main className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-8 space-y-6">
           
           {/* Welcome Banner */}
-          <div className="rounded-3xl bg-gradient-to-br from-brand-600 via-brand-700 to-purple-800 p-5 sm:p-8 text-white shadow-xl dark:shadow-brand-500/10 border border-white/10 relative overflow-hidden">
+          <div className="rounded-3xl bg-gradient-to-br from-brand-700 via-brand-800 to-[#393044] p-5 sm:p-8 text-white shadow-xl dark:shadow-brand-500/10 border border-white/10 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
             <div className="relative z-10 space-y-3 sm:space-y-4">
               <div className="hidden sm:flex items-center gap-2">
@@ -192,7 +192,7 @@ export default function DashboardClient({
                   {getGreeting()}, {profileName.split(' ')[0]}!
                 </h2>
                 <p className="mt-1 hidden text-sm text-white/90 max-w-[65ch] leading-relaxed font-medium sm:block">
-                  Bem-vindo ao Vynta. O seu painel pessoal seguro para gerenciar finanças, construir hábitos duradouros e evoluir fisicamente.
+                  Confira o que pede sua atenção hoje: contas, compromissos e hábitos.
                 </p>
                 <p className="mt-1 text-xs font-medium text-white/70 sm:hidden">{todayStr}</p>
               </div>

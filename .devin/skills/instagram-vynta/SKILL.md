@@ -68,7 +68,7 @@ Gerar slides em HTML/CSS e exportar PNG 1080×1350 (deviceScaleFactor 2 → 2160
 **Rebranding aprovado em 13/11/2026:** ler `marketing/branding/README.md` antes de
 produzir qualquer arte. O broto B1 substitui o símbolo de camadas azul/roxo.
 
-- Fundo creme `#F7F8F2`; texto verde profundo `#294E48` / tinta `#10231F`.
+- Fundo lavanda escuro `#14121C`; superfícies `#211D2C`; texto `#F5F2FA`.
 - Destaque lima `#C8E88B`; apoio lavanda `#ADA6CE`. Sem glow azul e grid neon como padrão.
 - Tipografia: Sora nos títulos, Manrope no corpo. Espaço e contraste generosos.
 - Logo: `public/assets/logo/broto-mark.png`. Personagem: `public/assets/logo/mascot.webp`.

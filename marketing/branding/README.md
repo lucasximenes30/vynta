@@ -24,6 +24,16 @@ acessórios ou criar outro personagem. A matriz tem fundo lavanda; não fingir q
 Na assinatura, símbolo + palavra “Vynta” em Sora, sem slogan em tamanhos pequenos.
 Não usar a silhueta técnica do badge como logo principal.
 
+## Direção final (ajuste solicitado pelo responsável)
+
+A landing e os materiais principais mantêm o **minimalismo escuro**, agora com
+base lavanda profunda `#14121C`, superfícies `#211D2C` e texto `#F5F2FA`.
+Creme é apoio opcional, não o fundo padrão da marca. A referência do biip orienta
+espaçamento, navegação estável e transições suaves, sem copiar sua paleta clara.
+Avatares oficiais em `marketing/branding/social/`: usar as versões centralizadas
+para Instagram/TikTok. A matriz original B1 continua válida para composição editorial.
+Ícones PWA `broto-v2-*` derivam do avatar com área segura para máscaras do sistema.
+
 ## Paleta
 
 | Papel | Cor | Uso |
@@ -32,7 +42,9 @@ Não usar a silhueta técnica do badge como logo principal.
 | Verde ação | `#32685B` | Ações, foco, links |
 | Lima | `#C8E88B` | Destaques e áreas de cor; texto verde profundo |
 | Lavanda | `#ADA6CE` | Fundo do personagem e apoio visual |
-| Creme | `#F7F8F2` | Fundo principal da landing e novos posts |
+| Lavanda profunda | `#14121C` | Fundo principal da landing e novos posts |
+| Superfície escura | `#211D2C` | Cards e navegação |
+| Creme | `#F7F8F2` | Apoio opcional |
 | Tinta | `#10231F` | Títulos e texto de maior contraste |
 
 Sora nos títulos e assinatura, Manrope no corpo. O app continua com temas claro
@@ -45,8 +57,8 @@ Espaço generoso, títulos legíveis, áreas simples de cor, formas arredondadas
 um único destaque visual por composição. Broto como companhia para pequenos
 passos na organização, sem aparência infantil no texto. Evitar o antigo padrão
 de glow neon azul/roxo, grid tecnológico e gradientes saturados em toda a arte.
-Fundos escuros são permitidos quando a pauta pede contraste, usando verde
-profundo e a paleta atual — não copiar o tema antigo como padrão.
+Fundos escuros são o padrão, com lavanda profunda e luz contida. Evitar glow neon
+azul saturado. Lima é destaque, não fundo dominante de todas as peças.
 
 Na landing, preservar `LandingMotion`, `data-reveal`, `data-parallax` e CSS leve,
 respeitando reduced motion. Sem nova biblioteca de animações.
@@ -67,8 +79,10 @@ com valores são ilustrativas. Fontes e auditoria: `2026-11-rebrand/COPY.md`.
 
 1. Ler este guia e `marketing/README.md` antes de copiar qualquer pasta.
 2. Usar os assets oficiais e a paleta atual; nunca extrair a logo de um PNG antigo.
-3. Usar os prints atualizados em `public/images/landing/`. Não usar imagens
-   legadas soltas em `public/images/` como fonte de novos posts.
+3. Os prints em `public/images/landing/` já usam B1; sidebar, lavanda escura e
+   agenda tiveram ajustes posteriores. Recapturar a tela escolhida antes de um
+   novo post que demonstre o layout atual (ver `2026-11-rebrand/IMPLEMENTACAO.md`).
+   Não usar imagens legadas soltas em `public/images/` como fonte de novos posts.
 4. Posts já exportados não mudam quando o asset é trocado. PNGs antigos são
    arquivo histórico, não base de branding. Antes de publicar um post já
    preparado, atualizar seu HTML e renderizar novamente.

@@ -66,44 +66,27 @@ export default function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="fixed left-0 top-0 z-40 hidden h-screen w-20 flex-col items-center border-r border-surface-200/80 bg-white pt-6 pb-6 transition-colors duration-300 dark:border-surface-800 dark:bg-surface-900 md:flex overflow-x-hidden">
-      {/* Brand mark */}
-      <div className="mb-6 shrink-0">
-        <BrandLogo showText={false} size="md" />
-      </div>
-
-      {/* Nav items */}
-      <nav className="flex flex-col gap-2 w-full px-3 flex-1 overflow-y-auto overflow-x-hidden no-scrollbar">
+    <aside className="fixed inset-y-0 left-0 z-40 hidden w-20 flex-col border-r border-surface-200/70 bg-surface-100/80 p-3 dark:border-[#342e42] dark:bg-[#1b1724] md:flex lg:w-56 lg:p-4">
+      <Link href="/dashboard" aria-label="Vynta — painel" className="mb-8 mt-3 flex justify-center lg:justify-start lg:px-3">
+        <span className="lg:hidden"><BrandLogo showText={false} size="md" /></span>
+        <span className="hidden lg:block"><BrandLogo size="lg" /></span>
+      </Link>
+      <nav aria-label="Navegação principal" className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto no-scrollbar">
         {NAV_ITEMS.map(({ Icon, label, href, match }) => {
           const isActive = match(pathname)
           return (
-            <div key={href} className="relative group flex items-center justify-center w-full">
-              {/* Active neon dot/indicator */}
-              {isActive && (
-                <div className="absolute left-0 w-1 h-8 rounded-r-full bg-brand-500 shadow-[0_0_8px_rgba(139,92,246,0.5)]" />
-              )}
-              
-              <Link
-                href={href}
-                className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all duration-200 active:scale-95 ${
-                  isActive
-                    ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20 dark:bg-brand-600 dark:shadow-brand-500/20'
-                    : 'text-surface-500 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-800/60 hover:text-surface-800 dark:hover:text-surface-200'
-                }`}
-                title={label}
-              >
-                <Icon className="h-5 w-5" />
-              </Link>
-
-              {/* Collapsed Tooltip (Desktop) */}
-              <div className="pointer-events-none absolute left-full ml-3 px-3 py-1.5 rounded-xl bg-surface-900/90 dark:bg-surface-800/95 text-white text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-150 shadow-xl z-50 border border-white/10 backdrop-blur-md translate-x-1 group-hover:translate-x-0">
-                {label}
-                <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-surface-900/90 dark:border-r-surface-800/95" />
-              </div>
-            </div>
+            <Link key={href} href={href} aria-current={isActive ? 'page' : undefined} title={label}
+              className={`group relative flex min-h-12 shrink-0 items-center justify-center gap-3 rounded-2xl px-3 text-sm font-medium transition-colors duration-200 lg:justify-start ${isActive
+                ? 'bg-white text-brand-700 shadow-sm dark:bg-[#30283e] dark:text-sprout-lime'
+                : 'text-surface-600 hover:bg-white/70 hover:text-brand-700 dark:text-surface-400 dark:hover:bg-white/5 dark:hover:text-surface-100'}`}>
+              <Icon className="h-5 w-5 shrink-0 transition-transform duration-200 group-active:scale-90" strokeWidth={isActive ? 2.2 : 1.7} />
+              <span className="hidden lg:block">{label}</span>
+              {isActive && <span aria-hidden className="absolute right-2 h-1.5 w-1.5 rounded-full bg-brand-500 dark:bg-sprout-lime lg:right-3" />}
+            </Link>
           )
         })}
       </nav>
+      <p className="mt-5 hidden px-3 text-xs leading-relaxed text-surface-500 lg:block">Seu dinheiro e sua rotina.<br />Um passo de cada vez.</p>
     </aside>
   )
 }

@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --radius-card: 1rem;
+    --radius-card: 1.25rem;
     --radius-control: 0.8rem;
     --duration-ui: 200ms;
   }
@@ -384,11 +384,46 @@
 
 /* Sprout identity: editorial emphasis, using the existing motion system. */
 .lp-highlight {
-  background: linear-gradient(transparent 62%, #c8e88b 62%, #c8e88b 93%, transparent 93%);
+  background: linear-gradient(transparent 69%, rgba(173,166,206,.22) 69%, rgba(173,166,206,.22) 94%, transparent 94%);
+  color: #c8e88b;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
 }
 .landing a:focus-visible, .landing summary:focus-visible, .landing select:focus-visible {
-  outline: 3px solid #32685b;
+  outline: 3px solid #c8e88b;
   outline-offset: 5px;
+}
+
+/* Native Safari date controls must shrink inside flex/grid tracks. Keep zoom accessible. */
+input:is([type="date"], [type="time"], [type="datetime-local"], [type="month"]) {
+  display: block;
+  box-sizing: border-box;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  inline-size: 100%;
+  min-height: 44px;
+  appearance: none;
+  -webkit-appearance: none;
+}
+input::-webkit-date-and-time-value { min-width: 0; text-align: left; }
+input::-webkit-datetime-edit { min-width: 0; padding: 0; }
+.dark input:is([type="date"], [type="time"], [type="datetime-local"], [type="month"]) { color-scheme: dark; }
+@media (max-width: 767px) {
+  input:is([type="date"], [type="time"], [type="datetime-local"], [type="month"]) { font-size: 16px; }
+}
+.app-route-content { width: 100%; min-width: 0; }
+.app-route-content :is(main, form, .card, .report-panel) { min-width: 0; }
+.app-route-content form :is(.grid, .flex) > div { min-width: 0; }
+/* The persistent shell stays still; only content enters, so fixed sheets keep their viewport. */
+.app-route-content > .animate-dashboard-fade { animation: none; }
+.app-shell { --app-ease: cubic-bezier(.22,1,.36,1); }
+.app-shell :is(button, a) { -webkit-tap-highlight-color: transparent; }
+.app-shell :is(button, a):focus-visible { outline: 2px solid #ada6ce; outline-offset: 3px; }
+.app-shell > .app-content { min-width: 0; width: 100%; }
+.dark .app-shell { background: #14121c; }
+.dark .app-route-content > div { background-color: #14121c; }
+.dark .app-route-content header { background-color: rgba(30,26,40,.92); }
+.dark .app-route-content .card, .dark .app-route-content .report-panel { background-color: #1e1a28; border-color: #342e42; }
+@media (prefers-reduced-motion: no-preference) {
+  .app-shell button:active { scale: .98; }
 }
