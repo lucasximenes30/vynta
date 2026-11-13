@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     default: 'Vynta',
     template: '%s | Vynta',
   },
-  description: 'Gestão financeira pessoal com clareza e fluidez.',
+  description: 'Seu app de finanças e rotina. Organize gastos, faturas, metas e hábitos no mesmo lugar.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -79,7 +79,7 @@ export default function RootLayout({
               align-items: center;
               justify-content: center;
               gap: 18px;
-              background: radial-gradient(ellipse at top, rgba(66, 88, 249, 0.22), transparent 60%), #07080c;
+              background: radial-gradient(ellipse at top, rgba(50,104,91, 0.22), transparent 60%), #07080c;
               color: #f1f3f7;
               transition: opacity 220ms ease-out, visibility 220ms ease-out;
             }
@@ -96,13 +96,13 @@ export default function RootLayout({
       <body className={`${manrope.variable} ${sora.variable} min-h-screen font-sans`}>
         <div id="vynta-pwa-boot" aria-hidden="true">
           <div style={{ position: 'relative', width: 72, height: 72, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ position: 'absolute', inset: -6, borderRadius: 24, border: '2px solid rgba(99, 127, 253, 0.18)', borderTopColor: '#637ffd', animation: 'vyntaBootSpin 0.9s linear infinite' }} />
+            <div style={{ position: 'absolute', inset: -6, borderRadius: 24, border: '2px solid rgba(120,183,156, 0.18)', borderTopColor: '#78b79c', animation: 'vyntaBootSpin 0.9s linear infinite' }} />
             <img
-              src="/icons/icon-192.png"
+              src="/icons/broto-icon-192.png"
               alt=""
               width={64}
               height={64}
-              style={{ borderRadius: 18, width: 64, height: 64, boxShadow: '0 12px 32px rgba(48, 64, 235, 0.35)', animation: 'vyntaBootPulse 1.6s ease-in-out infinite' }}
+              style={{ borderRadius: 18, width: 64, height: 64, boxShadow: '0 12px 32px rgba(41,78,72, 0.35)', animation: 'vyntaBootPulse 1.6s ease-in-out infinite' }}
             />
           </div>
           <div style={{ textAlign: 'center', fontFamily: 'var(--font-display), system-ui, sans-serif' }}>

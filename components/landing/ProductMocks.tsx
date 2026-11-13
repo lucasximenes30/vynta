@@ -47,8 +47,8 @@ export function QuickAddMock() {
 
 const PUSHES = [
   { time: '08:02', title: 'Conta vence hoje', body: 'Hoje: Internet, Fatura Nubank' },
-  { time: '13:30', title: 'Reunião com cliente', body: 'Começa às 14:00 — em 30 min' },
-  { time: '20:15', title: 'Gastou algo hoje?', body: 'Anote em 5 segundos e feche o dia no controle.', actions: ['Anotar gasto', 'Anotar entrada'] },
+  { time: '08:02', title: 'Sua agenda de hoje', body: 'Reunião com cliente às 14:00' },
+  { time: '20:15', title: 'Gastou algo hoje?', body: 'Registre os gastos de hoje para acompanhar o mês.', actions: ['Anotar gasto', 'Anotar entrada'] },
   { time: '21:40', title: 'Falta 1 hábito hoje: Ler 20 minutos', body: 'Você já fez 3 de 4. Mantenha a sequência.' },
 ]
 
@@ -63,7 +63,7 @@ export function NotificationsMock() {
         {PUSHES.map((p, i) => (
           <li key={p.title} className="pop-in rounded-2xl bg-white/[0.12] p-3 backdrop-blur-md" style={{ ['--d' as string]: `${0.25 + i * 0.35}s` }}>
             <div className="flex items-start gap-2.5">
-              <img src="/icons/icon-192.png" alt="" width={28} height={28} className="mt-0.5 h-7 w-7 shrink-0 rounded-lg bg-[#07080c]" loading="lazy" />
+              <img src="/icons/broto-icon-192.png" alt="" width={28} height={28} className="mt-0.5 h-7 w-7 shrink-0 rounded-lg bg-[#07080c]" loading="lazy" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2">
                   <p className="truncate text-[13px] font-semibold text-white">{p.title}</p>

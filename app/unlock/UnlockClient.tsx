@@ -67,7 +67,7 @@ export default function UnlockClient({ session, state, feature, promoEligible }:
   const renderPlans = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto px-4 pt-4 items-stretch">
       {/* Yearly Plan */}
-      <div className="relative flex flex-col rounded-3xl border border-brand-400/50 bg-gradient-to-b from-brand-500/[0.12] to-[#0b0c12] p-8 shadow-[0_0_80px_-30px_rgba(66,88,249,0.7)] order-1 md:order-2">
+      <div className="relative flex flex-col rounded-3xl border border-brand-400/50 bg-gradient-to-b from-brand-500/[0.12] to-[#0b0c12] p-8 shadow-[0_0_80px_-30px_rgba(50,104,91,0.7)] order-1 md:order-2">
         <div className="absolute -top-3.5 left-8 rounded-full bg-brand-500 px-3.5 py-1 text-xs font-bold text-white shadow-lg uppercase tracking-wider">
           Economize {YEARLY_DISCOUNT_PERCENT}%
         </div>
@@ -99,7 +99,7 @@ export default function UnlockClient({ session, state, feature, promoEligible }:
         <button
           onClick={() => handleUnlock('pro_yearly')}
           disabled={loading}
-          className="group w-full flex justify-between items-center rounded-2xl bg-brand-500 hover:bg-brand-400 text-white px-6 py-4 font-bold shadow-[0_0_30px_-5px_rgba(48,64,235,0.4)] transition-all disabled:opacity-50"
+          className="group w-full flex justify-between items-center rounded-2xl bg-brand-500 hover:bg-brand-400 text-white px-6 py-4 font-bold shadow-[0_0_30px_-5px_rgba(41,78,72,0.4)] transition-all disabled:opacity-50"
         >
           <span>{loading ? 'Aguarde...' : 'Assinar Plano Anual'}</span>
           {!loading && (
@@ -152,7 +152,7 @@ export default function UnlockClient({ session, state, feature, promoEligible }:
 
   return (
     <div className="relative min-h-dvh bg-[#050505] text-surface-200 selection:bg-brand-500/30 overflow-x-hidden font-sans flex flex-col items-center justify-center px-4 py-12">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(66,88,249,0.15),transparent_40%),radial-gradient(circle_at_bottom,rgba(17,31,171,0.1),transparent_30%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(50,104,91,0.15),transparent_40%),radial-gradient(circle_at_bottom,rgba(32,59,54,0.1),transparent_30%)]" />
 
       <FunnelTracker eventName="plan_viewed" onceKey="plan_viewed" />
       <div className="relative z-10 w-full max-w-5xl space-y-10 animate-auth-fade">
@@ -233,7 +233,7 @@ export default function UnlockClient({ session, state, feature, promoEligible }:
               <button
                 onClick={() => handleUnlock(pendingTier)}
                 disabled={loading}
-                className="w-full rounded-2xl bg-brand-500 hover:bg-brand-400 text-white font-bold py-4 shadow-[0_0_20px_-5px_rgba(48,64,235,0.5)] transition-all disabled:opacity-50"
+                className="w-full rounded-2xl bg-brand-500 hover:bg-brand-400 text-white font-bold py-4 shadow-[0_0_20px_-5px_rgba(41,78,72,0.5)] transition-all disabled:opacity-50"
               >
                 {loading ? 'Redirecionando...' : 'Concluir Pagamento'}
               </button>

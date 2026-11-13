@@ -296,7 +296,7 @@ export default function TransactionModal({
                     type="submit"
                     form="tx-form"
                     disabled={loading}
-                    className={`flex-1 py-3.5 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${formData.type === 'WITHDRAW' ? 'bg-surface-800 hover:bg-surface-900 dark:bg-surface-100 dark:hover:bg-white dark:text-surface-900 shadow-lg shadow-black/10' : 'bg-brand-600 hover:bg-brand-700 shadow-[0_8px_16px_-6px_rgba(48,64,235,0.4)] hover:shadow-[0_12px_20px_-8px_rgba(48,64,235,0.6)]'}`}
+                    className={`flex-1 py-3.5 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${formData.type === 'WITHDRAW' ? 'bg-surface-800 hover:bg-surface-900 dark:bg-surface-100 dark:hover:bg-white dark:text-surface-900 shadow-lg shadow-black/10' : 'bg-brand-600 hover:bg-brand-700 shadow-[0_8px_16px_-6px_rgba(41,78,72,0.4)] hover:shadow-[0_12px_20px_-8px_rgba(41,78,72,0.6)]'}`}
                   >
                     {loading ? (
                       <>

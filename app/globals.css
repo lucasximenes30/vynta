@@ -25,16 +25,16 @@
     @apply bg-surface-50 text-surface-900 antialiased;
     @apply dark:bg-surface-950 dark:text-surface-100;
     background-image:
-      radial-gradient(circle at 15% -10%, rgba(48, 64, 235, 0.08), transparent 35%),
-      radial-gradient(circle at 90% 0%, rgba(11, 37, 214, 0.07), transparent 30%);
+      radial-gradient(circle at 15% -10%, rgba(41,78,72, 0.08), transparent 35%),
+      radial-gradient(circle at 90% 0%, rgba(35,67,62, 0.07), transparent 30%);
     background-attachment: fixed;
     overflow-x: hidden;
   }
 
   .dark body {
     background-image:
-      radial-gradient(circle at 15% -10%, rgba(99, 127, 253, 0.13), transparent 32%),
-      radial-gradient(circle at 90% 0%, rgba(48, 64, 235, 0.15), transparent 28%);
+      radial-gradient(circle at 15% -10%, rgba(120,183,156, 0.13), transparent 32%),
+      radial-gradient(circle at 90% 0%, rgba(41,78,72, 0.15), transparent 28%);
   }
 
   /* App-styled scrollbar everywhere (thin rounded thumb, invisible track, no OS buttons).
@@ -381,3 +381,14 @@
 .lp-faq { interpolate-size: allow-keywords; }
 .lp-faq details::details-content { block-size: 0; overflow: hidden; transition: block-size 0.35s var(--ease-out-expo), content-visibility 0.35s allow-discrete; }
 .lp-faq details[open]::details-content { block-size: auto; }
+
+/* Sprout identity: editorial emphasis, using the existing motion system. */
+.lp-highlight {
+  background: linear-gradient(transparent 62%, #c8e88b 62%, #c8e88b 93%, transparent 93%);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.landing a:focus-visible, .landing summary:focus-visible, .landing select:focus-visible {
+  outline: 3px solid #32685b;
+  outline-offset: 5px;
+}

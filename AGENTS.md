@@ -84,6 +84,11 @@
 - Pixels de marketing (Utmify, Facebook) e o Google Tag Manager (`components/GoogleTagManager.tsx`, `GTM-TVT2XQSL`, serve a tag do GA4) só carregam nas rotas de aquisição/checkout (`components/MarketingScripts.tsx`); não os coloque nas telas logadas.
 - Animações simples: use as classes CSS `animate-in fade-in zoom-in-95 slide-in-from-bottom-*` (definidas em `globals.css`) em vez de framer-motion; `collapse-grid[data-open]` para acordeões.
 
+## Branding — broto (13/11/2026)
+- Identidade oficial: `marketing/branding/README.md`. Símbolo B1 aprovado; substitui as camadas azul/roxo. Novos materiais devem usar `public/assets/logo/broto-mark.png` e `mascot.webp`.
+- Paleta: creme, verde profundo, lima e lavanda. Não copiar branding neon antigo de posts arquivados. `scripts/build-brand-assets.mjs` gera exports técnicos preservando a matriz.
+- Copy atual e evidências: `marketing/branding/2026-11-rebrand/COPY.md`. Não transformar tempos ilustrativos (5s/30s) em garantias. CTA: teste de 7 dias, não plano gratuito permanente.
+
 ## Landing page (`app/page.tsx`)
 - Copy: siga a skill `.devin/skills/copy-conversao` (pesquisa, regras, fatos do produto). Nunca invente depoimento/número de usuários.
 - Animações sem biblioteca (estilo abacatepay.com): script inline liga `html.motion` antes do paint; `components/landing/LandingMotion.tsx` adiciona `.is-in` em `[data-reveal]` (variações `left|right|zoom|fade`, `data-reveal-stagger`, filhos `.pop-in`/`.grow-x`) e faz parallax em `[data-parallax]`. Entrada do hero com `.rise`/`.rise-zoom`/`.pop` + `--d`. CSS em `globals.css` (só transform/opacity, respeita reduced motion). Não traga framer-motion de volta para a landing.

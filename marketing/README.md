@@ -1,5 +1,10 @@
 # Marketing — @somosvynta (guia para agentes/IA)
 
+**Rebranding de 13/11/2026:** o Vynta agora usa o **broto lima (B1)**.
+Leia primeiro [branding/README.md](branding/README.md): identidade oficial para
+Instagram, TikTok, stories e toda comunicação. O símbolo de camadas azul/roxo e
+o visual neon anterior foram aposentados para novos materiais.
+
 Sistema de produção de conteúdo do Instagram da **Vynta** (app de organização de
 vida + finanças — finanças, cartões/faturas, metas, hábitos, agenda, notas,
 treino, relatórios com IA, PWA offline). Conta: **@somosvynta**. Objetivo de
@@ -12,7 +17,7 @@ Os HTMLs referenciam imagens que ficam **na raiz do repo, fora desta pasta**:
 
 - `public/images/landing/*-mobile.webp` — prints do app (finances, dashboard,
   cards, goals, habits, calendar, reports, notes, workout)
-- `public/assets/logo/logo-mark.png` — logo
+- `public/assets/logo/broto-mark.png` — logo; `mascot.webp` — personagem
 
 Para renderizar em outro PC, leve junto essas duas pastas (ou o repo inteiro)
 mantendo a estrutura `<raiz>/public/...` + `<raiz>/marketing/...`. Editar
@@ -51,8 +56,10 @@ marketing/
 ## Identidade visual (não negociável)
 
 - Canvas: `1080×1350` CSS nos posts, `1080×1920` nos stories; render @2x.
-- Fundo `#0c0d10` + glow radial brand (azul `#4258f9`) + grid sutil; accents
-  `#93abff` `#a78bfa` `#34d399` `#fbbf24` `#f87171`.
+- Fundo creme `#F7F8F2`, títulos verde profundo `#294E48`, destaque lima
+  `#C8E88B`, apoio lavanda `#ADA6CE`. Sem glow azul/roxo ou grid como padrão.
+- Símbolo oficial: broto B1. Não recolorir, espelhar ou recriar o personagem.
+  Guia completo e arquivos oficiais em `branding/README.md`.
 - Fontes: **Sora** (títulos) + **Manrope** (corpo), via Google Fonts.
 - **NUNCA emoji nativo na arte** — ícones = Lucide em SVG inline
   (`<svg viewBox="0 0 24 24">`, paths de lucide.dev/icons). Emoji só em
@@ -88,8 +95,9 @@ marketing/
 ## Workflow para produzir um dia novo
 
 1. Escolher gancho/tema (ver `CALENDARIO.md` pra continuidade do arco).
-2. `cp -r` uma pasta parecida → renomear `DD-novo-slug`.
-3. Reescrever `slides.html` (mesmo `<head>`/CSS), `legenda.txt`,
+2. Usar o template atualizado; ao copiar uma pasta antiga, migrar logo, paleta
+   e prints conforme `branding/README.md` antes de renomear `DD-novo-slug`.
+3. Reescrever `slides.html` (CSS da identidade atual), `legenda.txt`,
    `story/stories.html` e `story/plano.md`.
 4. `marketing/instagram/render.sh DD-novo-slug`
    (sobe `python3 -m http.server 8787` na raiz do repo se preciso; usa

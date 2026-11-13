@@ -16,6 +16,15 @@ dist/
 # Pasta de conteúdo Instagram — viaja via zip entre PCs, só o README fica versionado
 marketing/*
 !marketing/README.md
+# Fontes e propostas do rebranding precisam viajar com a branch
+!marketing/branding/
 
 # Credenciais locais do Zernio (o real fica em ~/.zernio, fora do repo)
 .zernio
+# Template vigente para novos posts; lotes históricos continuam locais
+!marketing/instagram/
+marketing/instagram/*
+!marketing/instagram/variavel-de-post/
+marketing/instagram/variavel-de-post/*
+!marketing/instagram/variavel-de-post/README.md
+!marketing/instagram/variavel-de-post/template.html

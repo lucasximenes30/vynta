@@ -16,7 +16,7 @@ function Pill({ value, onChange, options, label, tone }: { value: number; onChan
         aria-label={label}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="cursor-pointer appearance-none bg-transparent pr-6 font-semibold outline-none [&>option]:bg-[#0d0e14] [&>option]:text-base [&>option]:text-white"
+        className="cursor-pointer appearance-none bg-transparent pr-6 font-semibold outline-none [&>option]:bg-white [&>option]:text-base [&>option]:text-brand-950"
       >
         {options.map((o) => <option key={o.v} value={o.v}>{o.t}</option>)}
       </select>
@@ -48,21 +48,21 @@ export default function SavingsSimulator() {
   const shown = seen ? brl(yearly) : brl(yearly).replace(/\d/g, '0')
 
   return (
-    <div ref={ref} className="rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.01] p-6 sm:p-10">
-      <p className="font-display text-[1.6rem] font-semibold leading-[1.6] tracking-tight text-white sm:text-4xl sm:leading-[1.5]">
+    <div ref={ref} className="rounded-3xl border border-brand-900/10 bg-white p-6 sm:p-10">
+      <p className="font-display text-[1.6rem] font-semibold leading-[1.6] tracking-tight text-brand-950 sm:text-4xl sm:leading-[1.5]">
         Eu ganho
-        <Pill label="Quanto você ganha por mês" value={income} onChange={setIncome} tone="bg-brand-500/20 text-brand-200" options={INCOMES.map((v) => ({ v, t: brl(v) }))} />
+        <Pill label="Quanto você ganha por mês" value={income} onChange={setIncome} tone="bg-[#e8e4f1] text-brand-700" options={INCOMES.map((v) => ({ v, t: brl(v) }))} />
         por mês e quero guardar
-        <Pill label="Quanto quer guardar" value={percent} onChange={setPercent} tone="bg-emerald-500/15 text-emerald-300" options={PERCENTS.map((v) => ({ v, t: `${v}%` }))} />
+        <Pill label="Quanto quer guardar" value={percent} onChange={setPercent} tone="bg-sprout-lime text-brand-600" options={PERCENTS.map((v) => ({ v, t: `${v}%` }))} />
         dele.
       </p>
-      <div className="mt-8 border-t border-white/10 pt-6">
-        <p className="text-sm text-surface-400">Em 12 meses, você junta</p>
-        <p className="mt-1 font-display text-5xl font-semibold tracking-tight text-emerald-300 sm:text-6xl">
+      <div className="mt-8 border-t border-brand-900/10 pt-6">
+        <p className="text-sm text-brand-900/70">Guardando esse valor por 12 meses</p>
+        <p className="mt-1 font-display text-5xl font-semibold tracking-tight text-brand-600 sm:text-6xl">
           <Odometer value={shown} />
         </p>
-        <p className="mt-3 text-sm leading-relaxed text-surface-400">
-          São <span className="font-semibold text-white">{brl(monthly)} por mês</span>. Parece pouco, mas só acontece se você souber pra onde vai o resto.
+        <p className="mt-3 text-sm leading-relaxed text-brand-900/70">
+          São <span className="font-semibold text-brand-950">{brl(monthly)} por mês</span>. Simulação sem rendimentos; o resultado depende dos valores que você guardar.
         </p>
       </div>
     </div>

@@ -8,7 +8,7 @@ import { INSTAGRAM_URL } from '@/lib/social'
 //    a short letter with one inline link is what lands in "Principal" most often.
 
 const APP_URL = (process.env.APP_URL || 'https://www.vynta.digital').replace(/\/$/, '')
-const BRAND = '#4258F9'
+const BRAND = '#32685B'
 
 export interface RenderedEmail {
   subject: string
@@ -50,7 +50,7 @@ function card(subject: string, { preheader, title, paragraphs, cta, footnote }: 
 <tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:20px;overflow:hidden">
 <tr><td style="background:#0b0c12;padding:24px 32px">
-<a href="${APP_URL}" style="text-decoration:none"><img src="${APP_URL}/icons/icon-192.png" width="36" height="36" alt="" style="vertical-align:middle;border-radius:8px;border:0">
+<a href="${APP_URL}" style="text-decoration:none"><img src="${APP_URL}/icons/broto-icon-192.png" width="36" height="36" alt="" style="vertical-align:middle;border-radius:8px;border:0">
 <span style="vertical-align:middle;color:#ffffff;font-size:20px;font-weight:700;margin-left:10px">Vynta</span></a>
 </td></tr>
 <tr><td style="padding:32px">

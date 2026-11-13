@@ -1,9 +1,9 @@
 /* Vynta service worker: fast shell, 48h offline cache (pages, RSC & GET APIs), Web Push and local offline notifications. */
-const STATIC_CACHE = 'vynta-static-v8'
+const STATIC_CACHE = 'vynta-static-v9'
 const DATA_CACHE = 'vynta-data-v7'
 importScripts('/offline-queue.js')
 const CACHE_TTL_MS = 48 * 60 * 60 * 1000 // 48 hours
-const PRECACHE = ['/offline', '/manifest.json', '/icons/icon-192.png', '/icons/icon-maskable-192.png', '/icons/badge-96.png', '/sounds/sale-approved.mp3']
+const PRECACHE = ['/offline', '/manifest.json', '/icons/broto-icon-192.png', '/icons/broto-icon-maskable-192.png', '/icons/broto-badge-96.png', '/sounds/sale-approved.mp3']
 const STATIC_RE = /\.(?:js|css|woff2?|png|jpe?g|webp|svg|ico|gif|avif|mp3)$/
 const APP_NAV_RE = /^\/(?:dashboard|finances|habits|workout|calendar|goals|notes|reports|settings|cards)(?:\/|$)/
 
@@ -82,8 +82,8 @@ async function showVyntaNotification(payload) {
   const title = payload.title || 'Vynta'
   const options = {
     body: payload.body || '',
-    icon: '/icons/icon-192.png',
-    badge: '/icons/badge-96.png',
+    icon: '/icons/broto-icon-192.png',
+    badge: '/icons/broto-badge-96.png',
     tag: payload.tag || undefined,
     renotify: !!payload.tag,
     lang: 'pt-BR',

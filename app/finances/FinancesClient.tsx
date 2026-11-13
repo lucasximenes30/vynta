@@ -1097,7 +1097,7 @@ export default function FinancesClient({
                       setShowForm(true)
                       setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50)
                     }}
-                    className="group relative inline-flex items-center justify-center rounded-full bg-brand-600 px-8 py-3.5 text-base font-semibold text-white shadow-[0_8px_20px_-6px_rgba(48,64,235,0.4)] transition-all duration-300 hover:bg-brand-700 hover:shadow-[0_12px_24px_-8px_rgba(48,64,235,0.6)] active:scale-[0.98]"
+                    className="group relative inline-flex items-center justify-center rounded-full bg-brand-600 px-8 py-3.5 text-base font-semibold text-white shadow-[0_8px_20px_-6px_rgba(41,78,72,0.4)] transition-all duration-300 hover:bg-brand-700 hover:shadow-[0_12px_24px_-8px_rgba(41,78,72,0.6)] active:scale-[0.98]"
                   >
                     Criar Transação
                   </button>

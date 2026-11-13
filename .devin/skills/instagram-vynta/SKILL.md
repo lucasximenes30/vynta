@@ -39,7 +39,7 @@ Alterne entre eles (volume game: 30–100 posts até achar o formato vencedor; r
 1. **Identificação/dor** (maior potencial de send): "dia 25 e o salário sumiu", gastos invisíveis (cafezinho, Uber, assinatura esquecida), "faço de cabeça", planilha abandonada, fatura que assusta.
 2. **Lista salvável**: "7 gastos invisíveis que comem seu salário", "5 coisas pra anotar hoje e nunca mais ser pego pela fatura".
 3. **Mito vs verdade / contrarian**: "Você não gasta demais — você só não vê os gastos", "Planilha não falha por disciplina".
-4. **Como eu organizo meu mês** (tutorial com telas do app): lançamento em 5s, aviso de fatura, salário por dia útil.
+4. **Como eu organizo meu mês** (tutorial com telas do app): lançamento rápido, aviso de fatura, salário por dia útil.
 5. **POV/humor/meme**: situações de quem vive no limite — "POV: você conferindo o extrato no dia 28".
 6. **Bastidores/founder** (conexão humana): por que o Vynta existe, decisões de produto, novidades.
 
@@ -49,7 +49,7 @@ Formato vencedor para SaaS (top of funnel): **dor → agitação → virada → 
 
 - Voz do cliente (nunca jargão): "pra onde foi o dinheiro", "faço de cabeça", "planilha que eu abandonei", "a fatura chega e assusta", "o Uber só dessa vez", "a assinatura que você nem usa".
 - Frases curtas, ordem direta, "você". Uma piada leve por post, no máximo.
-- Números concretos e específicos ("47 gastos pequenos", "R$ 12 de cafezinho", "5 segundos") — mas **nunca invente estatística nem depoimento**. Dados externos só com fonte nomeada (ex.: CNDL/SPC, Datafolha/Planejar) e checável.
+- Números concretos e específicos ("47 gastos pequenos", "R$ 12 de cafezinho") — mas **nunca invente estatística nem depoimento**. Dados externos só com fonte nomeada (ex.: CNDL/SPC, Datafolha/Planejar) e checável.
 - Proibido prometer: Open Finance/conexão bancária, app na loja, economia garantida em R$, número de usuários.
 - Fatos do produto: confira `lib/plans.ts` e a seção 7 da skill `copy-conversao` (7 dias grátis, sem cartão/CPF, lançamento rápido, push de fatura, hábitos+agenda+treinos no mesmo app, PWA).
 
@@ -64,15 +64,18 @@ Estrutura:
 
 ## 6. Identidade visual dos slides
 
-Gerar slides em HTML/CSS e exportar PNG 1080×1350 (renderizar com deviceScaleFactor 2 → 2160×2700 para nitidez). Referência visual = a landing do Vynta (abacatepay-like dark):
+Gerar slides em HTML/CSS e exportar PNG 1080×1350 (deviceScaleFactor 2 → 2160×2700).
+**Rebranding aprovado em 13/11/2026:** ler `marketing/branding/README.md` antes de
+produzir qualquer arte. O broto B1 substitui o símbolo de camadas azul/roxo.
 
-- Fundo: `#0c0d10` (surface-950) com glow radial sutil brand (`#4258f9` a ~10%) e/ou grid fino `rgba(255,255,255,0.03)`.
-- Tipografia: **Sora** (títulos, peso 700–800, tracking -0.02em a -0.035em) + **Manrope** (apoio). Google Fonts.
-- Texto: branco `#fff`/`#f1f3f7`; destaques em gradiente `linear-gradient(90deg,#93abff,#a78bfa)` ou cor sólida brand-300 `#93abff`; cor de apoio `#a8adbb` (surface-400).
-- Accent: `#4258f9` (brand-500), verde ok `#34d399`, âmbar alerta `#fbbf24`, vermelho dor `#f87171`.
-- Elementos recorrentes: pílula/eyebrow no topo, numeração "1/8" ou dots no rodapé, `@somosvynta` discreto no rodapé de cada slide, chips com borda `rgba(255,255,255,0.08)` e fundo `rgba(255,255,255,0.04)`.
-- Prints do app: usar os assets em `public/images/landing/*.webp` dentro de moldura de celular CSS (borda arredondada ~48px, border `rgba(255,255,255,0.12)`, fundo `#000`, sombra forte) — nunca tela desktop encolhida.
-- Logo: `public/assets/logo/logo-mark.png` — só o ícone, sem quadrado ao redor (o card foi removido do BrandLogo).
+- Fundo creme `#F7F8F2`; texto verde profundo `#294E48` / tinta `#10231F`.
+- Destaque lima `#C8E88B`; apoio lavanda `#ADA6CE`. Sem glow azul e grid neon como padrão.
+- Tipografia: Sora nos títulos, Manrope no corpo. Espaço e contraste generosos.
+- Logo: `public/assets/logo/broto-mark.png`. Personagem: `public/assets/logo/mascot.webp`.
+  Preservar fundo, cores, proporção, orientação e as duas folhas. Não inventar variantes.
+- Prints: somente os atualizados em `public/images/landing/`, em moldura de celular.
+- Rodapé: `@somosvynta` + progressão de slides, nas cores atuais.
+- Pastas e PNGs anteriores são arquivo histórico; não são referência visual vigente.
 - Ícone do Instagram no slide de CTA: desenhar em SVG inline (quadrado arredondado + círculo + ponto), gradiente ou branco; não usar imagem externa.
 - **NUNCA emoji nativo nos slides** — renderiza estilo Android na captura e inconsistente entre aparelhos. Ícones sempre **Lucide em SVG inline** (paths em https://lucide.dev/icons), dentro de `.icbox` (container arredondado translúcido) ou `.icline` (inline no texto). Emojis só na legenda.txt — quem renderiza é o Instagram.
 - Base dos slides: `marketing/instagram/variavel-de-post/template.html` (arquétipos prontos: capa, lista em cards, virada, produto, checklist, CTA). Exemplo aplicado: `marketing/instagram/001-dia-25/slides.html`.
@@ -81,7 +84,7 @@ Gerar slides em HTML/CSS e exportar PNG 1080×1350 (renderizar com deviceScaleFa
 
 1. Definir tema + formato (dor / lista / mito / tutorial / POV).
 2. Escrever os slides (texto final, 15–25 palavras) e revisar com o checklist.
-3. Montar `slides.html` na pasta do post `marketing/instagram/NNN-slug/` seguindo a seção 6.
+3. Montar `slides.html` na pasta do post `marketing/instagram/DD-slug/` seguindo a seção 6.
 4. Renderizar PNGs: servir a pasta por HTTP local e capturar cada slide via Puppeteer/Chromium com viewport 1080×1350 dsf=2 (`scripts/` ou script ad-hoc em /tmp — ver `marketing/instagram/` por exemplos de posts anteriores).
 5. Revisar os PNGs em 1080×1350 real (zoom mobile): texto legível sem esforço, sem quebra feia, nada cortado.
 6. Escrever `legenda.txt` na mesma pasta (linha 1 hook + corpo + pergunta + CTA + hashtags), pronta pra copiar e colar.
@@ -95,5 +98,5 @@ Gerar slides em HTML/CSS e exportar PNG 1080×1350 (renderizar com deviceScaleFa
 - [ ] Último slide pede envio/save + "segue @somosvynta" + trial na bio?
 - [ ] Alguma estatística ou depoimento inventado? (remover ou citar fonte)
 - [ ] Legenda com hook nos primeiros 125 chars, pergunta e 5–8 hashtags de nicho?
-- [ ] PNGs 1080×1350, texto legível a 100% no celular, identidade dark do Vynta?
+- [ ] PNGs 1080×1350, texto legível a 100% no celular, identidade atual do broto Vynta?
 - [ ] Sugestão de horário ao usuário: manhã (9h–11h) ou início da noite; lembrar de adicionar áudio ao postar.

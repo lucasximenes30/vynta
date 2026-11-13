@@ -309,7 +309,7 @@ export default function GoalModal({
                         type="submit"
                         form="goal-form"
                         disabled={loading}
-                        className="flex-1 py-3.5 rounded-full bg-brand-600 hover:bg-brand-700 text-white font-semibold flex items-center justify-center gap-2 transition-all shadow-[0_8px_16px_-6px_rgba(48,64,235,0.4)] hover:shadow-[0_12px_20px_-8px_rgba(48,64,235,0.6)] active:scale-[0.98]"
+                        className="flex-1 py-3.5 rounded-full bg-brand-600 hover:bg-brand-700 text-white font-semibold flex items-center justify-center gap-2 transition-all shadow-[0_8px_16px_-6px_rgba(41,78,72,0.4)] hover:shadow-[0_12px_20px_-8px_rgba(41,78,72,0.6)] active:scale-[0.98]"
                       >
                         {loading ? (
                           <>
