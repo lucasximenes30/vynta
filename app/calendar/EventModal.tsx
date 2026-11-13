@@ -21,6 +21,15 @@ const COLORS = [
 
 const CATEGORIES = ['Trabalho', 'Pessoal', 'Estudos', 'Saúde', 'Finanças', 'Outros']
 
+const REMINDER_OPTIONS = [
+  { value: 5, label: '5 min antes' },
+  { value: 15, label: '15 min antes' },
+  { value: 30, label: '30 min antes' },
+  { value: 60, label: '1 hora antes' },
+  { value: 1440, label: '1 dia antes' },
+  { value: 10080, label: '1 semana antes' },
+]
+
 export default function EventModal({ 
   isOpen, 
   onClose, 
@@ -45,6 +54,7 @@ export default function EventModal({
     isAllDay: false,
     category: 'Pessoal',
     color: 'bg-brand-500',
+    reminders: [60] as number[],
   })
 
   useEffect(() => {
@@ -68,6 +78,7 @@ export default function EventModal({
         isAllDay: event.isAllDay,
         category: event.category || 'Pessoal',
         color: event.color || 'bg-brand-500',
+        reminders: event.reminders?.length ? event.reminders : [60],
       })
     }
   }, [event, selectedDate])
@@ -200,6 +211,44 @@ export default function EventModal({
                     className="input-field"
                   />
                 </div>
+              </div>
+            )}
+
+            {!formData.isAllDay && (
+              <div>
+                <label className="block text-sm font-semibold text-surface-700 dark:text-surface-300 mb-1.5">
+                  <Lucide.Bell className="w-4 h-4 inline-block mr-1 -mt-0.5" />
+                  Lembretes
+                </label>
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, reminders: formData.reminders.includes(-1) ? [60] : [-1] })}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-full border transition-colors ${formData.reminders.includes(-1) ? 'bg-surface-700 text-white border-surface-700 dark:bg-surface-200 dark:text-surface-900 dark:border-surface-200' : 'border-surface-300 text-surface-500 hover:border-surface-400 dark:border-surface-700 dark:text-surface-400'}`}
+                  >
+                    Sem lembrete
+                  </button>
+                  {REMINDER_OPTIONS.map(o => {
+                    const active = formData.reminders.includes(o.value)
+                    return (
+                      <button
+                        key={o.value}
+                        type="button"
+                        onClick={() => {
+                          const cur = formData.reminders.filter(r => r !== -1)
+                          const next = cur.includes(o.value) ? cur.filter(r => r !== o.value) : [...cur, o.value].sort((a, b) => a - b)
+                          setFormData({ ...formData, reminders: next })
+                        }}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-full border transition-colors ${active ? 'bg-brand-500 text-white border-brand-500' : 'border-surface-300 text-surface-600 hover:border-brand-400 hover:text-brand-600 dark:border-surface-700 dark:text-surface-300 dark:hover:border-brand-500'}`}
+                      >
+                        {o.label}
+                      </button>
+                    )
+                  })}
+                </div>
+                {!formData.reminders.includes(-1) && formData.reminders.filter(r => r > 0).length === 0 && (
+                  <p className="text-[11px] text-surface-400 mt-1.5">Nada marcado = lembrete padrão de 1h antes.</p>
+                )}
               </div>
             )}
 

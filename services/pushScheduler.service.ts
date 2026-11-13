@@ -14,12 +14,18 @@ import { DEFAULT_PREFERENCES, isPushConfigured, sendToSubscriptions, type PushPa
  *  - evening (19h–22h): pending habits, "did you log your spending today?" (or a "volte" nudge
  *    when the app wasn't opened for 2+ days)
  *  - 09h–21h: first-month offer (trial days 3/5, days 1/5 after expiry), promo month ending
- *  - any time (06h–23h): agenda events starting within the next hour (needs a frequent cron)
+ *  - any time (06h–23h): agenda reminders — per-event offsets (5 min…1 week before);
+ *    events without a choice keep the legacy 60-minute default (needs a frequent cron)
  */
 
 const MORNING = [7, 11]
 const EVENING = [19, 22]
 const EVENT_WINDOW_MIN = 60
+// Cadência máxima do cron externo: o lembrete dispara no tick que encerra na hora
+// alvo (chega até TICK_MIN antes do pedido, nunca depois). Offsets que colapsam no
+// mesmo tick viram um único push — fica o maior offset.
+const TICK_MIN = 15
+const NO_REMINDERS = -1
 const DAY_MS = 24 * 60 * 60 * 1000
 const CONCURRENCY = 6
 
@@ -47,6 +53,18 @@ const inRange = (h: number, [from, to]: number[]) => h >= from && h <= to
 function listNames(names: string[], max = 2) {
   const shown = names.slice(0, max).join(', ')
   return names.length > max ? `${shown} e mais ${names.length - max}` : shown
+}
+
+function reminderBody(diffMin: number, startTime: string) {
+  if (diffMin <= 0) return `Começa agora (${startTime})`
+  if (diffMin < 60) return `Começa às ${startTime} — em ${diffMin} min`
+  if (diffMin < 1440) {
+    const h = Math.floor(diffMin / 60)
+    const m = diffMin % 60
+    return `Começa às ${startTime} — em ${h}h${m ? ` ${m}min` : ''}`
+  }
+  const d = Math.round(diffMin / 1440)
+  return `Começa em ${d} ${d === 1 ? 'dia' : 'dias'} — ${startTime}`
 }
 
 async function mapLimit<T>(items: T[], limit: number, fn: (item: T) => Promise<void>) {
@@ -183,10 +201,13 @@ export async function runScheduledPushes(now = new Date()) {
       ? prisma.calendarEvent.findMany({
           where: {
             userId: { in: daytime.map((c) => c.user.id) },
-            OR: agendaDays.map((day) => ({ date: { gte: new Date(`${day}T00:00:00Z`), lte: new Date(`${day}T23:59:59.999Z`) } })),
+            // janela larga: um lembrete de "1 semana antes" precisa enxergar eventos até +7d
+            OR: agendaDays.map((day) => ({
+              date: { gte: new Date(`${day}T00:00:00Z`), lte: new Date(Date.parse(`${day}T00:00:00Z`) + 7 * DAY_MS - 1) },
+            })),
           },
           orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
-          select: { id: true, userId: true, title: true, date: true, startTime: true, isAllDay: true },
+          select: { id: true, userId: true, title: true, date: true, startTime: true, isAllDay: true, reminders: true },
         })
       : [],
   ])
@@ -344,26 +365,32 @@ export async function runScheduledPushes(now = new Date()) {
     })
   }
 
-  // Agenda: "starting soon"
+  // Agenda: lembretes por evento. reminders: [] = padrão 60 min, [-1] = desligado,
+  // demais = offsets em minutos antes do início. nowMinAbs é "minutos desde a
+  // meia-noite local" e startAbs projeta eventos de +0..+7 dias na mesma régua.
   for (const { user, local } of daytime) {
-    const today = events.filter((e) => e.userId === user.id && e.date.toISOString().slice(0, 10) === local.day)
-    if (today.length === 0) continue
-
-    const nowMin = local.hour * 60 + local.minute
-    for (const e of today) {
-      if (e.isAllDay || !e.startTime) continue
+    const nowMinAbs = local.hour * 60 + local.minute
+    const todayStart = Date.parse(`${local.day}T00:00:00Z`)
+    for (const e of events) {
+      if (e.userId !== user.id || e.isAllDay || !e.startTime || e.reminders.includes(NO_REMINDERS)) continue
+      const dayOffset = Math.round((Date.parse(`${e.date.toISOString().slice(0, 10)}T00:00:00Z`) - todayStart) / DAY_MS)
+      if (dayOffset < 0 || dayOffset > 7) continue
       const [h, m] = e.startTime.split(':').map(Number)
-      const diff = h * 60 + m - nowMin
-      if (diff <= 0 || diff > EVENT_WINDOW_MIN) continue
+      const startAbs = dayOffset * 1440 + h * 60 + m
+      const offsets = e.reminders.length ? e.reminders.filter((r) => r > 0) : [EVENT_WINDOW_MIN]
+      const due = offsets.filter((r) => startAbs - r - TICK_MIN < nowMinAbs && nowMinAbs <= startAbs - r)
+      if (due.length === 0) continue
+      const offset = Math.max(...due)
+      const diff = startAbs - nowMinAbs
       planned.push({
         userId: user.id,
-        key: `event:${e.id}:${e.startTime}:${local.day}`,
+        key: `event:${e.id}:${e.startTime}:${offset}:${local.day}`,
         payload: {
           title: e.title,
-          body: diff <= 5 ? `Começa agora (${e.startTime})` : `Começa às ${e.startTime} — em ${diff} min`,
+          body: reminderBody(diff, e.startTime),
           url: '/calendar?source=push',
           tag: `event-${e.id}`,
-          ttl: diff * 60,
+          ttl: Math.max(diff, 1) * 60,
         },
       })
     }

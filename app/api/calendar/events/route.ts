@@ -54,7 +54,7 @@ export async function POST(req: Request) {
     }
 
     const data = await req.json()
-    const { title, description, date, startTime, endTime, isAllDay, category, color, isRecurring, recurrence } = data
+    const { title, description, date, startTime, endTime, isAllDay, category, color, isRecurring, recurrence, reminders } = data
 
     if (!title || !date) {
       return NextResponse.json({ error: 'Título e data são obrigatórios' }, { status: 400 })
@@ -72,6 +72,7 @@ export async function POST(req: Request) {
       color: color || 'bg-brand-500',
       isRecurring: isRecurring ?? false,
       recurrence,
+      reminders: Array.isArray(reminders) ? reminders.filter((r: unknown) => Number.isInteger(r)).slice(0, 8) : [],
     }
     const id = offlineRecordId(req, session.userId)
     const event = id

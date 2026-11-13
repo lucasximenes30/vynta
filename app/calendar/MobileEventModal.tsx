@@ -21,6 +21,15 @@ const COLORS = [
 
 const CATEGORIES = ['Trabalho', 'Pessoal', 'Estudos', 'Saúde', 'Finanças', 'Outros']
 
+const REMINDER_OPTIONS = [
+  { value: 5, label: '5 min' },
+  { value: 15, label: '15 min' },
+  { value: 30, label: '30 min' },
+  { value: 60, label: '1 hora' },
+  { value: 1440, label: '1 dia' },
+  { value: 10080, label: '1 semana' },
+]
+
 export default function MobileEventModal({ 
   isOpen, 
   onClose, 
@@ -45,6 +54,7 @@ export default function MobileEventModal({
     isAllDay: false,
     category: 'Pessoal',
     color: 'bg-brand-500',
+    reminders: [60] as number[],
   })
 
   useEffect(() => {
@@ -68,6 +78,7 @@ export default function MobileEventModal({
         isAllDay: event.isAllDay,
         category: event.category || 'Pessoal',
         color: event.color || 'bg-brand-500',
+        reminders: event.reminders?.length ? event.reminders : [60],
       })
     }
   }, [event, selectedDate])
@@ -232,6 +243,44 @@ export default function MobileEventModal({
               </div>
             )}
           </div>
+
+          {!formData.isAllDay && (
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-surface-700 dark:text-surface-300 flex items-center gap-1.5">
+                <Lucide.Bell className="w-4 h-4" />
+                Lembretes
+              </label>
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, reminders: formData.reminders.includes(-1) ? [60] : [-1] })}
+                  className={`px-3.5 py-2 text-xs font-semibold rounded-full border transition-colors ${formData.reminders.includes(-1) ? 'bg-surface-700 text-white border-surface-700 dark:bg-surface-200 dark:text-surface-900 dark:border-surface-200' : 'border-surface-300 text-surface-500 dark:border-surface-700 dark:text-surface-400'}`}
+                >
+                  Sem lembrete
+                </button>
+                {REMINDER_OPTIONS.map(o => {
+                  const active = formData.reminders.includes(o.value)
+                  return (
+                    <button
+                      key={o.value}
+                      type="button"
+                      onClick={() => {
+                        const cur = formData.reminders.filter(r => r !== -1)
+                        const next = cur.includes(o.value) ? cur.filter(r => r !== o.value) : [...cur, o.value].sort((a, b) => a - b)
+                        setFormData({ ...formData, reminders: next })
+                      }}
+                      className={`px-3.5 py-2 text-xs font-semibold rounded-full border transition-colors ${active ? 'bg-brand-500 text-white border-brand-500' : 'border-surface-300 text-surface-600 dark:border-surface-700 dark:text-surface-300'}`}
+                    >
+                      {o.label} antes
+                    </button>
+                  )
+                })}
+              </div>
+              {!formData.reminders.includes(-1) && formData.reminders.filter(r => r > 0).length === 0 && (
+                <p className="text-[11px] text-surface-400">Nada marcado = lembrete padrão de 1h antes.</p>
+              )}
+            </div>
+          )}
 
           <div className="space-y-2">
             <label className="text-sm font-semibold text-surface-700 dark:text-surface-300">Categoria</label>

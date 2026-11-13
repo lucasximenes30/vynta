@@ -545,6 +545,10 @@ model CalendarEvent {
   isRecurring Boolean @default(false)
   recurrence  String? // DAILY, WEEKLY, MONTHLY
 
+  // Minutos antes do início para lembrete push. [] = padrão do sistema (60);
+  // [-1] = lembretes desligados; demais valores = offsets escolhidos pelo usuário.
+  reminders   Int[]   @default([])
+
   source     String? // 'ical' for events imported from an external feed
   externalId String? // stable id from the source (iCal UID, + occurrence for recurring)
 

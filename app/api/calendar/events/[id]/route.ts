@@ -32,6 +32,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         color: data.color !== undefined ? data.color : existing.color,
         isRecurring: data.isRecurring !== undefined ? data.isRecurring : existing.isRecurring,
         recurrence: data.recurrence !== undefined ? data.recurrence : existing.recurrence,
+        reminders: Array.isArray(data.reminders) ? data.reminders.filter((r: unknown) => Number.isInteger(r)).slice(0, 8) : existing.reminders,
       },
     })
 

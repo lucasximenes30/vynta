@@ -16,3 +16,6 @@ dist/
 # Pasta de conteúdo Instagram — viaja via zip entre PCs, só o README fica versionado
 marketing/*
 !marketing/README.md
+
+# Credenciais locais do Zernio (o real fica em ~/.zernio, fora do repo)
+.zernio
