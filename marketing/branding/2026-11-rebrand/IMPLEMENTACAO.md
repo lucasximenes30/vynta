@@ -252,3 +252,36 @@ registrada acima); capturas usam os relatórios locais. Não houve merge na main
 deploy, postagem, pagamento, e-mail ou push real. O novo personagem é uma
 proposta de aplicação solicitada pelo responsável, sem substituir a identidade
 aprovada. Arquivos pessoais e o stash preexistente continuam preservados.
+
+## Refinamento mobile após aprovação (13/11/2026)
+
+A pedido do responsável, a fluidez aprovada no desktop foi ampliada no mobile:
+resposta ao toque, ícones ativos e + em lima, menu Mais com B1 e lavanda,
+entrada/saída suaves, indicação da tela atual e skeletons alinhados ao branding
+e ao layout real. O destaque inferior que já deslizava foi preservado.
+
+As transições não atrasam a navegação. O feedback de espera usa o estado do
+Next Link; os skeletons usam CSS. Sem biblioteca nova, transform no ancestral
+dos modais ou alteração de zoom por gesto. Movimento reduzido desliga os
+deslocamentos e mantém o sinal de carregamento estático.
+
+Testes efetivamente executados: `npx tsc --noEmit -p .`, `npm run build`,
+`npx tsx scripts/check-security.ts`, `node scripts/check-mobile-layout.mjs`,
+`node scripts/check-offline.mjs` e `git diff --check`, todos aprovados.
+Chrome com toque emulado: 320/390/430 px × claro/escuro, navegação/volta,
+mesmo shell entre rotas, Mais ativo na Agenda, fechar/reabrir o menu,
+passagem do menu ao lançamento rápido e restauração de rolagem. Sem overflow
+horizontal ou erros JavaScript. Skeleton de Finanças também validado nas três
+larguras e com movimento reduzido. A regressão isolada manteve cobertura de
+calendário, campos, rodapés, sete dias de hábitos e desktop/tablet.
+
+Vídeo de 390×844 e screenshots em [`mobile-motion/README.md`](mobile-motion/README.md).
+Gravação do build de produção local, em velocidade real; não é iPhone físico,
+Safari, teste de teclado nativo, instalação real do PWA ou benchmark de FPS.
+Essas limitações de ambiente continuam explícitas.
+
+First Load JS permaneceu igual à entrega 804351c: Landing 117 kB, Painel
+119 kB, Agenda/Hábitos 120 kB, Finanças 146 kB e Relatórios 119 kB.
+Doze prints recapturados nos formatos anteriores e artes renderizadas novamente
+para refletir a barra inferior atual. Cache estático v13; dados v7 e fila
+offline intactos. Nenhum merge na main, deploy ou publicação.

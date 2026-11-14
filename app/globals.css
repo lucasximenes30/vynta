@@ -226,11 +226,45 @@
 .nav-hover-indicator { transition: transform 180ms cubic-bezier(.22,1,.36,1), opacity 120ms ease; }
 .app-sidebar { transition: width 240ms cubic-bezier(.22,1,.36,1), padding 240ms ease; }
 .app-content { transition: padding-left 240ms cubic-bezier(.22,1,.36,1); }
+/* Touch feedback stays on controls, never on ancestors of fixed mobile sheets. */
+.mobile-nav-item { color:#6b7280; }
+.dark .mobile-nav-item { color:#ada6ce; }
+.mobile-nav-item[data-active="true"] { color:#24574d; }
+.dark .mobile-nav-item[data-active="true"] { color:#c8e88b; }
+.mobile-nav-item > svg, .mobile-touch-target, .mobile-menu-icon { transition:transform 180ms cubic-bezier(.22,1,.36,1), color 180ms ease; }
+.mobile-nav-item[data-active="true"] > svg { transform:translateY(-2px); }
+.mobile-nav-item:active > svg { transform:scale(.88); }
+.mobile-touch-target:active, .mobile-menu-item:active .mobile-menu-icon { transform:scale(.94); }
+.mobile-menu-item[aria-current="page"] .mobile-menu-icon { background:#dceccf; color:#24574d; }
+.dark .mobile-menu-item[aria-current="page"] .mobile-menu-icon { background:#30283e; color:#c8e88b; }
+.mobile-nav-item:focus-visible, .mobile-touch-target:focus-visible, .mobile-menu-item:focus-visible { outline:2px solid #7a9c55; outline-offset:-2px; }
+.mobile-navigation-backdrop { animation:mobileBackdropIn 180ms ease both; }
+.mobile-navigation-sheet { animation:mobileSheetIn 280ms cubic-bezier(.22,1,.36,1) both; }
+.mobile-navigation-overlay[data-closing="true"] .mobile-navigation-backdrop { animation:mobileBackdropOut 180ms ease both; }
+.mobile-navigation-overlay[data-closing="true"] .mobile-navigation-sheet { animation:mobileSheetOut 180ms ease both; }
+@keyframes mobileBackdropIn { from { opacity:0; } to { opacity:1; } }
+@keyframes mobileBackdropOut { from { opacity:1; } to { opacity:0; } }
+@keyframes mobileSheetIn { from { opacity:0; transform:translateY(40px); } to { opacity:1; transform:translateY(0); } }
+@keyframes mobileSheetOut { from { opacity:1; transform:translateY(0); } to { opacity:0; transform:translateY(32px); } }
+.navigation-hint { position:absolute; top:0; left:25%; right:25%; height:2px; border-radius:2px; background:#7a9c55; opacity:0; pointer-events:none; }
+.dark .navigation-hint { background:#c8e88b; }
+.navigation-hint[data-pending="true"] { animation:navigationPending 900ms ease-in-out 120ms infinite; }
+@keyframes navigationPending { 0%,100% { opacity:.35; transform:scaleX(.45); } 50% { opacity:1; transform:scaleX(1); } }
+.page-loading-track { height:2px; overflow:hidden; background:#ada6ce22; }
+.page-loading-track::after { content:''; display:block; width:40%; height:100%; background:#7a9c55; animation:pageLoadingTravel 1.5s ease-in-out infinite; }
+.dark .page-loading-track::after { background:#c8e88b; }
+@keyframes pageLoadingTravel { from { transform:translateX(-100%); } to { transform:translateX(350%); } }
+@media (max-width:767px) {
+  .quick-add-sheet.animate-in { animation-duration:280ms; animation-timing-function:cubic-bezier(.22,1,.36,1); }
+}
 @media (min-width:1024px) {
   .app-shell[data-sidebar-collapsed="true"] > .app-content { padding-left:5rem; }
 }
 @media (prefers-reduced-motion: reduce) {
   .nav-active-indicator, .nav-hover-indicator, .app-sidebar, .app-content { transition: none !important; }
+  .mobile-nav-item > svg, .mobile-touch-target, .mobile-menu-icon { transform:none !important; transition:none !important; }
+  .navigation-hint[data-pending="true"] { animation:none !important; opacity:1; }
+  .page-loading-track::after { animation:none !important; transform:none; }
 }
 
 /* Transform-only so content is visible (and counts for LCP) from the very first frame. */

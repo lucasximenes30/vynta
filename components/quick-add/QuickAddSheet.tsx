@@ -209,7 +209,7 @@ export default function QuickAddSheet({ initialType, onClose, onSubmit }: {
           transform: closing ? 'translate3d(0, 100%, 0)' : `translate3d(0, ${dragY}px, 0)`,
           transition: dragStart.current !== null ? 'none' : `transform ${closing ? CLOSE_MS : 220}ms cubic-bezier(0.2, 0.8, 0.2, 1)`,
         }}
-        className={`pointer-events-auto relative flex w-full flex-col md:max-w-md max-h-full md:max-h-[92dvh] rounded-t-[28px] md:rounded-3xl bg-white dark:bg-surface-900 border-t md:border border-surface-200 dark:border-surface-800 shadow-2xl will-change-transform ${closing ? '' : 'animate-in slide-in-from-bottom'}`}
+        className={`quick-add-sheet pointer-events-auto relative flex w-full flex-col md:max-w-md max-h-full md:max-h-[92dvh] rounded-t-[28px] md:rounded-3xl bg-white dark:bg-surface-900 border-t md:border border-surface-200 dark:border-surface-800 shadow-2xl will-change-transform ${closing ? '' : 'animate-in slide-in-from-bottom'}`}
       >
         <div {...dragHandlers} className="shrink-0 touch-none select-none">
           <div className={`mx-auto mt-2.5 h-1.5 w-10 rounded-full bg-surface-200 dark:bg-surface-700 md:hidden ${vp.keyboard ? 'hidden' : ''}`} />

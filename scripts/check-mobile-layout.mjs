@@ -17,6 +17,7 @@ const bundle = await build({
       import Goals from './app/goals/GoalsClient';
       import Habits from './app/habits/HabitsClient';
       import Salary from './app/finances/SalaryModal';
+      import Skeleton from './components/PageSkeleton';
       import Shell from './components/AppShell';
       import {ThemeProvider} from './lib/theme';
       const today = new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date());
@@ -34,7 +35,7 @@ const bundle = await build({
         initialHabits={[{id:'habit',title:'Beber dois litros de água diariamente',icon:'Droplets',color:'cyan',order:0,currentStreak:7,bestStreak:14,createdAt:today}]}
         initialCheckins={[]} initialPrevCheckins={[]} initialHistoricalScore={10} initialRanking={[]}
         weekDates={Array.from({length:7},(_,i)=>today.slice(0,8)+String(i+1).padStart(2,'0'))}/>;
-      createRoot(document.getElementById('root')).render(<ThemeProvider><Shell>{location.pathname==='/salary'?<Salary open initial={[{amount:1000.50,day:5,payDayType:'fixed'},{amount:1000.75,day:20,payDayType:'fixed'}]} onClose={()=>{}} onSaved={()=>{}}/>:location.pathname==='/goals'?<Goals initialGoals={[]}/>:location.pathname==='/habits'?habits:<Calendar/>}</Shell></ThemeProvider>);`,
+      createRoot(document.getElementById('root')).render(<ThemeProvider><Shell>{location.pathname==='/skeleton'?<Skeleton variant="finances"/>:location.pathname==='/salary'?<Salary open initial={[{amount:1000.50,day:5,payDayType:'fixed'},{amount:1000.75,day:20,payDayType:'fixed'}]} onClose={()=>{}} onSaved={()=>{}}/>:location.pathname==='/goals'?<Goals initialGoals={[]}/>:location.pathname==='/habits'?habits:<Calendar/>}</Shell></ThemeProvider>);`,
     loader: 'tsx', resolveDir: process.cwd(),
   },
   bundle: true, write: false, jsx: 'automatic', format: 'iife',
@@ -49,7 +50,7 @@ const bundle = await build({
           ? `export const useRouter=()=>({push:()=>{},replace:()=>{},refresh:()=>{},prefetch:()=>{}});export const usePathname=()=>location.pathname;export const useSearchParams=()=>new URLSearchParams();`
           : a.path.endsWith('dynamic') ? 'export default ()=>()=>null;'
           : a.path.endsWith('image') ? `import React from 'react';export default function Image({fill,priority,...p}){return <img {...p}/>}`
-          : `import React from 'react';export default function Link({children,...p}){return <a {...p}>{children}</a>}`,
+          : `import React from 'react';export const useLinkStatus=()=>({pending:false});export default function Link({children,...p}){return <a {...p}>{children}</a>}`,
       }))
     },
   }],
@@ -108,6 +109,18 @@ try {
   await page.keyboard.press('Escape')
   assert.equal(await menu.count(), 0)
   assert.equal(await page.evaluate(() => document.body.style.overflow), '')
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await page.getByRole('button', { name: 'Mais', exact: true }).click()
+  await menu.waitFor()
+  await page.waitForTimeout(300)
+  await page.getByRole('button', { name: 'Fechar navegação rápida' }).click()
+  await page.locator('.mobile-navigation-overlay').waitFor({ state: 'detached' })
+  assert.equal(await page.evaluate(() => document.body.style.overflow), '', 'animated closing restores page scroll')
+  await page.getByRole('button', { name: 'Mais', exact: true }).click()
+  await menu.waitFor()
+  await page.keyboard.press('Escape')
+  await page.locator('.mobile-navigation-overlay').waitFor({ state: 'detached' })
+  await page.emulateMedia({ reducedMotion: 'reduce' })
   const month = await page.locator('h3').first().textContent()
   await page.getByRole('button', { name: 'Próximo mês', exact: true }).click()
   assert.notEqual(await page.locator('h3').first().textContent(), month)
@@ -166,6 +179,12 @@ try {
   const request = await page.evaluate(() => JSON.parse(window.salaryRequest.body))
   assert.deepEqual(request.payments.map(p => p.amount), [1000.5, 1000.75], 'reopening salary preserves centavos when saving')
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 320)
+  await page.goto(`http://127.0.0.1:${server.address().port}/skeleton`)
+  for (const width of [320, 390, 430]) {
+    await page.setViewportSize({ width, height: 844 })
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), width, 'loading placeholder fits mobile')
+  }
+  assert.equal(await page.locator('.page-loading-track').evaluate(el => getComputedStyle(el, '::after').animationName), 'none', 'reduced motion keeps loading feedback static')
   assert.deepEqual(errors, [])
   console.log('Mobile regressions passed: system theme, 5 widths, calendar, drawer, dates, simulated keyboard, goals footer, seven habit days, sidebar collapse/hover, salary centavos and footer. Not a physical keyboard/Safari test.')
 } finally {

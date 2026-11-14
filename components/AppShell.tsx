@@ -2,11 +2,13 @@
 
 import { logoutAndRedirect } from '@/lib/logout'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import Sidebar from './Sidebar'
 import RouteMotion from './RouteMotion'
+import BrandLogo from './BrandLogo'
+import NavigationHint from './NavigationHint'
 import QuickAddHost from './quick-add/QuickAddHost'
 import PushBridge from './push/PushBridge'
 import RouterCacheSync from './RouterCacheSync'
@@ -32,21 +34,33 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const router = useRouter()
   const [showQuickActions, setShowQuickActions] = useState(false)
+  const [quickActionsClosing, setQuickActionsClosing] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+
+  const closeQuickActions = useCallback(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) setShowQuickActions(false)
+    else setQuickActionsClosing(true)
+  }, [])
+
+  useEffect(() => {
+    if (!quickActionsClosing) return
+    const timeout = setTimeout(() => { setShowQuickActions(false); setQuickActionsClosing(false) }, 180)
+    return () => clearTimeout(timeout)
+  }, [quickActionsClosing])
 
   useEffect(() => {
     if (!showQuickActions) return
     const previous = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setShowQuickActions(false)
+      if (event.key === 'Escape') closeQuickActions()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => {
       document.body.style.overflow = previous
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [showQuickActions])
+  }, [showQuickActions, closeQuickActions])
 
   useEffect(() => {
     const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection
@@ -67,7 +81,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     { Icon: Lucide.CheckSquare, label: 'Hábitos', href: '/habits' },
     { Icon: Lucide.LayoutGrid, label: 'Mais', opensMenu: true },
   ]
-  const mobileActiveIndex = showQuickActions ? 4 : pathname === '/dashboard' ? 0
+  const mobileActiveIndex = showQuickActions && !quickActionsClosing ? 4 : pathname === '/dashboard' ? 0
     : pathname.startsWith('/finances') || pathname.startsWith('/cards') ? 1 : pathname.startsWith('/habits') ? 3 : 4
 
   return (
@@ -90,21 +104,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Quick Actions Overlay (Mobile) */}
       {showQuickActions && (
-        <div className="md:hidden fixed inset-0 z-50 flex flex-col justify-end">
+        <div data-closing={quickActionsClosing} className="mobile-navigation-overlay md:hidden fixed inset-0 z-50 flex flex-col justify-end">
           <div 
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
-            onClick={() => setShowQuickActions(false)}
+            className="mobile-navigation-backdrop absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={closeQuickActions}
           />
-          <div role="dialog" aria-modal="true" aria-labelledby="quick-navigation-title" className="relative max-h-[100dvh] overflow-y-auto overscroll-contain bg-white dark:bg-surface-900 rounded-t-[2.5rem] p-6 pb-[calc(6rem+env(safe-area-inset-bottom))] shadow-2xl animate-in slide-in-from-bottom duration-300 border-t border-surface-200 dark:border-surface-800/80">
+          <div role="dialog" aria-modal="true" aria-labelledby="quick-navigation-title" inert={quickActionsClosing || undefined} className="mobile-navigation-sheet relative max-h-[calc(100dvh-env(safe-area-inset-top))] overflow-y-auto overscroll-contain bg-white dark:bg-[#1e1a28] rounded-t-[2rem] p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-2xl border-t border-surface-200 dark:border-sprout-lavender/20">
             {/* Drawer Indicator */}
-            <div className="mx-auto w-12 h-1.5 rounded-full bg-surface-200 dark:bg-surface-800 mb-6" />
+            <div className="mx-auto w-10 h-1 rounded-full bg-brand-200 dark:bg-sprout-lavender/30 mb-5" />
             
             <div className="flex justify-between items-center mb-6">
-              <h3 id="quick-navigation-title" className="font-display text-lg font-bold text-surface-900 dark:text-white">Navegação Rápida</h3>
+              <div className="flex items-center gap-3"><BrandLogo size="sm" showText={false} /><div><p className="text-[10px] font-semibold uppercase tracking-widest text-brand-600 dark:text-sprout-lavender">Seu Vynta</p><h3 id="quick-navigation-title" className="font-display text-base font-semibold text-surface-900 dark:text-white">Navegação Rápida</h3></div></div>
               <button 
                 aria-label="Fechar navegação rápida"
-                onClick={() => setShowQuickActions(false)}
-                className="p-2 rounded-xl bg-surface-50 dark:bg-surface-800 text-surface-500 hover:bg-surface-150 transition-colors"
+                onClick={closeQuickActions}
+                className="mobile-touch-target flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-surface-50 dark:bg-white/5 text-surface-500 dark:text-sprout-lavender"
               >
                 <Lucide.X className="w-5 h-5" />
               </button>
@@ -126,9 +140,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   <button
                     key={i}
                     onClick={action.action}
-                    className="flex flex-col items-center gap-2 group transition-all"
+                    className="mobile-menu-item relative flex flex-col items-center gap-2 rounded-2xl py-2 group"
                   >
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${action.bg} transition-all active:scale-95 group-hover:scale-105 shadow-sm shadow-brand-500/30`}>
+                    <div className={`mobile-menu-icon w-14 h-14 rounded-2xl flex items-center justify-center ${action.bg} shadow-sm`}>
                       <action.icon className={`w-6 h-6 ${action.color}`} />
                     </div>
                     <span className="text-xs font-semibold text-surface-700 dark:text-surface-300">{action.label}</span>
@@ -137,13 +151,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   <Link
                     key={i}
                     href={action.href as string}
-                    onClick={() => setShowQuickActions(false)}
-                    className="flex flex-col items-center gap-2 group transition-all"
+                    onClick={closeQuickActions}
+                    aria-current={pathname === action.href ? 'page' : undefined}
+                    className="mobile-menu-item relative flex flex-col items-center gap-2 rounded-2xl py-2 group"
                   >
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${action.bg} transition-all active:scale-95 group-hover:scale-105 shadow-sm`}>
-                      <action.icon className={`w-6 h-6 ${action.color}`} />
+                    <div className="mobile-menu-icon w-14 h-14 rounded-2xl flex items-center justify-center bg-brand-50 text-brand-700 dark:bg-sprout-lavender/10 dark:text-sprout-lavender shadow-sm">
+                      <action.icon className="w-6 h-6" />
                     </div>
                     <span className="text-xs font-semibold text-surface-700 dark:text-surface-300">{action.label}</span>
+                    <NavigationHint label={action.label} />
                   </Link>
                 )
               ))}
@@ -176,7 +192,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/80 dark:bg-[#1e1a28]/95 backdrop-blur-lg border-t border-surface-200/80 dark:border-surface-800/80 pb-safe">
+      <nav aria-label="Navegação inferior" className="mobile-bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#1e1a28]/95 backdrop-blur-lg border-t border-surface-200/80 dark:border-sprout-lavender/15 pb-safe">
         <div className="relative mx-2 grid h-16 grid-cols-5 items-center">
           <span aria-hidden className="nav-active-indicator pointer-events-none absolute left-0 top-1 flex h-8 w-1/5 justify-center" style={{ transform: `translateX(${mobileActiveIndex * 100}%)` }}><span className="h-full w-12 rounded-xl bg-brand-100/60 dark:bg-sprout-lavender/10" /></span>
           {MOBILE_NAV_ITEMS.map((item) => {
@@ -186,7 +202,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   <button
                     onClick={() => openQuickAdd('EXPENSE')}
                     aria-label="Anotar gasto"
-                    className="flex items-center justify-center w-14 h-14 rounded-full bg-brand-600 text-white shadow-lg shadow-brand-500/30 transition-transform active:scale-90 hover:scale-105 border border-brand-500/20"
+                    className="mobile-touch-target flex items-center justify-center w-14 h-14 rounded-full bg-brand-600 text-white dark:bg-sprout-lime dark:text-brand-950 shadow-lg shadow-brand-950/20 border border-brand-500/20"
                   >
                     <Lucide.Plus className="w-7 h-7" />
                   </button>
@@ -198,11 +214,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               return (
                 <button
                   key="menu"
-                  onClick={() => setShowQuickActions(true)}
-                  className="relative flex flex-col items-center justify-center w-full h-full gap-0.5 transition-colors group"
+                  onClick={() => { setQuickActionsClosing(false); setShowQuickActions(true) }}
+                  aria-expanded={showQuickActions}
+                  aria-haspopup="dialog"
+                  data-active={mobileActiveIndex === 4}
+                  className="mobile-nav-item relative flex flex-col items-center justify-center w-full h-full gap-0.5 transition-colors group"
                 >
-                  <item.Icon className={`w-5 h-5 transition-transform group-active:scale-90 ${showQuickActions ? 'text-brand-600 dark:text-brand-400' : 'text-surface-400 dark:text-surface-500'}`} />
-                  <span className={`text-[9px] font-semibold transition-colors uppercase tracking-wider ${showQuickActions ? 'text-brand-600 dark:text-brand-400 font-bold' : 'text-surface-400 dark:text-surface-500'}`}>
+                  <item.Icon className="w-5 h-5" />
+                  <span className="text-[10px] font-semibold">
                     {item.label}
                   </span>
                 </button>
@@ -217,12 +236,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href as string}
                 aria-current={isActive ? 'page' : undefined}
-                className="relative flex flex-col items-center justify-center w-full h-full gap-0.5 transition-colors group"
+                data-active={isActive}
+                className="mobile-nav-item relative flex flex-col items-center justify-center w-full h-full gap-0.5 transition-colors group"
               >
-                <Icon className={`relative w-5 h-5 transition-transform group-active:scale-90 ${isActive ? 'text-brand-600 dark:text-brand-400' : 'text-surface-400 dark:text-surface-500'}`} />
-                <span className={`relative text-[9px] font-semibold transition-colors uppercase tracking-wider ${isActive ? 'text-brand-600 dark:text-brand-400 font-bold' : 'text-surface-400 dark:text-surface-500'}`}>
+                <Icon className="relative w-5 h-5" />
+                <span className="relative text-[10px] font-semibold">
                   {item.label}
                 </span>
+                <NavigationHint label={item.label!} />
               </Link>
             )
           })}
