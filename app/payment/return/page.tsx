@@ -61,7 +61,7 @@ export default function PaymentReturnPage() {
 
   return (
     <div className="relative flex min-h-dvh items-center justify-center bg-surface-950 px-4 py-8 overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(66,88,249,0.15),transparent_50%),radial-gradient(circle_at_bottom,rgba(17,31,171,0.1),transparent_40%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(50,104,91,0.15),transparent_50%),radial-gradient(circle_at_bottom,rgba(32,59,54,0.1),transparent_40%)]" />
 
       <div className="relative w-full max-w-md space-y-8 text-center animate-dashboard-fade">
         <BrandLogo size="lg" className="justify-center" textClassName="text-3xl text-white" />

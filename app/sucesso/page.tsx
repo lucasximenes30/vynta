@@ -4,7 +4,7 @@ import Link from 'next/link'
 export default function SucessoPage() {
   return (
     <div className="relative flex min-h-dvh items-center justify-center overflow-y-auto bg-surface-950 px-4 py-8 sm:px-6">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(66,88,249,0.26),transparent_45%),radial-gradient(circle_at_bottom,rgba(17,31,171,0.2),transparent_36%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(50,104,91,0.26),transparent_45%),radial-gradient(circle_at_bottom,rgba(32,59,54,0.2),transparent_36%)]" />
 
       <div className="relative w-full max-w-lg space-y-8 animate-auth-fade">
         <div className="text-center">

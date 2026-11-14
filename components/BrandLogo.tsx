@@ -38,8 +38,8 @@ export default function BrandLogo({
   const rootClassName = ['inline-flex items-center gap-2', className].filter(Boolean).join(' ')
   const labelClassName = [
     textSizeClasses[size],
-    'font-semibold tracking-tight text-surface-900 dark:text-surface-100',
-    textClassName,
+    'font-display font-semibold tracking-[-0.04em]',
+    textClassName || 'text-surface-900 dark:text-surface-100',
   ]
     .filter(Boolean)
     .join(' ')
@@ -48,12 +48,12 @@ export default function BrandLogo({
     <div className={rootClassName}>
       <div className={['relative', markSizeClasses[size]].filter(Boolean).join(' ')}>
         <Image
-          src="/assets/logo/logo-mark.png"
-          alt="Vynta logo"
+          src="/assets/logo/broto-mark.png"
+          alt="Vynta — broto"
           fill
           priority={priority}
           sizes={imageSizes[size]}
-          className="relative z-10 object-contain"
+          className="relative z-10 rounded-[28%] object-contain"
         />
       </div>
       {showText ? <span className={labelClassName}>Vynta</span> : null}

@@ -61,7 +61,7 @@ export default function GoalsClient({ initialGoals }: { initialGoals: any[] }) {
               setSelectedGoal(null)
               setGoalModalOpen(true)
             }}
-            className="group relative inline-flex items-center justify-center rounded-full bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white shadow-[0_8px_16px_-6px_rgba(48,64,235,0.4)] transition-all duration-300 hover:bg-brand-700 hover:shadow-[0_12px_20px_-8px_rgba(48,64,235,0.6)] focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:scale-[0.98] dark:focus:ring-offset-surface-900"
+            className="group relative inline-flex items-center justify-center rounded-full bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white shadow-[0_8px_16px_-6px_rgba(41,78,72,0.4)] transition-all duration-300 hover:bg-brand-700 hover:shadow-[0_12px_20px_-8px_rgba(41,78,72,0.6)] focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:scale-[0.98] dark:focus:ring-offset-surface-900"
           >
             <span className="flex items-center gap-2">
               <Lucide.Plus strokeWidth={2} className="w-4 h-4" />
@@ -97,7 +97,7 @@ export default function GoalsClient({ initialGoals }: { initialGoals: any[] }) {
             className="animate-in fade-in zoom-in-95 p-1.5 rounded-[2.5rem] bg-surface-100/50 dark:bg-surface-800/30 border border-surface-200 dark:border-surface-700/50"
           >
             <div className="rounded-[calc(2.5rem-0.375rem)] bg-white dark:bg-surface-900 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] text-center py-24 px-6 flex flex-col items-center justify-center relative overflow-hidden">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(66,88,249,0.05),transparent_50%)] pointer-events-none" />
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(50,104,91,0.05),transparent_50%)] pointer-events-none" />
               <div className="w-20 h-20 rounded-full bg-surface-50 dark:bg-surface-950 border border-surface-100 dark:border-surface-800 flex items-center justify-center mb-6 shadow-[0_4px_12px_rgba(0,0,0,0.05)] relative z-10 group-hover:rotate-3 transition-transform duration-300">
                 <Lucide.Target strokeWidth={1.5} className="w-10 h-10 text-brand-500" />
               </div>
@@ -110,7 +110,7 @@ export default function GoalsClient({ initialGoals }: { initialGoals: any[] }) {
                   setSelectedGoal(null)
                   setGoalModalOpen(true)
                 }}
-                className="group relative inline-flex z-10 items-center justify-center gap-2 rounded-full bg-brand-600 px-8 py-3.5 text-sm font-bold text-white shadow-[0_8px_20px_-6px_rgba(48,64,235,0.4)] transition-all duration-300 hover:bg-brand-700 hover:shadow-[0_12px_24px_-8px_rgba(48,64,235,0.6)] active:scale-[0.98]"
+                className="group relative inline-flex z-10 items-center justify-center gap-2 rounded-full bg-brand-600 px-8 py-3.5 text-sm font-bold text-white shadow-[0_8px_20px_-6px_rgba(41,78,72,0.4)] transition-all duration-300 hover:bg-brand-700 hover:shadow-[0_12px_24px_-8px_rgba(41,78,72,0.6)] active:scale-[0.98]"
               >
                 <Lucide.Plus className="w-4 h-4" />
                 Criar meta

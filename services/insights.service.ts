@@ -200,7 +200,7 @@ INSIGHT RULES:
 - Keep each insight short and practical (single short paragraph, up to 180 characters).
 - Use the category names exactly as listed in "Top Categories".
 - Do not invent numbers.
-- This is recorded/planned income and expenses, not verified bank balances or actual savings.
+- Income includes only dates reached so far (each salary installment separately); expenses include planned amounts for the selected month. Future income is excluded. These are registered dates, not verified bank balances or actual savings.
 - Never show negative savings percentages. If expenses exceed income, explain the monetary shortfall and suggest checking missing income before reviewing adjustable expenses.
 - If income is absent or unusually low, state that incomplete records can affect the analysis. Use calm, specific wording; avoid blame or alarm.
 

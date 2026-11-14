@@ -15,6 +15,7 @@ import { cache } from 'react'
 import { resolveTransactionCategory } from '@/lib/quickCategorize'
 import type { FinancialOccurrence } from '@/lib/financialHealth'
 import { transactionInputSchema } from '@/lib/transactionValidation'
+import { financialToday } from '@/lib/financialPeriod'
 
 export interface CreateTransactionInput {
   id?: string
@@ -215,7 +216,7 @@ function computeBalance(transactions: LoadedTransaction[], upToDate?: Date) {
   let income = 0
   let expense = 0
 
-  const today = upToDate ? new Date(upToDate) : new Date()
+  const today = upToDate ? new Date(upToDate) : financialToday()
   today.setHours(23, 59, 59, 999)
 
   for (const t of transactions) {
@@ -337,7 +338,7 @@ export const getUserBalance = cache(async (userId: string, upToDate?: Date) => {
 })
 
 export const getMonthlySummary = cache(async (userId: string) => {
-  const now = new Date()
+  const now = financialToday()
   return getMonthSummary(userId, now.getFullYear(), now.getMonth() + 1)
 })
 
@@ -401,8 +402,16 @@ export const getTransactionsByMonth = cache(async (userId: string, year: number,
   }))
 })
 
-function computeMonthTotals(transactions: LoadedTransaction[], year: number, month: number) {
+function occurrenceDate(t: LoadedTransaction, year: number, month: number): Date {
+  const day = t.card && t.cardId ? t.card.dueDay
+    : t.isRecurring ? effectivePayDay(year, month - 1, t.payDayType, t.recurringDay || t.date.getUTCDate())
+    : t.isInstallment ? (t.dueDay || t.purchaseDate?.getUTCDate() || t.date.getUTCDate()) : t.date.getUTCDate()
+  return new Date(year, month - 1, Math.min(day, new Date(year, month, 0).getDate()))
+}
+
+function computeMonthTotals(transactions: LoadedTransaction[], year: number, month: number, today = financialToday()) {
   let income = 0
+  let pendingIncome = 0
   let expense = 0
   let count = 0
 
@@ -411,20 +420,25 @@ function computeMonthTotals(transactions: LoadedTransaction[], year: number, mon
     // Installments contribute their per-installment amount; everything else the full amount
     const value = t.isInstallment && t.installmentAmount ? Number(t.installmentAmount) : Number(t.amount)
     if (t.type === 'INCOME') {
-      income += value
+      // Each salary installment enters independently on its configured payday.
+      // Keep upcoming entries visible as a forecast, never as available money.
+      if (occurrenceDate(t, year, month) <= today) income += value
+      else pendingIncome += value
     } else {
       expense += value
     }
     count++
   }
 
-  return { income, expense, balance: income - expense, transactionCount: count }
+  return { income, pendingIncome, expense, balance: income - expense, transactionCount: count }
 }
 
 function computeMonthSummaryWithBalance(transactions: LoadedTransaction[], year: number, month: number) {
-  const summary = computeMonthTotals(transactions, year, month)
-  const overall = computeBalance(transactions, monthBounds(year, month).endOfMonth)
-  return { ...summary, balance: overall.balance }
+  const today = financialToday()
+  const summary = computeMonthTotals(transactions, year, month, today)
+  const end = monthBounds(year, month).endOfMonth
+  const overall = computeBalance(transactions, end < today ? end : today)
+  return { ...summary, accumulatedBalance: overall.balance }
 }
 
 // 🆕 Get monthly summary for any month (installment + recurring aware)
@@ -469,7 +483,7 @@ function computeAvailableMonths(transactions: LoadedTransaction[]) {
   const months = new Set<string>()
 
   // Always include current month so new users always see at least one option
-  const now = new Date()
+  const now = financialToday()
   const currentYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   months.add(currentYM)
 
@@ -579,7 +593,7 @@ export async function getReportSnapshot(userId: string, year: number, month: num
 
 // 🆕 Get monthly trend data (last 6 months) — installment-aware
 export const getMonthlyTrend = cache(async (userId: string) => {
-  const now = new Date()
+  const now = financialToday()
   const months: { year: number; month: number; label: string }[] = []
 
   for (let i = 5; i >= 0; i--) {
@@ -606,6 +620,7 @@ export const getMonthlyTrend = cache(async (userId: string) => {
 /** Expand the same monthly attribution used by reports into dated, per-installment entries. */
 export async function getFinancialOccurrences(userId: string, year: number, month: number): Promise<FinancialOccurrence[]> {
   const transactions = await loadUserTransactions(userId)
+  const today = financialToday()
   const result: FinancialOccurrence[] = []
   for (let offset = -3; offset <= 0; offset++) {
     const target = new Date(Date.UTC(year, month - 1 + offset, 1))
@@ -613,6 +628,7 @@ export async function getFinancialOccurrences(userId: string, year: number, mont
     const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate()
     for (const t of transactions) {
       if (!txInMonth(t, y, m)) continue
+      if (t.type === 'INCOME' && occurrenceDate(t, y, m) > today) continue
       const day = t.card && t.cardId ? t.card.dueDay
         : t.isRecurring ? effectivePayDay(y, m - 1, t.payDayType, t.recurringDay || t.date.getUTCDate())
         : t.isInstallment ? (t.dueDay || t.purchaseDate?.getUTCDate() || t.date.getUTCDate()) : t.date.getUTCDate()

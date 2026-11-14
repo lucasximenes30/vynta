@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import * as Lucide from 'lucide-react'
+import { useVisibleViewport } from '@/lib/useVisibleViewport'
 
 const COLORS = [
-  { value: 'bg-brand-500', label: 'Roxo (Padrão)' },
+  { value: 'bg-brand-500', label: 'Verde Vynta (Padrão)' },
   { value: 'bg-blue-500', label: 'Azul' },
   { value: 'bg-emerald-500', label: 'Verde' },
   { value: 'bg-orange-500', label: 'Laranja' },
@@ -30,6 +31,7 @@ export default function GoalModal({
   goal: any | null
 }) {
   const [loading, setLoading] = useState(false)
+  const viewport = useVisibleViewport()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   
   const [formData, setFormData] = useState({
@@ -118,16 +120,16 @@ export default function GoalModal({
   return (
     <>
       {isOpen && (
-        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div role="dialog" aria-modal="true" aria-labelledby="goal-modal-title" className="fixed inset-x-0 top-0 h-[100dvh] z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4" style={{ top: viewport.top, height: viewport.height || undefined }}>
           <div
             className="animate-in fade-in absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={onClose}
           />
           <div
-            className="animate-in fade-in slide-in-from-bottom w-full max-w-lg bg-surface-50 dark:bg-surface-950 sm:rounded-[2.5rem] rounded-t-[2.5rem] p-1.5 shadow-2xl relative border border-white/10"
-            style={{ maxHeight: 'min(96vh, 48rem)' }}
+            className="animate-in fade-in slide-in-from-bottom flex min-h-0 flex-col w-full max-w-lg bg-surface-50 dark:bg-surface-950 sm:rounded-[2.5rem] rounded-t-[2.5rem] p-1.5 shadow-2xl relative border border-white/10"
+            style={{ maxHeight: 'min(96%, 48rem)' }}
           >
-            <div className="bg-white dark:bg-surface-900 rounded-t-[calc(2.5rem-0.375rem)] sm:rounded-[calc(2.5rem-0.375rem)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] flex flex-col overflow-hidden h-full">
+            <div className="bg-white dark:bg-surface-900 rounded-t-[calc(2.5rem-0.375rem)] sm:rounded-[calc(2.5rem-0.375rem)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] flex min-h-0 flex-col overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-500 to-pink-500 z-10 opacity-70" />
               
               {/* Mobile Drag Pill */}
@@ -137,11 +139,12 @@ export default function GoalModal({
               
               {/* Header */}
               <div className="flex-shrink-0 flex justify-between items-center p-6 sm:p-8 pb-4 pt-2 sm:pt-8 relative">
-                <h2 className="font-display text-2xl font-bold tracking-tight text-surface-900 dark:text-white mt-2 sm:mt-0">
+                <h2 id="goal-modal-title" className="font-display text-2xl font-bold tracking-tight text-surface-900 dark:text-white mt-2 sm:mt-0">
                   {goal ? 'Editar Meta' : 'Nova Meta'}
                 </h2>
                 <button 
                   type="button"
+                  aria-label="Fechar meta"
                   onClick={onClose}
                   className="p-2 -mr-2 rounded-full text-surface-400 hover:bg-surface-100 hover:text-surface-700 dark:hover:bg-surface-800 dark:hover:text-surface-200 transition-colors"
                 >
@@ -150,7 +153,7 @@ export default function GoalModal({
               </div>
 
               {/* Body */}
-              <div className="flex-1 overflow-y-auto px-6 sm:px-8 pb-6 scrollbar-thin">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 sm:px-8 pb-6 scrollbar-thin">
                 <form id="goal-form" onSubmit={handleSubmit} className="space-y-6">
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-surface-500 dark:text-surface-400 mb-2">
@@ -309,7 +312,7 @@ export default function GoalModal({
                         type="submit"
                         form="goal-form"
                         disabled={loading}
-                        className="flex-1 py-3.5 rounded-full bg-brand-600 hover:bg-brand-700 text-white font-semibold flex items-center justify-center gap-2 transition-all shadow-[0_8px_16px_-6px_rgba(48,64,235,0.4)] hover:shadow-[0_12px_20px_-8px_rgba(48,64,235,0.6)] active:scale-[0.98]"
+                        className="flex-1 py-3.5 rounded-full bg-brand-600 hover:bg-brand-700 text-white font-semibold flex items-center justify-center gap-2 transition-all shadow-[0_8px_16px_-6px_rgba(41,78,72,0.4)] hover:shadow-[0_12px_20px_-8px_rgba(41,78,72,0.6)] active:scale-[0.98]"
                       >
                         {loading ? (
                           <>

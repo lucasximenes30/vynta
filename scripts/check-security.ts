@@ -20,6 +20,7 @@ import { transactionInputSchema } from '../lib/transactionValidation'
 import ExcelJS from 'exceljs'
 import { authenticAbacateWebhook, ABACATEPAY_PUBLIC_KEY } from '../lib/abacateWebhook'
 import { APP_SESSION_SECONDS, ADMIN_SESSION_SECONDS } from '../lib/sessionPolicy'
+import { financialToday } from '../lib/financialPeriod'
 
 /** Bundle the real handler with explicit local doubles. No database, AI, email or push is contacted. */
 async function isolated(entry: string, mocks: Record<string, string>) {
@@ -42,6 +43,43 @@ async function isolated(entry: string, mocks: Record<string, string>) {
 }
 
 async function main() {
+  const releaseState = globalThis as any
+  releaseState.__releaseRows = new Map()
+  releaseState.__releaseFailure = false
+  const release = await isolated('services/releaseNotice.service.ts', {
+    '@/lib/prisma': `export const prisma={notification:{findUnique:async({where})=>{if(globalThis.__releaseFailure)throw Error('db down');return globalThis.__releaseRows.get(where.id)},create:async({data})=>{if(globalThis.__releaseRows.has(data.id))throw {code:'P2002'};globalThis.__releaseRows.set(data.id,data);return data}}}`,
+  })
+  const releaseRace = await Promise.all(Array.from({ length: 8 }, () => release.claimReleaseNotice('alice')))
+  assert.equal(releaseRace.filter(Boolean).length, 1, 'only one concurrent tab/device may present a release')
+  assert.equal(await release.claimReleaseNotice('alice'), false, 'reload/new browser does not repeat the release')
+  assert.equal(await release.claimReleaseNotice('bob'), true, 'different accounts retain their own receipt')
+  releaseState.__releaseFailure = true
+  await assert.rejects(release.claimReleaseNotice('charlie'), /db down/)
+  assert.equal(releaseState.__releaseRows.size, 2, 'storage failure does not consume a receipt')
+  releaseState.__releaseUser = null
+  releaseState.__releaseClaims = []
+  releaseState.__releaseLimited = false
+  const releaseRoute = await isolated('app/api/release-notice/route.ts', {
+    '@/lib/auth': 'export const getSession=async()=>globalThis.__releaseUser',
+    '@/lib/rateLimit': 'export const enforceRateLimits=async()=>globalThis.__releaseLimited ? Response.json({error:"limited"},{status:429}):null',
+    '@/services/releaseNotice.service': 'export const claimReleaseNotice=async(id)=>{globalThis.__releaseClaims.push(id);return true}',
+  })
+  const releaseRequest = (origin = 'https://www.vynta.digital') => new Request('https://www.vynta.digital/api/release-notice', {method:'POST',headers:{Origin:origin},body:JSON.stringify({userId:'attacker'})})
+  assert.equal((await releaseRoute.POST(releaseRequest())).status, 401)
+  releaseState.__releaseUser = {userId:'alice'}
+  assert.equal((await releaseRoute.POST(releaseRequest('https://other.test'))).status, 403)
+  assert.equal((await releaseRoute.POST(releaseRequest())).status, 200)
+  assert.deepEqual(releaseState.__releaseClaims, ['alice'], 'identity comes only from the authenticated session')
+  releaseState.__releaseLimited = true
+  assert.equal((await releaseRoute.POST(releaseRequest())).status, 429)
+  releaseState.__releaseLimited = false
+  const originalVercelEnvironment = process.env.VERCEL_ENV
+  process.env.VERCEL_ENV = 'preview'
+  assert.equal((await (await releaseRoute.POST(releaseRequest())).json()).show, false)
+  assert.equal(releaseState.__releaseClaims.length, 1, 'preview cannot consume production receipts')
+  if (originalVercelEnvironment === undefined) delete process.env.VERCEL_ENV
+  else process.env.VERCEL_ENV = originalVercelEnvironment
+
   process.env.JWT_SECRET = randomUUID() + randomUUID()
   const waf = JSON.parse(readFileSync(resolve('docs/vercel-waf-policy.json'), 'utf8'))
   for (const rule of waf.rules) for (const path of waf.integrationPathsOutsideRules) assert(!new RegExp(rule.value).test(path), `${rule.name} must exclude ${path}`)
@@ -174,11 +212,13 @@ async function main() {
   ]
   const transactions = await isolated('services/transaction.service.ts', {
     '@/lib/prisma': 'export const prisma = { transaction: { findMany: async ({where}) => { if(where.userId !== "alice") throw new Error("wrong owner"); globalThis.__reportReads++; return globalThis.__reportRows } } }',
+    '@/lib/financialPeriod': 'export const financialToday = () => new Date(2026, 10, globalThis.__financeDay || 13, 23, 59, 59, 999)',
   })
   const report = await transactions.getReportSnapshot('alice', 2026, 11)
   assert.equal(state.__reportReads, 1)
   assert.equal(report.summary.income, 1200)
-  assert.equal(report.summary.balance, 1700)
+  assert.equal(report.summary.balance, 900, 'monthly result excludes previous months')
+  assert.equal(report.summary.accumulatedBalance, 1700, 'accumulated value is a separate field')
   assert.equal(report.previous.balance, 800)
   assert.equal(report.categories[0].amount, 300)
   assert.equal(report.trend[5].expense, 300)
@@ -217,6 +257,37 @@ async function main() {
   const novemberHealth = analyzeFinancialHealth(occurrences, '2026-11')
   assert.equal(novemberHealth.weekly.reduce((sum, w) => sum + w.expense, 0), 100, 'card installment lands in the invoice due month at installment value')
   assert.equal(novemberHealth.weekly.reduce((sum, w) => sum + w.income, 0), 1500, 'recurring salary configured earlier still counts')
+
+  assert.equal(financialToday(new Date('2026-11-16T01:00:00Z')).getDate(), 15, 'UTC midnight must not anticipate the Brazilian payday')
+  const salaryRow = { ...base, category: 'Salary', type: 'INCOME', amount: 1000, isRecurring: true, payDayType: 'fixed', date: new Date('2026-10-01T12:00:00Z'), createdAt: new Date('2026-10-01T12:00:00Z') }
+  state.__reportRows = [
+    { ...base, id: 'older', title: 'Entrada anterior', type: 'INCOME', amount: 4000, date: new Date('2026-09-01T12:00:00Z') },
+    { ...salaryRow, id: 'first', salarySlot: 1, recurringDay: 5 },
+    { ...salaryRow, id: 'second', salarySlot: 2, recurringDay: 20 },
+    { ...base, id: 'spent', title: 'Compra', type: 'EXPENSE', amount: 500, date: new Date('2026-11-08T12:00:00Z') },
+  ]
+  const partial = await transactions.getReportSnapshot('alice', 2026, 11)
+  assert.equal(partial.summary.income, 1000)
+  assert.equal(partial.summary.pendingIncome, 1000)
+  assert.equal(partial.summary.expense, 500)
+  assert.equal(partial.summary.balance, 500, 'second quinzena cannot inflate the current monthly remainder')
+  assert.equal(partial.summary.accumulatedBalance, 6500, 'accumulated balance also stops at today')
+  assert.equal(partial.trend.at(-1).income, 1000)
+  const partialHealth = analyzeFinancialHealth(await transactions.getFinancialOccurrences('alice', 2026, 11), '2026-11')
+  assert.equal(partialHealth.weekly.reduce((sum, week) => sum + week.income, 0), 1000, 'advanced reports cannot count the future salary either')
+  ;(globalThis as any).__financeDay = 20
+  const payday = await transactions.getMonthSummary('alice', 2026, 11)
+  assert.equal(payday.income, 2000, 'second payment enters exactly on its payday')
+  assert.equal(payday.pendingIncome, 0)
+  assert.equal(payday.balance, 1500)
+  ;(globalThis as any).__financeDay = 5
+  state.__reportRows = [{ ...salaryRow, id: 'business', salarySlot: 1, recurringDay: 5, payDayType: 'business_day' }]
+  assert.equal((await transactions.getMonthSummary('alice', 2026, 11)).income, 0, '5th weekday in November 2026 is the 6th, not the 5th')
+  ;(globalThis as any).__financeDay = 6
+  assert.equal((await transactions.getMonthSummary('alice', 2026, 11)).income, 1000)
+  state.__reportRows = [{ ...salaryRow, id: 'late-config', salarySlot: 1, recurringDay: 5, createdAt: new Date('2026-11-10T12:00:00Z') }]
+  assert.equal((await transactions.getMonthSummary('alice', 2026, 11)).pendingIncome, 0, 'late configuration does not recreate past payments')
+  delete (globalThis as any).__financeDay
   const requestId = randomUUID()
   const replayRequest = new Request('https://example.test', {headers: {'x-vynta-mutation-id':requestId}})
   assert.equal(offlineRecordId(replayRequest, 'alice'), offlineRecordId(replayRequest, 'alice'))

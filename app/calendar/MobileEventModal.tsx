@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react'
 import * as Lucide from 'lucide-react'
 import { format } from 'date-fns'
+import { useVisibleViewport } from '@/lib/useVisibleViewport'
 
 const COLORS = [
-  { value: 'bg-brand-500', label: 'Roxo (Padrão)' },
+  { value: 'bg-brand-500', label: 'Verde Vynta (Padrão)' },
   { value: 'bg-blue-500', label: 'Azul' },
   { value: 'bg-emerald-500', label: 'Verde' },
   { value: 'bg-orange-500', label: 'Laranja' },
@@ -44,6 +45,7 @@ export default function MobileEventModal({
   selectedDate: Date
 }) {
   const [loading, setLoading] = useState(false)
+  const viewport = useVisibleViewport()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
@@ -121,23 +123,31 @@ export default function MobileEventModal({
     }
   }
 
+  useEffect(() => {
+    if (!isOpen || !window.matchMedia('(max-width: 639px)').matches) return
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = previous }
+  }, [isOpen])
+
   if (!isOpen) return null
 
   // Mobile-first full screen/bottom sheet approach with safe areas and sticky footer
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-surface-50 dark:bg-surface-950 sm:hidden animate-in slide-in-from-bottom-full duration-300">
+    <div className="fixed inset-x-0 top-0 z-[100] flex h-[100dvh] max-w-full flex-col bg-surface-50 dark:bg-surface-950 sm:hidden animate-in slide-in-from-bottom-full duration-300" style={{ top: viewport.top, height: viewport.height || undefined }} role="dialog" aria-modal="true" aria-labelledby="mobile-event-title">
       
       {/* Header */}
       <div className="flex-shrink-0 flex items-center justify-between px-4 py-4 bg-white dark:bg-surface-900 border-b border-surface-200 dark:border-surface-800 pt-safe">
         <div className="flex items-center gap-3">
           <button 
             type="button"
+            aria-label="Fechar evento"
             onClick={onClose}
             className="p-2 -ml-2 rounded-full text-surface-500 hover:bg-surface-100 dark:hover:bg-surface-800"
           >
             <Lucide.ChevronDown className="w-6 h-6" />
           </button>
-          <h2 className="font-display text-xl font-bold text-surface-900 dark:text-white">
+          <h2 id="mobile-event-title" className="font-display text-xl font-bold text-surface-900 dark:text-white">
             {event ? 'Editar Evento' : 'Novo Evento'}
           </h2>
         </div>
@@ -153,7 +163,7 @@ export default function MobileEventModal({
       </div>
 
       {/* Scrollable Body */}
-      <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-6 bg-surface-50 dark:bg-surface-950 pb-[120px]">
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain px-4 py-6 bg-surface-50 dark:bg-surface-950 pb-6">
         
         {showDeleteConfirm && (
           <div className="mb-6 p-4 rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20">
@@ -183,7 +193,7 @@ export default function MobileEventModal({
           </div>
         )}
 
-        <form id="mobile-event-form" onSubmit={handleSubmit} className="space-y-6">
+        <form id="mobile-event-form" onSubmit={handleSubmit} className="min-w-0 space-y-6">
           <div className="space-y-2">
             <label className="text-sm font-semibold text-surface-700 dark:text-surface-300">Título</label>
             <input
@@ -210,34 +220,37 @@ export default function MobileEventModal({
             </div>
 
             <div className="p-4 border-b border-surface-100 dark:border-surface-800">
-              <label className="text-sm font-semibold text-surface-700 dark:text-surface-300 block mb-2">Data</label>
+              <label className="text-sm font-semibold text-surface-700 dark:text-surface-300 block mb-2" htmlFor="mobile-event-date">Data</label>
               <input
                 required
                 type="date"
+                id="mobile-event-date"
                 value={formData.date}
                 onChange={e => setFormData({ ...formData, date: e.target.value })}
-                className="w-full bg-surface-50 dark:bg-surface-950 border border-surface-200 dark:border-surface-800 rounded-xl px-4 py-3 text-base outline-none"
+                className="native-date-control block min-w-0 max-w-full w-full bg-surface-50 dark:bg-surface-950 border border-surface-200 dark:border-surface-800 rounded-xl px-4 py-3 text-base outline-none"
               />
             </div>
 
             {!formData.isAllDay && (
-              <div className="p-4 flex gap-4">
-                <div className="flex-1">
-                  <label className="text-sm font-semibold text-surface-700 dark:text-surface-300 block mb-2">Início</label>
+              <div className="grid min-w-0 grid-cols-2 gap-3 p-4">
+                <div className="min-w-0">
+                  <label className="text-sm font-semibold text-surface-700 dark:text-surface-300 block mb-2" htmlFor="mobile-event-startTime">Início</label>
                   <input
                     type="time"
+                    id="mobile-event-startTime"
                     value={formData.startTime}
                     onChange={e => setFormData({ ...formData, startTime: e.target.value })}
-                    className="w-full bg-surface-50 dark:bg-surface-950 border border-surface-200 dark:border-surface-800 rounded-xl px-4 py-3 text-base outline-none"
+                    className="native-date-control block min-w-0 max-w-full w-full bg-surface-50 dark:bg-surface-950 border border-surface-200 dark:border-surface-800 rounded-xl px-4 py-3 text-base outline-none"
                   />
                 </div>
-                <div className="flex-1">
-                  <label className="text-sm font-semibold text-surface-700 dark:text-surface-300 block mb-2">Fim</label>
+                <div className="min-w-0">
+                  <label className="text-sm font-semibold text-surface-700 dark:text-surface-300 block mb-2" htmlFor="mobile-event-endTime">Fim</label>
                   <input
                     type="time"
+                    id="mobile-event-endTime"
                     value={formData.endTime}
                     onChange={e => setFormData({ ...formData, endTime: e.target.value })}
-                    className="w-full bg-surface-50 dark:bg-surface-950 border border-surface-200 dark:border-surface-800 rounded-xl px-4 py-3 text-base outline-none"
+                    className="native-date-control block min-w-0 max-w-full w-full bg-surface-50 dark:bg-surface-950 border border-surface-200 dark:border-surface-800 rounded-xl px-4 py-3 text-base outline-none"
                   />
                 </div>
               </div>
@@ -322,7 +335,7 @@ export default function MobileEventModal({
       </div>
 
       {/* Sticky Footer */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 pb-safe border-t border-surface-200 dark:border-surface-800 bg-white/90 dark:bg-surface-900/90 backdrop-blur-md">
+      <div className="shrink-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] border-t border-surface-200 dark:border-surface-800 bg-white/90 dark:bg-surface-900/90 backdrop-blur-md">
         <button
           type="submit"
           form="mobile-event-form"

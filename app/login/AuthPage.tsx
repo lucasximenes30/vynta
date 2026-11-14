@@ -90,7 +90,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
 
   return (
     <div className="relative flex min-h-dvh items-center justify-center overflow-y-auto bg-[#07080c] px-4 py-10 sm:px-6">
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[600px] bg-[radial-gradient(ellipse_at_top,rgba(66,88,249,0.25),transparent_60%)]" />
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[600px] bg-[radial-gradient(ellipse_at_top,rgba(50,104,91,0.25),transparent_60%)]" />
 
       <div className="relative w-full max-w-[420px] animate-auth-fade">
         <Link href="/" className="mx-auto mb-8 flex w-fit" aria-label="Voltar para o início">
@@ -180,7 +180,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
           <button
             type="submit"
             disabled={loading || redirecting}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand-500 text-[15px] font-semibold text-white shadow-[0_10px_40px_-12px_rgba(66,88,249,0.9)] transition hover:bg-brand-400 active:scale-[0.99] disabled:opacity-70"
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand-500 text-[15px] font-semibold text-white shadow-[0_10px_40px_-12px_rgba(50,104,91,0.9)] transition hover:bg-brand-400 active:scale-[0.99] disabled:opacity-70"
           >
             {redirecting ? (
               <>
@@ -192,7 +192,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                 {loading
                   ? isRegister ? 'Criando sua conta...' : 'Entrando...'
-                  : isRegister ? 'Criar conta grátis' : 'Entrar'}
+                  : isRegister ? `Testar ${TRIAL_DAYS} dias grátis` : 'Entrar'}
               </>
             )}
           </button>

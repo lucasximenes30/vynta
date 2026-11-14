@@ -1,5 +1,7 @@
 export interface ReportSummary {
   income: number
+  pendingIncome?: number
+  accumulatedBalance?: number
   expense: number
   balance: number
   transactionCount: number

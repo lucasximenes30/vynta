@@ -127,7 +127,7 @@ export default function SubscriptionClient({ session, promoEligible, onPromoMont
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch pt-4">
           {/* Yearly Plan */}
-          <div className="relative flex flex-col rounded-3xl border border-brand-400/50 bg-gradient-to-b from-brand-500/[0.12] to-[#0b0c12] p-8 shadow-[0_0_80px_-30px_rgba(66,88,249,0.7)] order-1 md:order-2">
+          <div className="relative flex flex-col rounded-3xl border border-brand-400/50 bg-gradient-to-b from-brand-500/[0.12] to-[#0b0c12] p-8 shadow-[0_0_80px_-30px_rgba(50,104,91,0.7)] order-1 md:order-2">
             <div className="absolute -top-3.5 left-8 rounded-full bg-brand-500 px-3.5 py-1 text-xs font-bold text-white shadow-lg uppercase tracking-wider">
               Economize {YEARLY_DISCOUNT_PERCENT}%
             </div>
@@ -159,7 +159,7 @@ export default function SubscriptionClient({ session, promoEligible, onPromoMont
             <button
               onClick={() => handleUpgrade('pro_yearly')}
               disabled={loading || isCurrentPlan('pro_yearly')}
-              className="group w-full flex justify-between items-center rounded-2xl bg-brand-500 hover:bg-brand-400 text-white px-6 py-4 font-bold shadow-[0_0_30px_-5px_rgba(48,64,235,0.4)] transition-all disabled:opacity-50"
+              className="group w-full flex justify-between items-center rounded-2xl bg-brand-500 hover:bg-brand-400 text-white px-6 py-4 font-bold shadow-[0_0_30px_-5px_rgba(41,78,72,0.4)] transition-all disabled:opacity-50"
             >
               <span>{loading ? 'Aguarde...' : isCurrentPlan('pro_yearly') ? 'Plano Atual' : 'Assinar Plano Anual'}</span>
               {!loading && !isCurrentPlan('pro_yearly') && (

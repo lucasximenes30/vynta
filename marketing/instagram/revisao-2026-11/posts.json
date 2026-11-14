@@ -1,0 +1,311 @@
+[
+  {
+    "folder": "15-reset-domingo",
+    "date": "2026-11-22T18:30:00-03:00",
+    "category": "ROTINA REAL",
+    "pose": "guide-pointing-v1",
+    "screen": "calendar",
+    "slides": [
+      [
+        "Antes de começar a semana, abra espaço.",
+        "Um pequeno reset de domingo para dinheiro e agenda.",
+        "cover"
+      ],
+      [
+        "Comece pelo que já tem data.",
+        "Confira contas, faturas e compromissos dos próximos dias. O que precisa da sua atenção?",
+        "list"
+      ],
+      [
+        "Depois, olhe o que ficou para trás.",
+        "Registre os gastos que faltaram. Compare o previsto com o que realmente aconteceu.",
+        "number"
+      ],
+      [
+        "Escolha uma prioridade possível.",
+        "Pode ser revisar uma conta ou reservar tempo para um hábito. Uma coisa de cada vez.",
+        "mascot"
+      ],
+      [
+        "Dinheiro e agenda conversam.",
+        "No Vynta, você consulta finanças e compromissos no mesmo app. Lembretes dependem dos dados cadastrados e das notificações ativadas.",
+        "phone"
+      ],
+      [
+        "Salve para o seu próximo domingo.",
+        "O reset pode ser curto. Não precisa resolver a semana inteira hoje.",
+        "cta"
+      ]
+    ],
+    "caption": "Um reset de domingo que cabe na vida real.\n\nOlhe o que vence, registre o que ficou para trás e escolha uma prioridade para a semana. O tempo varia: o objetivo é começar, não cumprir um cronômetro.\n\nNo Vynta, dinheiro, hábitos e agenda ficam juntos. Os lembretes dependem das informações cadastradas e das permissões de notificação.\n\nSalve para voltar quando for planejar a semana. Qual desses passos ajuda mais você?\n\n#somosvynta #vidaorganizada #financaspessoais #rotina #planejamentosemanal",
+    "poll": [
+      "O que você olha primeiro no domingo?",
+      "Agenda",
+      "Contas da semana"
+    ],
+    "storyTime": "11h e 19h30",
+    "status": "reserve_not_scheduled",
+    "note": "Data apenas sugerida para reaproveitamento. ID anterior foi usado no lançamento de 15/11; não atualizar o anúncio com este conteúdo."
+  },
+  {
+    "folder": "16-planilha-abandonada",
+    "date": "2026-11-16T12:00:00-03:00",
+    "sourceId": "6af6f112e03cb82aaa56a5c5",
+    "category": "SEM CULPA",
+    "pose": "concerned-v1",
+    "screen": "habits",
+    "slides": [
+      [
+        "A planilha ficou para depois?",
+        "Talvez seja hora de ajustar o jeito de se organizar à sua rotina.",
+        "cover"
+      ],
+      [
+        "Planilha pode funcionar muito bem.",
+        "Inclusive no celular. A pergunta é: você consegue manter o seu jeito de registrar?",
+        "number"
+      ],
+      [
+        "Encontre o passo que está pesando.",
+        "É lembrar? Abrir a ferramenta? Preencher muitos campos? Mude uma coisa e observe.",
+        "list"
+      ],
+      [
+        "Comece pelo próximo gasto.",
+        "No Vynta, toque em +, preencha valor e descrição e confira a categoria sugerida antes de salvar.",
+        "mascot"
+      ],
+      [
+        "Um lembrete para voltar.",
+        "Você pode criar um hábito para revisar seus registros. A sequência ajuda a acompanhar, sem prometer um prazo para virar hábito.",
+        "phone"
+      ],
+      [
+        "Escolha um jeito que você queira abrir.",
+        "Conheça o Vynta: teste 7 dias grátis, sem cartão. Link na bio.",
+        "cta"
+      ]
+    ],
+    "caption": "Se a planilha ficou para depois, investigue o que dificultou continuar.\n\nPlanilhas também funcionam no celular e podem ser ótimas. Não existe uma ferramenta certa para todo mundo.\n\nNo Vynta, o lançamento rápido e os hábitos são duas formas de experimentar uma rotina mais simples. Sem promessa de criar um hábito em sete dias.\n\nO que costuma pesar mais: lembrar de anotar ou preencher tudo?\n\nConheça o app: teste 7 dias grátis, sem cartão — link na bio.\n\n#somosvynta #organizacaofinanceira #habitos #vidaorganizada #financaspessoais",
+    "poll": [
+      "O que dificulta registrar seus gastos?",
+      "Lembrar na hora",
+      "Preencher tudo"
+    ],
+    "storyTime": "8h30 e 19h30"
+  },
+  {
+    "folder": "17-decimo-terceiro",
+    "date": "2026-11-17T12:30:00-03:00",
+    "sourceId": "6af6f12302f7f00bc854e76f",
+    "category": "13º COM CLAREZA",
+    "pose": "guide-pointing-v1",
+    "screen": "finances",
+    "slides": [
+      [
+        "Seu 13º já tem planos demais?",
+        "Antes de contar com ele, confira quanto e quando você vai receber.",
+        "cover"
+      ],
+      [
+        "Até 30/11: primeira parcela.",
+        "Na regra geral, a segunda tem prazo até 20/12. Isso não significa receber o valor inteiro no dia 30.",
+        "number"
+      ],
+      [
+        "O valor depende da sua situação.",
+        "Pode ser proporcional e ter descontos na segunda parcela. Confira o demonstrativo ou o RH.",
+        "list"
+      ],
+      [
+        "Anote prioridades, sem contar duas vezes.",
+        "Liste contas, planos e o valor disponível. Um mesmo dinheiro não cobre todas as linhas ao mesmo tempo.",
+        "mascot"
+      ],
+      [
+        "Cadastre o 13º como receita separada.",
+        "Use o valor e a data previstos. Revise quando receber. O Vynta não consulta seu banco para confirmar o depósito.",
+        "phone"
+      ],
+      [
+        "Planejar começa por conferir.",
+        "Salve este lembrete e volte com os valores reais em mãos.",
+        "cta"
+      ]
+    ],
+    "caption": "O 13º está nos planos? Confira a parcela antes de contar com o valor.\n\nNa regra geral, o prazo da primeira parcela é até 30/11 e o da segunda, até 20/12. O valor pode ser proporcional; a segunda parcela pode ter descontos. Não é uma promessa de depósito integral em 30/11.\n\nConfira seu demonstrativo ou o RH. No Vynta, registre o 13º separadamente, com valor e data, e revise quando receber. A configuração do salário recorrente não gera automaticamente o 13º.\n\nFonte: Ministério do Trabalho e Emprego, Perguntas Frequentes (consultado em 13/11/2026).\n\nSalve para conferir depois.\n\n#somosvynta #decimoterceiro #financaspessoais #planejamentofinanceiro #vidaorganizada",
+    "source": "https://www.gov.br/trabalho-e-emprego/pt-br/acesso-a-informacao/acoes-e-programas/programas-projetos-acoes-obras-e-atividades/proteja/duvidas-frequentes/duvidas-frequentes",
+    "poll": [
+      "Você já conferiu a previsão do seu 13º?",
+      "Já conferi",
+      "Vou conferir"
+    ],
+    "storyTime": "12h e 20h"
+  },
+  {
+    "folder": "18-organizar-mes",
+    "date": "2026-11-18T19:00:00-03:00",
+    "sourceId": "6af6f130e03cb82aaa56a6d0",
+    "category": "BROTÔ EXPLICA",
+    "pose": "guide-pointing-v1",
+    "screen": "reports",
+    "slides": [
+      [
+        "Seu próximo gasto é um bom começo.",
+        "Brotô explica: como registrar e depois entender o seu mês no Vynta.",
+        "cover"
+      ],
+      [
+        "01. Toque em + e escolha a despesa.",
+        "Preencha valor e descrição. Confira data e categoria sugerida antes de salvar.",
+        "number"
+      ],
+      [
+        "02. Confira a forma de pagamento.",
+        "Compra no cartão? Selecione o cartão e informe as parcelas quando houver.",
+        "list"
+      ],
+      [
+        "03. Volte às Finanças.",
+        "Confira o resumo do mês. Receitas com datas futuras ficam separadas; o resultado não é saldo bancário confirmado.",
+        "mascot"
+      ],
+      [
+        "04. Abra os Relatórios.",
+        "Escolha o mês e observe as categorias. A visão depende dos lançamentos que você cadastrou.",
+        "phone"
+      ],
+      [
+        "Um registro hoje. Mais contexto depois.",
+        "Experimente com o Brotô: teste 7 dias grátis, sem cartão. Link na bio.",
+        "cta"
+      ]
+    ],
+    "caption": "Brotô explica: do lançamento ao relatório, um passo de cada vez. 🌱\n\nToque em +, registre a despesa e confira data, categoria e forma de pagamento. Depois, veja como ela aparece no mês e nos relatórios.\n\nReceitas futuras ficam separadas do resultado atual. Os dados dependem dos seus registros: o Vynta não confirma depósitos consultando seu banco.\n\nQual tela você quer ver no próximo tutorial do Brotô?\n\nTeste 7 dias grátis, sem cartão — link na bio.\n\n#somosvynta #controlefinanceiro #financaspessoais #tutorial #vidaorganizada",
+    "poll": [
+      "Qual tutorial você quer ver depois?",
+      "Salário quinzenal",
+      "Cartões e faturas"
+    ],
+    "storyTime": "12h30 e 20h"
+  },
+  {
+    "folder": "19-gta6-dia-d",
+    "date": "2026-11-19T10:00:00-03:00",
+    "sourceId": "6af6f13702f7f00bc854e7a8",
+    "category": "GTA VI · DE VOLTA AO DESAFIO",
+    "pose": "celebrating-v1",
+    "screen": "goals",
+    "slides": [
+      [
+        "O GTA VI está nos planos. E no seu mês?",
+        "Voltando ao desafio: o que seus registros mostraram sobre espaço para lazer?",
+        "cover"
+      ]
+    ],
+    "caption": "GTA VI nos planos — e o seu mês, como ficou?\n\nNo post de 12/11, a proposta era observar os gastos durante a semana. Agora vale olhar seus registros: existe espaço para lazer depois dos compromissos previstos?\n\nPode caber agora, pode ficar para depois. A ideia é decidir com os seus números, sem culpa. Preços variam por plataforma e edição; confira a loja oficial.\n\nA Rockstar informa lançamento em 19/11/2026. Conteúdo independente, sem parceria com a Rockstar.\n\nQual gasto você percebeu melhor durante a semana?\n\n#somosvynta #GTAVI #financaspessoais #planejamentofinanceiro #vidagamer",
+    "source": "https://www.rockstargames.com/VI",
+    "fallbackCaption": "Um jogo novo nos planos. E o espaço para lazer no seu mês?\n\nVolte aos registros da semana e confira os compromissos previstos antes de decidir. Pode caber agora, pode ficar para depois. A ideia é escolher com os seus números, sem culpa.\n\n#somosvynta #financaspessoais #planejamentofinanceiro #vidagamer",
+    "poll": [
+      "O jogo está nos seus planos?",
+      "Estou me planejando",
+      "Vou esperar"
+    ],
+    "storyTime": "10h30 e 20h"
+  },
+  {
+    "folder": "20-black-friday-d7",
+    "date": "2026-11-20T11:00:00-03:00",
+    "sourceId": "6af6f14524f90b0ffc69944b",
+    "category": "ANTES DA BLACK FRIDAY",
+    "pose": "guide-pointing-v1",
+    "screen": "notes",
+    "slides": [
+      [
+        "A oferta começa antes do desconto.",
+        "Black Friday em 27/11. Sua lista pode começar hoje.",
+        "cover"
+      ],
+      [
+        "Primeiro, o que você precisa?",
+        "Escreva os itens que já estavam nos planos. Você não precisa comprar só porque chegou uma promoção.",
+        "list"
+      ],
+      [
+        "Depois, acompanhe o preço.",
+        "Anote valores em mais de uma data e loja. Uma única comparação pode esconder uma falsa redução.",
+        "number"
+      ],
+      [
+        "Olhe o total, incluindo o frete.",
+        "Exemplo: 12 × R$ 49 = R$ 588. Compare o custo completo e o impacto das parcelas no mês.",
+        "mascot"
+      ],
+      [
+        "Deixe a lista fácil de consultar.",
+        "Nas Notas do Vynta, registre item, preço observado e data. Compare com a oferta antes de decidir.",
+        "phone"
+      ],
+      [
+        "Seu plano também pode ser não comprar.",
+        "Salve o checklist para consultar antes da Black Friday.",
+        "cta"
+      ]
+    ],
+    "caption": "Black Friday em 27/11: comece pela lista, não pelo botão de comprar.\n\nAnote o que precisa, acompanhe preços em diferentes datas e lojas e compare o total com frete. Parcelar muda o fluxo de pagamento, não apaga o custo.\n\nExemplo ilustrativo: 12 parcelas de R$ 49 somam R$ 588.\n\nVocê pode guardar item, data e preço observado nas Notas do Vynta. Não é monitoramento automático de preços.\n\nReferência: orientações do Procon-SP sobre pesquisa de preços, checagem da empresa e falsas ofertas.\n\nSalve o checklist para consultar antes de decidir.\n\n#somosvynta #blackfriday #consumoconsciente #financaspessoais #planejamentofinanceiro",
+    "source": "https://www.procon.sp.gov.br/procon-sp-tera-orientacao-presencial-na-capital-e-interior-durante-semana-da-black-friday/",
+    "poll": [
+      "Como está sua lista para a Black Friday?",
+      "Já tenho prioridades",
+      "Não pretendo comprar"
+    ],
+    "storyTime": "10h e 19h"
+  },
+  {
+    "folder": "21-role-40-reais",
+    "date": "2026-11-21T11:00:00-03:00",
+    "sourceId": "6af6f0f1e03cb82aaa56a47e",
+    "category": "A CONTA DO ROLÊ",
+    "pose": "concerned-v1",
+    "screen": "finances",
+    "slides": [
+      [
+        "A entrada era R$ 40. E o resto?",
+        "Um rolê também tem caminho, bebida e aquele lanche na volta.",
+        "cover"
+      ],
+      [
+        "R$ 40 + R$ 78 + R$ 62 + R$ 50.",
+        "Entrada, transporte, bebidas e lanche: R$ 230 no total. Exemplo ilustrativo, não média de gastos.",
+        "number"
+      ],
+      [
+        "Sair faz parte da vida.",
+        "Antes de combinar, pense no custo completo. Quanto cabe nos seus planos desta vez?",
+        "list"
+      ],
+      [
+        "Registrar ajuda a lembrar do todo.",
+        "No Vynta, use o + para lançar cada despesa. Confira a categoria sugerida e salve.",
+        "mascot"
+      ],
+      [
+        "Depois do rolê, confira o mês.",
+        "Veja o que já foi registrado e complete o que faltou. O app mostra os dados que você informa.",
+        "phone"
+      ],
+      [
+        "Mande para quem combina o próximo rolê.",
+        "Dá para conversar sobre dinheiro sem estragar os planos.",
+        "cta"
+      ]
+    ],
+    "caption": "A entrada era R$ 40. O rolê inteiro era outra conta.\n\nExemplo ilustrativo: R$ 40 de entrada + R$ 78 de transporte + R$ 62 de bebidas + R$ 50 de lanche = R$ 230. Não é uma média nem o preço de um evento real.\n\nSair faz parte da vida. Olhar o custo completo antes ajuda a escolher o que cabe nos seus planos. Depois, registre e confira o que aconteceu.\n\nEnvie para quem combina o próximo rolê com você.\n\n#somosvynta #financaspessoais #vidaorganizada #planejamentofinanceiro #role",
+    "poll": [
+      "No orçamento do rolê, você inclui a volta?",
+      "Já incluo",
+      "Vou lembrar"
+    ],
+    "storyTime": "10h e 19h"
+  }
+]

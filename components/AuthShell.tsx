@@ -5,7 +5,7 @@ import BrandLogo from '@/components/BrandLogo'
 export default function AuthShell({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
     <div className="relative flex min-h-dvh items-center justify-center overflow-y-auto bg-[#07080c] px-4 py-10 sm:px-6">
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[600px] bg-[radial-gradient(ellipse_at_top,rgba(66,88,249,0.25),transparent_60%)]" />
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[600px] bg-[radial-gradient(ellipse_at_top,rgba(50,104,91,0.25),transparent_60%)]" />
       <div className="relative w-full max-w-[420px] animate-auth-fade">
         <Link href="/" className="mx-auto mb-8 flex w-fit" aria-label="Voltar para o início">
           <BrandLogo size="lg" textClassName="font-display text-2xl text-white" priority />

@@ -14,7 +14,6 @@ import {
   isSameMonth,
   isSameDay,
   addDays,
-  parseISO,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import EventModal from './EventModal'
@@ -89,11 +88,11 @@ export default function CalendarClient() {
 
   const renderHeader = () => {
     return (
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         <h3 className="font-display text-lg sm:text-xl font-bold capitalize">
           {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
         </h3>
-        <div className="flex gap-2">
+        <div className="flex shrink-0 gap-2">
           <button
             onClick={handleToday}
             className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-surface-100 text-surface-700 hover:bg-surface-200 dark:bg-surface-800 dark:text-surface-300 dark:hover:bg-surface-700 transition-colors"
@@ -102,12 +101,14 @@ export default function CalendarClient() {
           </button>
           <div className="flex gap-1">
             <button 
+              aria-label="Mês anterior"
               onClick={handlePrevMonth}
               className="p-1.5 rounded-lg border border-surface-200 dark:border-surface-700 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
             >
               <Lucide.ChevronLeft className="w-4 h-4" />
             </button>
             <button 
+              aria-label="Próximo mês"
               onClick={handleNextMonth}
               className="p-1.5 rounded-lg border border-surface-200 dark:border-surface-700 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
             >
@@ -131,7 +132,7 @@ export default function CalendarClient() {
         </div>
       )
     }
-    return <div className="grid grid-cols-7 gap-1 mb-2">{days}</div>
+    return <div className="grid min-w-0 grid-cols-7 gap-1 mb-2">{days}</div>
   }
 
   const renderCells = () => {
@@ -161,15 +162,15 @@ export default function CalendarClient() {
           <div
             key={day.toString()}
             onClick={() => handleDayClick(cloneDay)}
-            className={`min-h-[4rem] sm:min-h-[5rem] p-1 sm:p-2 rounded-xl border flex flex-col items-start transition-all cursor-pointer group ${
+            className={`min-w-0 min-h-[3.5rem] sm:min-h-[5rem] p-1 sm:p-2 rounded-xl border flex flex-col items-start transition-all cursor-pointer group ${
               !isCurrentMonth
                 ? 'opacity-40 border-transparent pointer-events-none'
                 : isSelected
-                ? 'border-brand-500 bg-brand-500/10 scale-[1.02] shadow-sm shadow-brand-500/20 z-10'
+                ? 'border-brand-500 bg-brand-500/10 shadow-sm shadow-brand-500/20 z-10'
                 : 'border-surface-100 dark:border-surface-800 bg-white dark:bg-surface-900 hover:bg-surface-50 dark:hover:bg-surface-800/80 hover:border-brand-500/30'
             }`}
           >
-            <div className="w-full flex justify-between items-start">
+            <div className="w-full min-w-0 flex flex-col sm:flex-row sm:justify-between items-start">
               <span className={`text-xs sm:text-sm font-semibold flex items-center justify-center w-6 h-6 rounded-full ${
                 isToday ? 'bg-brand-500 text-white shadow-md shadow-brand-500/30' : 
                 isSelected ? 'text-brand-600 dark:text-brand-400' : 'text-surface-700 dark:text-surface-300'
@@ -178,9 +179,9 @@ export default function CalendarClient() {
               </span>
               
               {/* Event Indicators (dots) on very small screens */}
-              <div className="flex sm:hidden gap-0.5 mt-1">
+              <div className="flex sm:hidden flex-wrap gap-0.5 mt-1 px-0.5">
                 {dayEvents.slice(0, 3).map((e, idx) => (
-                  <div key={idx} className={`w-1.5 h-1.5 rounded-full ${e.color}`} />
+                  <div key={idx} className={`w-1 h-1 shrink-0 rounded-full ${e.color}`} />
                 ))}
               </div>
             </div>
@@ -203,7 +204,7 @@ export default function CalendarClient() {
         day = addDays(day, 1)
       }
       rows.push(
-        <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-1 sm:mb-2" key={day.toString()}>
+        <div className="grid min-w-0 grid-cols-7 gap-1 sm:gap-2 mb-1 sm:mb-2" key={day.toString()}>
           {days}
         </div>
       )
@@ -220,7 +221,7 @@ export default function CalendarClient() {
   })
 
   return (
-    <div className="min-h-screen bg-surface-50 dark:bg-surface-950 text-surface-900 dark:text-surface-100 transition-colors duration-300 animate-dashboard-fade">
+    <div className="min-h-screen w-full min-w-0 bg-surface-50 dark:bg-surface-950 text-surface-900 dark:text-surface-100 transition-colors duration-300 animate-dashboard-fade">
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-surface-200/80 bg-white/80 dark:bg-surface-900/80 backdrop-blur-md dark:border-surface-800/80 transition-colors duration-300">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
@@ -235,6 +236,7 @@ export default function CalendarClient() {
             <h1 className="font-display text-base font-semibold tracking-tight">Agenda</h1>
           </div>
           <button
+            aria-label="Novo evento"
             onClick={() => handleOpenModal()}
             className="btn-primary py-1.5 px-4 h-9 gap-1.5"
           >
@@ -244,7 +246,7 @@ export default function CalendarClient() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+      <main className="mx-auto w-full min-w-0 max-w-7xl px-4 sm:px-6 py-6 sm:py-8 space-y-6">
         {/* Title */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -255,9 +257,9 @@ export default function CalendarClient() {
           </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-12 items-start">
+        <div className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-12 items-start">
           {/* Calendar Grid */}
-          <div className="card lg:col-span-8 relative overflow-hidden bg-white/60 dark:bg-surface-900/60 backdrop-blur-sm border-surface-200/50 dark:border-surface-700/50">
+          <div className="card min-w-0 p-3 sm:p-5 lg:col-span-8 relative overflow-hidden bg-white/60 dark:bg-surface-900/60 backdrop-blur-sm border-surface-200/50 dark:border-surface-700/50">
             <div className="absolute inset-0 bg-gradient-to-br from-brand-500/5 via-transparent to-brand-900/5 pointer-events-none" />
             <div className="relative">
               {renderHeader()}
@@ -273,9 +275,9 @@ export default function CalendarClient() {
           </div>
 
           {/* Sidebar Day Details */}
-          <div className="lg:col-span-4 flex flex-col gap-4 sticky top-24">
-            <div className="card flex-1 min-h-[400px] border-surface-200/50 dark:border-surface-700/50 shadow-lg shadow-brand-500/5">
-              <div className="flex items-center justify-between mb-6 pb-4 border-b border-surface-100 dark:border-surface-800">
+          <div className="min-w-0 lg:col-span-4 flex flex-col gap-4 lg:sticky lg:top-24">
+            <div className="card min-w-0 flex-1 min-h-[240px] sm:min-h-[400px] border-surface-200/50 dark:border-surface-700/50 shadow-lg shadow-brand-500/5">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-5 pb-4 border-b border-surface-100 dark:border-surface-800">
                 <h3 className="font-display text-base font-semibold flex items-center gap-2">
                   <span className={`flex items-center justify-center w-8 h-8 rounded-full ${isSameDay(selectedDate, new Date()) ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20' : 'bg-surface-100 dark:bg-surface-800 text-surface-700 dark:text-surface-300'}`}>
                     {format(selectedDate, 'd')}
@@ -286,6 +288,7 @@ export default function CalendarClient() {
                   </div>
                 </h3>
                 <button 
+                  aria-label="Novo evento"
                   onClick={() => handleOpenModal()}
                   className="p-2 rounded-lg bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-500/20 transition-colors"
                 >
@@ -301,9 +304,10 @@ export default function CalendarClient() {
                     </div>
                     <p className="text-base font-semibold text-surface-900 dark:text-white mb-2">Sem eventos hoje</p>
                     <p className="text-xs text-surface-500 dark:text-surface-400 max-w-[200px] leading-relaxed mb-6">
-                      Organize sua semana e nunca esqueça algo importante.
+                      Adicione um compromisso para organizar sua semana.
                     </p>
                     <button
+                      aria-label="Novo evento"
                       onClick={() => handleOpenModal()}
                       className="btn-primary py-2 px-6 text-xs font-semibold"
                     >
@@ -315,11 +319,11 @@ export default function CalendarClient() {
                     <div 
                       key={e.id}
                       onClick={() => handleOpenModal(e)}
-                      className="group flex gap-3 p-3 rounded-xl bg-surface-50 dark:bg-surface-800/40 border border-surface-100 dark:border-surface-800/80 transition-all hover:border-brand-500/30 hover:shadow-md cursor-pointer"
+                      className="group flex min-w-0 gap-2 p-3 rounded-xl bg-surface-50 dark:bg-surface-800/40 border border-surface-100 dark:border-surface-800/80 transition-all hover:border-brand-500/30 hover:shadow-md cursor-pointer"
                     >
-                      <div className="flex flex-col items-center min-w-[3rem]">
+                      <div className="flex shrink-0 flex-col items-center w-11">
                         <span className="text-xs font-bold text-surface-700 dark:text-surface-200">
-                          {e.isAllDay ? 'All' : e.startTime || '--:--'}
+                          {e.isAllDay ? 'Dia todo' : e.startTime || '--:--'}
                         </span>
                         {e.endTime && !e.isAllDay && (
                           <span className="text-[10px] text-surface-400 mt-0.5">{e.endTime}</span>
@@ -331,12 +335,12 @@ export default function CalendarClient() {
                           <p className="text-xs text-surface-500 dark:text-surface-400 line-clamp-1 mt-0.5">{e.description}</p>
                         )}
                         {e.category && (
-                          <span className="inline-block px-2 py-0.5 text-[10px] font-medium rounded bg-surface-200/50 dark:bg-surface-800 text-surface-600 dark:text-surface-400 mt-2">
+                          <span className="inline-block max-w-full truncate px-2 py-0.5 text-[10px] font-medium rounded bg-surface-200/50 dark:bg-surface-800 text-surface-600 dark:text-surface-400 mt-2">
                             {e.category}
                           </span>
                         )}
                       </div>
-                      <div className={`w-1.5 h-full min-h-[2rem] rounded-full ${e.color}`} />
+                      <div className={`w-1 shrink-0 self-stretch min-h-[2rem] rounded-full ${e.color}`} />
                     </div>
                   ))
                 )}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
+import { financialToday } from '@/lib/financialPeriod'
 import {
   getTransactionsByMonth,
   getMonthSummary,
@@ -48,8 +49,9 @@ export async function GET(request: NextRequest) {
     }
 
     if (type === 'comparison') {
-      const cYear = Number(year ?? new Date().getFullYear())
-      const cMonth = Number(month ?? new Date().getMonth() + 1)
+      const today = financialToday()
+      const cYear = Number(year ?? today.getFullYear())
+      const cMonth = Number(month ?? today.getMonth() + 1)
       const comparison = await getMonthComparison(session.userId, cYear, cMonth)
       return NextResponse.json(comparison)
     }

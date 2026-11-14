@@ -5,7 +5,7 @@ import * as Lucide from 'lucide-react'
 import { format } from 'date-fns'
 
 const COLORS = [
-  { value: 'bg-brand-500', label: 'Roxo (Padrão)' },
+  { value: 'bg-brand-500', label: 'Verde Vynta (Padrão)' },
   { value: 'bg-blue-500', label: 'Azul' },
   { value: 'bg-emerald-500', label: 'Verde' },
   { value: 'bg-orange-500', label: 'Laranja' },
@@ -162,12 +162,12 @@ export default function EventModal({
                 type="text"
                 value={formData.title}
                 onChange={e => setFormData({ ...formData, title: e.target.value })}
-                className="input-field"
+                className="input-field min-w-0 max-w-full"
                 placeholder="Ex: Reunião de Alinhamento"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid min-w-0 grid-cols-2 gap-4">
               <div className="col-span-2 sm:col-span-1">
                 <label className="block text-sm font-semibold text-surface-700 dark:text-surface-300 mb-1.5">Data *</label>
                 <input
@@ -175,7 +175,7 @@ export default function EventModal({
                   type="date"
                   value={formData.date}
                   onChange={e => setFormData({ ...formData, date: e.target.value })}
-                  className="input-field"
+                  className="input-field min-w-0 max-w-full"
                 />
               </div>
               <div className="col-span-2 sm:col-span-1 flex items-center mt-6">
@@ -192,14 +192,14 @@ export default function EventModal({
             </div>
 
             {!formData.isAllDay && (
-              <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="grid min-w-0 grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
                 <div>
                   <label className="block text-sm font-semibold text-surface-700 dark:text-surface-300 mb-1.5">Início</label>
                   <input
                     type="time"
                     value={formData.startTime}
                     onChange={e => setFormData({ ...formData, startTime: e.target.value })}
-                    className="input-field"
+                    className="input-field min-w-0 max-w-full"
                   />
                 </div>
                 <div>
@@ -208,7 +208,7 @@ export default function EventModal({
                     type="time"
                     value={formData.endTime}
                     onChange={e => setFormData({ ...formData, endTime: e.target.value })}
-                    className="input-field"
+                    className="input-field min-w-0 max-w-full"
                   />
                 </div>
               </div>
@@ -257,7 +257,7 @@ export default function EventModal({
               <select
                 value={formData.category}
                 onChange={e => setFormData({ ...formData, category: e.target.value })}
-                className="input-field"
+                className="input-field min-w-0 max-w-full"
               >
                 {CATEGORIES.map(c => (
                   <option key={c} value={c}>{c}</option>

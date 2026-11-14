@@ -76,13 +76,20 @@
 
 ## Salário
 - Config em Finanças → botão "Salário" (`app/finances/SalaryModal.tsx` → `POST|DELETE /api/salary` → `services/salary.service.ts`).
-- Salário = transação(ões) INCOME recorrentes com `salarySlot` 1 (mensal ou 1ª quinzena) e 2 (2ª quinzena). `payDayType` `'fixed'` (dia do mês) ou `'business_day'` (`recurringDay` = N-ésimo dia útil — ver `lib/payday.ts`, `effectivePayDay`). `date` = 1º dia do mês da configuração, então só conta do mês atual em diante.
+- Resumos: `income` só inclui datas já alcançadas; `pendingIncome` separa receitas futuras. `balance` é resultado do mês; `accumulatedBalance` é o histórico até hoje (ou fim do mês passado). Não misturar as duas grandezas nem antecipar a segunda quinzena. `financialToday` usa o dia de São Paulo, independente do fuso do servidor. Despesas do mês continuam incluindo os compromissos previstos; não são saldo bancário confirmado.
+- Salário = transação(ões) INCOME recorrentes com `salarySlot` 1 (mensal ou 1ª quinzena) e 2 (2ª quinzena). `payDayType` `'fixed'` (dia do mês) ou `'business_day'` (`recurringDay` = N-ésimo dia útil — ver `lib/payday.ts`, `effectivePayDay`). A primeira ocorrência usa a data de configuração (`createdAt`): começa no primeiro pagamento nessa data ou depois dela, sem incluir pagamentos anteriores retroativamente.
 
 ## Navegação / cache do cliente
 - `experimental.staleTimes.dynamic = 30` (next.config): telas visitadas são reaproveitadas por 30s. `components/RouterCacheSync.tsx` marca o cache como sujo após qualquer `fetch` não-GET bem-sucedido para `/api/*` e faz `router.refresh()` na próxima troca de tela. Mutações novas via `fetch('/api/...')` já ficam cobertas.
 - Skeletons por rota (`components/PageSkeleton.tsx` + `loading.tsx`) — mantenha-os parecidos com o layout real.
 - Pixels de marketing (Utmify, Facebook) e o Google Tag Manager (`components/GoogleTagManager.tsx`, `GTM-TVT2XQSL`, serve a tag do GA4) só carregam nas rotas de aquisição/checkout (`components/MarketingScripts.tsx`); não os coloque nas telas logadas.
 - Animações simples: use as classes CSS `animate-in fade-in zoom-in-95 slide-in-from-bottom-*` (definidas em `globals.css`) em vez de framer-motion; `collapse-grid[data-open]` para acordeões.
+
+## Branding — broto (13/11/2026)
+- Identidade oficial: `marketing/branding/README.md`. Símbolo B1 aprovado; substitui as camadas azul/roxo. Novos materiais devem usar `public/assets/logo/broto-mark.png` e `mascot.webp`.
+- Paleta: lavanda escura (#14121C), verde profundo, lima e lavanda; creme apenas como apoio. Não copiar branding neon antigo de posts arquivados. `scripts/build-brand-assets.mjs` gera exports técnicos preservando a matriz.
+- Copy atual e evidências: `marketing/branding/2026-11-rebrand/COPY.md`. Não transformar tempos ilustrativos (5s/30s) em garantias. CTA: teste de 7 dias, não plano gratuito permanente.
+- Personagem auxiliar aprovado, chamado **Brotô**: poses em `public/assets/mascot/` (apontando, preocupado, celebrando). Não substitui logo, avatares ou ícones. Tutorial usa WebP leve; matrizes PNG ficam para artes. Pacote de anúncio com data proposta no calendário em `marketing/instagram/15-nova-fase/`.
 
 ## Landing page (`app/page.tsx`)
 - Copy: siga a skill `.devin/skills/copy-conversao` (pesquisa, regras, fatos do produto). Nunca invente depoimento/número de usuários.
@@ -91,15 +98,34 @@
 
 ## Instagram @somosvynta (`marketing/instagram/`)
 
-Regras de conteúdo na skill `.devin/skills/instagram-vynta` (algoritmo, carrossel, legenda, identidade visual) — sempre leia antes de produzir posts.
+Leia `marketing/AGENTS.md`, `marketing/templates/broto-social/README.md` e
+`.devin/skills/instagram-vynta/SKILL.md` antes de produzir posts. O template Brotô foi
+aprovado em 14/11; o pacote completo viaja em `marketing/pacotes/`.
+O guia de marketing centraliza pesquisa primária, checagem D-1/D0, tom sem julgamento,
+formatos, render, calendário, autorização e métricas. Não usar regras antigas de
+7–10 slides obrigatórios, 5–8 hashtags, áudio sempre em alta ou promessas de 5s/30s.
 
-- **Pastas por dia do mês de publicação**: `marketing/instagram/DD-slug/` — `DD` = dia em que o post vai ao ar (ex.: `17-decimo-terceiro` posta dia 17/11). É o dia de postar, não a ordem de criação. Pastas `NNN-slug` (001–003) são a numeração antiga de 10–12/nov.
-- **Conteúdo de cada pasta**: `slides.html` (fonte), `slide-NN.png` (render 2160×2700), `legenda.txt` (pronta pra copiar) e `story/` com `plano.md` (roteiro), `stories.html` (fonte) e `story-NN.png` (render 2160×3840 = 1080×1920 @2x).
-- **Stories**: ao menos 1 por dia, planejado junto do post (em `story/`). O PNG vai pronto pra postar; a interação é sempre sticker nativo colado por cima na área indicada pelo pill ("responde na enquete ↓"). Enquete (2–4 opções), caixinha de pergunta, repost do post do dia (o `story-02` padrão já embute o `slide-01.png` como preview — o repost nativo também vale). Respostas de caixinhas viram pauta dos próximos dias.
-- **Telas do app nos slides**: não repita a mesma tela em todo post — o Vynta tem várias (`finances`, `dashboard`, `cards`, `goals`, `habits`, `calendar`, `reports`, `notes`, `workout` em `public/images/landing/*-mobile.webp`). Escolha a que bate com a mensagem do slide e varie o layout (phone esquerda/direita, inclinado, centrado "emergindo" por baixo).
-- **Calendário**: `marketing/instagram/CALENDARIO.md` tem a agenda da semana (data, pasta, tema, formato, horário do feed e dos stories). Atualize ao planejar cada lote.
-- **Horários**: feed — fds/feriado ~10h–11h (manhã, celular na mão), dias úteis ~12h (almoço) ou 19h; domingo à noite (18h30+) pega a "síndrome de domingo". Stories: um de manhã (8h30–10h, puxa assunto/enquete) + um à noite (19h–20h30, repost do post + interação). Feed sempre com áudio em alta ao postar.
-- **Formato**: nem todo post é carrossel — imagem única forte funciona em dia de tendência/hype (ex.: `19-gta6-dia-d` = D-0 do GTA 6). Carrossel continua sendo o formato salvável padrão (7–10 slides).
-- **Tendências**: surfe ao menos 1 por semana (ex.: lançamento GTA 6 em 19/11/2026, Black Friday 27/11/2026, 13º até 30/11, feriados). Confira datas reais antes de escrever; o arco entre posts (contagem → dia D) engaja mais que posts soltos.
-- **Render**: `marketing/instagram/render.sh <pasta>` — serve o repo em `python3 -m http.server 8787` se preciso e captura cada slide com Chrome headless (viewport 1080×1350, dsf 2 → PNG 2160×2700). Se houver `story/stories.html`, renderiza também os stories (viewport 1080×1920 → PNG 2160×3840). O `?slide=N` exibe uma seção por vez (helper embutido no fim dos HTMLs — nos stories as seções usam `class="story"`). Reveja os PNGs em tamanho real antes de entregar.
-- **Futuro**: destaques do Instagram planejados (capas na identidade do app — "Gastos invisíveis", "Desafio 7 dias", "Como funciona", "Memes"); ainda não implementado.
+- Personagem aprovado: **Brotô**, poses em `public/assets/mascot/`. Não substitui B1,
+  avatares ou ícones. Pacote de lançamento em `marketing/instagram/15-nova-fase/`.
+- Calendário distingue remoto atual de proposta. Revisão de 13/11/2026 e fontes em
+  `marketing/auditoria/2026-11-13/`; posts corrigidos em `marketing/instagram/revisao-2026-11/`.
+- Fontes viajam no Git; renders da revisão são regeneráveis por
+  `scripts/build-social-revision.mjs` e `scripts/render-social-revision.mjs`.
+- Não publicar anúncio da nova versão antes de deploy autorizado e smoke test.
+
+## Apresentação da nova fase
+
+- `ReleaseNotice` é carregado apenas no shell logado. Personagem: `MASCOT_NAME`;
+  edição: `RELEASE_ID` em `lib/release.ts`. Não mudar o ID para corrigir copy.
+- `POST /api/release-notice`: sessão + Origin + rate limit, resposta sem cache.
+  `claimReleaseNotice` usa recibo durável na tabela existente Notification, namespace
+  `vynta-release-`, chave única por usuário/edição; concorrência concede uma apresentação.
+  Recibos são lidos e não entram no sininho financeiro. Não apagá-los em limpezas
+  enquanto a edição estiver ativa. Não é necessária migração de schema.
+- O recibo precede a apresentação: garante no máximo uma autorização por conta,
+  inclusive em outro aparelho. Uma resposta perdida pode impedir a apresentação;
+  não prometer entrega exatamente uma vez sob falhas de rede.
+- Preview Vercel não consome recibo. QA visual usa endpoint simulado e conta demo;
+  regressão isolada verifica concorrência/contas/auth/Origin/limites/falhas.
+- Respeitar tutorial/modal ativo, movimento reduzido, viewport e teclado. Offline
+  adia o aviso; nunca colocar recibo na fila offline nem invalidar cache financeiro.

@@ -223,7 +223,7 @@ export default function SettingsClient({ session }: SettingsClientProps) {
           </div>
           <button
             onClick={() => router.push('/dashboard')}
-            className="text-sm text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition-colors font-medium"
+            className="hidden sm:inline text-sm text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition-colors font-medium"
           >
             Dashboard
           </button>
