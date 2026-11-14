@@ -1,0 +1,22 @@
+[
+  {
+    "folder": "15-treino-na-rotina",
+    "date": "2026-11-15T18:30:00-03:00",
+    "category": "ROTINA REAL",
+    "pose": "guide-pointing-v1",
+    "screen": "workout",
+    "coverVariant": "15",
+    "emphasis": ["01",370],
+    "slides": [
+      ["Seu treino tem espaço na semana?", "Antes da segunda chegar, olhe para a rotina que você realmente tem.", "cover"],
+      ["Comece pela agenda real.", "Trabalho, deslocamento, descanso. Veja onde cabe o treino que você já pratica, sem preencher cada espaço livre.", "list"],
+      ["Deixe sua ficha à mão.", "Consultar exercícios, séries e repetições evita depender da memória. Use a ficha orientada para você.", "mascot"],
+      ["Registre para consultar depois.", "O Vynta reúne sua ficha e registros de treino. Você acompanha o que anotou, junto das outras áreas da rotina.", "phone"],
+      ["A semana mudou? Reorganize.", "Ajustar a agenda faz parte. Seu planejamento pode acompanhar a vida real.", "mascot"],
+      ["Salve para planejar a semana.", "O que mais dificulta encaixar seu treino: horário, deslocamento ou organização? Conta pra gente.", "cta"]
+    ],
+    "caption": "Seu treino também faz parte da sua vida organizada. 🌱\n\nAntes de começar a semana, confira os compromissos, escolha horários possíveis e deixe a ficha à mão. Depois do treino, registre o que fez para consultar na próxima sessão.\n\nNo Vynta, a área de Treinos reúne ficha e registros no mesmo app das finanças, hábitos e agenda. Ela organiza as informações; não cria uma prescrição de exercícios para você.\n\nO que mais atrapalha encaixar o treino na sua semana? Horário, deslocamento ou organização?\n\nSalve para o próximo planejamento. Conheça o Vynta: teste 7 dias grátis, sem cartão, no link da bio.\n\n#somosvynta #rotinadetreino #organizacaopessoal #habitos #planejamentosemanal",
+    "poll": ["Qual horário cabe na sua semana?", "Manhã", "Noite"],
+    "storyTime": "10h e 19h30"
+  }
+]

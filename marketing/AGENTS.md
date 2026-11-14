@@ -17,6 +17,15 @@ antes de produzir conteúdo. Instruções do responsável na conversa prevalecem
 
 ## Pesquisa por lote
 
+Preferência explícita atualizada em 14/11: feed e stories todos os dias,
+com lote de sábado a sábado e revisão no sábado à noite/domingo de manhã.
+Isso é uma escolha editorial do responsável, não uma regra do algoritmo.
+Validar cobertura por data antes de encerrar; não deixar o dia atual vazio
+nem duplicar o sábado compartilhado por lotes. Incluir treinos na rotação
+de pautas, junto de finanças, hábitos e agenda, sem prescrever exercícios.
+Correção aplicada: anúncio em 14/11 às 12h; treino em 15/11 às 18h30.
+Horários completos e IDs no calendário e no inventário JSON.
+
 1. Conferir calendário local e estado real do Zernio, paginando se necessário.
    Separar publicado, agendado, rascunho e proposta. Salvar snapshot mínimo antes
    de alterações remotas; não versionar credenciais/dados do proprietário.

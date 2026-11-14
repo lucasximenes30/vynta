@@ -1,12 +1,14 @@
-# Calendário @somosvynta — 15 a 21/novembro/2026
+# Calendário @somosvynta — 14 a 21/novembro/2026
 
 **APROVADO E AGENDADO NO ZERNIO em 14/11/2026.** Fuso America/Sao_Paulo.
-Sete feeds + quatorze stories. Os sete feeds antigos foram substituídos nos
-mesmos IDs; histórico publicado preservado. Não restou agendamento em 14/11.
+Oito feeds + dezesseis stories. Correção solicitada às 11h40 de 14/11:
+anúncio antecipado para hoje e novo conteúdo de treino para domingo.
+Histórico publicado preservado; conta @somosvynta conferida no conector.
 
 | Dia | Tema | Feed | Stories automáticos |
 | --- | --- | --- | --- |
-| Dom 15 | Nova fase e Brotô | 11h | 10h45 e 19h |
+| Sáb 14 | Nova fase e Brotô | 12h | 12h05 e 19h |
+| Dom 15 | Seu treino tem espaço na semana? | 18h30 | 10h e 19h30 |
 | Seg 16 | Planilha e rotina | 12h | 8h30 e 19h30 |
 | Ter 17 | 13º com clareza | 12h30 | 12h e 20h |
 | Qua 18 | Brotô explica: registrar o mês | 19h | 12h30 e 20h |
@@ -14,14 +16,19 @@ mesmos IDs; histórico publicado preservado. Não restou agendamento em 14/11.
 | Sex 20 | Checklist Black Friday | 11h | 10h e 19h |
 | Sáb 21 | A conta do rolê | 11h | 10h e 19h |
 
-Hoje é 14/11, sábado. O pedido de “amanhã” foi aplicado a 15/11, domingo.
-O reset de domingo permanece como material reutilizável, sem agendamento,
-para manter um feed por dia. A programação anterior de anúncio em 14/11 foi
-substituída pela instrução de 14/11 do responsável.
+Rotina aprovada: calendário diário de sábado a sábado, revisado no sábado
+à noite ou domingo de manhã. Conferir a cobertura de cada data, inclusive
+hoje, sem duplicar o sábado de transição entre lotes. Horários são hipóteses
+editoriais, sem promessa de alcance. Produção da identidade confirmada pelo
+responsável; anúncio em 14/11 acompanha essa disponibilidade.
+
+Novo pacote: `semana-14-21/15-treino-na-rotina/` (seis slides e dois stories).
+O reset anterior segue como reserva. Treino é pauta de organização da rotina,
+sem prescrição de exercícios. Funções conferidas em `app/workout/WorkoutClient.tsx`.
 
 ## Arquivos e verificação
 
-- Anúncio final: `15-nova-fase/`.
+- Anúncio final: `15-nova-fase/` (pasta histórica, publicação corrigida para 14/11).
 - Demais feeds: `revisao-2026-11/DD-slug/` (versões aprovadas).
 - Stories agendados: `story/automaticos/` dentro de cada pacote.
 - IDs, mídias e horários reais: `agendamento-2026-11-15-a-21.json`.
