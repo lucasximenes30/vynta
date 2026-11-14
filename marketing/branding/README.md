@@ -32,7 +32,7 @@ para o personagem auxiliar; **a logo B1 e os avatares aprovados não mudam**.
 Poses: apontando, preocupado e celebrando, com PNG transparente e WebP para UI.
 Nome do personagem: **Brotô**. Ele acolhe, ensina e celebra pequenos passos, sem
 julgar o usuário. O tutorial usa o export leve; a landing mantém a matriz aprovada.
-Pacote de anúncio em `marketing/instagram/rascunhos/nova-fase/`, com publicação
+Pacote de anúncio em `marketing/instagram/15-nova-fase/`, com publicação
 condicionada à versão nova estar disponível.
 
 ## Direção final (ajuste solicitado pelo responsável)

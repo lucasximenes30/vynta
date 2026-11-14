@@ -1,3 +1,6 @@
+> Arquivo histórico. Versão final aprovada e agendada em `../../15-nova-fase/`,
+> para 15/11/2026. Não publicar este rascunho em duplicidade.
+
 # Vynta de cara nova — pacote de lançamento
 
 Pacote revisado com o nome **Brotô**, sem publicação/agendamento.

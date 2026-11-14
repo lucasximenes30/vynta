@@ -1,44 +1,24 @@
-# Revisão da semana — fontes e artes prontas para aprovação
+# Pacotes aprovados — Brotô social
 
-Sete posts revisados e quatorze stories. **Nenhuma substituição no Zernio foi
-executada.** Os lotes originais continuam preservados nas pastas anteriores.
-IDs e datas propostas em `posts.json`; análise em
-`../../auditoria/2026-11-13/README.md`.
+Aprovados em 14/11/2026. Os seis posts de 16 a 21/11 substituíram as versões
+antigas no Zernio. O anúncio ocupa 15/11 e está em `../15-nova-fase/`.
+O reset de domingo ficou como reserva; a data em posts.json é sugestão,
+**não agendamento**. Seu ID remoto antigo agora pertence ao anúncio e foi
+removido do JSON de reserva para evitar sobrescrever a publicação errada.
 
-![Capas revisadas](capas.jpg)
+![Capas aprovadas](capas.jpg)
 
-| Pasta | Proposta São Paulo | Feed | Situação remota |
-| --- | --- | --- | --- |
-| 15-reset-domingo | 15/11 18h30 | 6 slides | Original antigo agendado |
-| 16-planilha-abandonada | 16/11 12h | 6 slides | Original antigo agendado |
-| 17-decimo-terceiro | 17/11 12h30 | 6 slides | Original antigo agendado |
-| 18-organizar-mes | 18/11 19h | 6 slides | Original antigo agendado |
-| 19-gta6-dia-d | 19/11 10h | Imagem única | Original antigo agendado |
-| 20-black-friday-d7 | 20/11 11h | 6 slides | Original antigo agendado |
-| 21-role-40-reais | 21/11 11h | 6 slides | Original ainda agendado em 14/11 |
+Fonte editável: `posts.json` + HTMLs, legendas e roteiros. Cada pasta tem previews
+JPG, PNGs locais e stories. As versões efetivamente agendadas de stories ficam em
+`story/automaticos/`; as versões manuais com áreas para stickers não foram enviadas.
+PNGs completos viajam no ZIP em `marketing/pacotes/`.
 
-O anúncio do Brotô é o pacote separado `../rascunhos/nova-fase/`, sugerido para
-14/11 às 11h, condicionado a deploy autorizado e smoke test até 10h30.
+IDs/status: `../agendamento-2026-11-15-a-21.json`. Datas: `../CALENDARIO.md`.
+Não presumir status remoto a partir de uma data neste JSON de conteúdo.
 
-Cada pasta: `slides.html`, `legenda.txt`, `preview.jpg`, PNGs locais e `story/`
-com fontes, preview, PNGs e roteiro de stickers/horários. Os PNGs de alta resolução
-são regeneráveis e ficam fora do Git neste lote. Previews não são mídias de postagem.
+Para criar outro lote, usar `marketing/templates/broto-social/README.md` e passar
+uma pasta nova ao gerador. Não regenerar este lote já agendado sem uma revisão
+intencional; editar arquivos locais não altera as mídias já enviadas ao Zernio.
 
-Regenerar na raiz do repo:
-
-```sh
-node scripts/build-social-revision.mjs
-node scripts/render-social-revision.mjs
-```
-
-O render usa Chrome/Playwright; `PLAYWRIGHT_MODULE` aceita instalação externa.
-Espera Sora/Manrope e todas as imagens, verifica texto dentro do canvas e gera
-`render-check.json`. Feed: 2160×2700; story: 2160×3840. Não publica nada.
-Alterar `posts.json` antes de regenerar; os HTMLs são derivados.
-
-GTA: reconferir a Rockstar em 18 e 19/11. `fallback-legenda.txt` retira data/preço
-e mantém o tema lazer; a arte já não afirma que o jogo foi lançado. Se a pauta
-perder sentido, adiar em vez de forçar. Não há parceria com a Rockstar.
-
-Stories não estão agendados. As áreas tracejadas indicam stickers nativos a
-adicionar no Instagram. Publicar o story de repost somente após o feed correspondente.
+GTA: reconferir a Rockstar em 18 e 19/11. A legenda alternativa retira a data,
+sem inventar preço ou alegar parceria. Stories não incluem áudio licenciado.

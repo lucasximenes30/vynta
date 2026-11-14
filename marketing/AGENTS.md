@@ -45,6 +45,11 @@ antes de produzir conteúdo. Instruções do responsável na conversa prevalecem
 
 ## Produção e revisão
 
+- **Template aprovado em 14/11/2026:** `marketing/templates/broto-social/README.md`.
+  Usar o HTML de exemplo, estrutura JSON e composições aprovadas como base.
+  “Fontes” significa arquivos editáveis (HTML/CSS/JSON/scripts); PNGs são artes finais.
+  Pacote portátil completo em `marketing/pacotes/vynta-broto-social-2026-11.zip`.
+  Não usar o exemplo como copy fixa nem regenerar um lote já agendado por engano.
 - Uma ideia por slide. Imagem única, carrossel enxuto ou Reel original conforme
   a história; sem quantidade mágica de slides ou frequência obrigatória diária.
 - Pasta final `instagram/DD-slug/`, mês/ano no calendário. Revisões não aprovadas
@@ -62,13 +67,20 @@ antes de produzir conteúdo. Instruções do responsável na conversa prevalecem
 
 - Preparar conteúdo/horários concretos antes de pedir aprovação, quando ainda
   necessária. Respeitar autorização persistente e escopo do usuário.
-- Na revisão de 13/11/2026, os agendamentos remotos permanecem originais até
-  aprovação das substituições. Não remover/publicar por inferência.
+- **Autorização recebida em 14/11/2026:** substituir toda a fila da semana pelos
+  materiais novos e agendar o anúncio para amanhã, 15/11. Aplicado: sete feeds e
+  quatorze stories, até 21/11. Não pedir novamente autorização para esta operação
+  já concluída; futuras mudanças seguem o novo escopo solicitado. Histórico
+  publicado preservado. IDs/status em `instagram/agendamento-2026-11-15-a-21.json`.
 - Anúncio só após deploy autorizado e smoke test. Aprovação editorial não
   autoriza merge/deploy. Conferir ID/status/data contra snapshot antes de editar,
   preservando mudanças feitas pelo responsável e evitando duplicações.
 - Depois de atualizar, reler mídias/ordem/legenda/fuso/data/status pela API e
   atualizar calendário. Informar etapas manuais de áudio/sticker quando houver.
+- Stories automáticos usam `story/automaticos/`: uma mídia por post, sem enquete,
+  caixinha ou link-sticker fictício. As versões manuais continuam disponíveis;
+  não postar ambas no mesmo horário. No lançamento, o deploy deve estar pronto
+  antes do primeiro story (15/11 às 10h45); se atrasar, reagendar anúncio e stories.
 
 ## Aprendizado
 

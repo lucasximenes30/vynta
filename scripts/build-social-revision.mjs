@@ -1,7 +1,7 @@
 // Regenerates the reviewed November batch. It never edits/publishes remote posts.
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
-const root = 'marketing/instagram/revisao-2026-11'
+const root = process.argv[2] || 'marketing/instagram/revisao-2026-11'
 const posts = JSON.parse(await readFile(join(root, 'posts.json'), 'utf8'))
 const escape = text => text.replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char])
 const fonts = '<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">'
@@ -16,10 +16,10 @@ for (const post of posts) {
   await mkdir(join(folder, 'story'), { recursive: true })
   const slides = post.slides.map(([title, copy, layout], i) => {
     const picture = ['cover', 'mascot', 'cta', 'phone'].includes(layout) ? mascot(layout === 'cta' ? 'celebrating-v1' : layout === 'cover' ? post.pose : 'guide-pointing-v1') : ''
-    const emphasis = ({ '15': ['Revisar.', 175], '16': ['Seu jeito.', 145], '17': ['30/11', 240], '18': ['01', 370], '20': ['Compare.', 150], '21': ['R$ 230', 225] })[post.folder.slice(0, 2)] || ['01', 370]
+    const emphasis = post.emphasis || ({ '15': ['Revisar.', 175], '16': ['Seu jeito.', 145], '17': ['30/11', 240], '18': ['01', 370], '20': ['Compare.', 150], '21': ['R$ 230', 225] })[post.coverVariant || post.folder.slice(0, 2)] || ['01', 370]
     const extra = layout === 'phone' ? `<div class="phone"><img src="/public/images/landing/${post.screen}-mobile.webp" alt="Tela de ${post.screen} do Vynta com dados demo"></div><p class="demo">Tela ilustrativa.<br>Dados da conta demo.</p>` : layout === 'number' ? `<div class="big" style="font-size:${emphasis[1]}px;letter-spacing:-.06em" aria-hidden="true">${emphasis[0]}</div>` : layout === 'list' ? '<div class="steps"><span>Observe</span><span>Registre</span><span>Revise</span></div>' : layout === 'cta' ? '<div class="pill">Um passo de cada vez. Com o Vynta.</div>' : ''
     const source = post.source && i === 1 ? `<p class="source">Fonte: ${post.folder.startsWith('17') ? 'Ministério do Trabalho e Emprego' : 'Procon-SP'} · consulta em 13/11/2026</p>` : ''
-    const day = post.folder.slice(0, 2)
+    const day = post.coverVariant || post.folder.slice(0, 2)
     const coverArt = layout !== 'cover' ? '' : ['15', '18'].includes(day) ? `<div class="phone"><img src="/public/images/landing/${day === '15' ? 'calendar' : 'finances'}-mobile.webp" alt="Tela ilustrativa com dados demo"></div><p class="demo-cover">Tela ilustrativa · dados demo</p>` : day === '16' ? '<div class="word-stack">Começar.<br>Pausar.<br><b>Recomeçar.</b></div>' : day === '17' ? '<div class="cover-type">13º</div>' : day === '20' ? '<div class="cover-type">27<small>NOV</small></div>' : day === '21' ? '<div class="receipt"><strong>A CONTA DO ROLÊ</strong>Entrada<br>Transporte<br>Bebidas<br>Lanche</div>' : ''
     return `<section data-cover="${day}" class="slide ${layout === 'phone' ? 'phone-slide' : layout === 'mascot' ? 'mascot-slide' : layout}">${brand}<p class="eyebrow">${escape(post.category)}</p><${i ? 'h2' : 'h1'}>${escape(title)}</${i ? 'h2' : 'h1'}><p class="copy">${escape(copy)}</p>${picture}${extra}${coverArt}${source}<footer class="foot"><span>${post.slides.length > 1 && i === 0 ? 'Arraste para continuar →' : 'Seu dinheiro e sua rotina.'}</span><span class="progress">${post.slides.map((_, j) => `<i class="${j === i ? 'on' : ''}"></i>`).join('')}</span><span>${String(i + 1).padStart(2, '0')} / ${String(post.slides.length).padStart(2, '0')}</span></footer></section>`
   }).join('\n')

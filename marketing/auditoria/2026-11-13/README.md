@@ -1,3 +1,7 @@
+> Decisão posterior, 14/11/2026: pesquisa aprovada; anúncio transferido por pedido
+> do responsável para amanhã, 15/11. Semana 15–21 agendada. Ver
+> `marketing/instagram/CALENDARIO.md`. Abaixo, auditoria original preservada.
+
 # Auditoria editorial — Vynta, 13/11/2026
 
 ## Veredito

@@ -89,7 +89,7 @@
 - Identidade oficial: `marketing/branding/README.md`. Símbolo B1 aprovado; substitui as camadas azul/roxo. Novos materiais devem usar `public/assets/logo/broto-mark.png` e `mascot.webp`.
 - Paleta: lavanda escura (#14121C), verde profundo, lima e lavanda; creme apenas como apoio. Não copiar branding neon antigo de posts arquivados. `scripts/build-brand-assets.mjs` gera exports técnicos preservando a matriz.
 - Copy atual e evidências: `marketing/branding/2026-11-rebrand/COPY.md`. Não transformar tempos ilustrativos (5s/30s) em garantias. CTA: teste de 7 dias, não plano gratuito permanente.
-- Personagem auxiliar aprovado, chamado **Brotô**: poses em `public/assets/mascot/` (apontando, preocupado, celebrando). Não substitui logo, avatares ou ícones. Tutorial usa WebP leve; matrizes PNG ficam para artes. Pacote de anúncio com data proposta no calendário em `marketing/instagram/rascunhos/nova-fase/`.
+- Personagem auxiliar aprovado, chamado **Brotô**: poses em `public/assets/mascot/` (apontando, preocupado, celebrando). Não substitui logo, avatares ou ícones. Tutorial usa WebP leve; matrizes PNG ficam para artes. Pacote de anúncio com data proposta no calendário em `marketing/instagram/15-nova-fase/`.
 
 ## Landing page (`app/page.tsx`)
 - Copy: siga a skill `.devin/skills/copy-conversao` (pesquisa, regras, fatos do produto). Nunca invente depoimento/número de usuários.
@@ -98,13 +98,15 @@
 
 ## Instagram @somosvynta (`marketing/instagram/`)
 
-Leia `marketing/AGENTS.md` e `.devin/skills/instagram-vynta/SKILL.md` antes de produzir posts.
+Leia `marketing/AGENTS.md`, `marketing/templates/broto-social/README.md` e
+`.devin/skills/instagram-vynta/SKILL.md` antes de produzir posts. O template Brotô foi
+aprovado em 14/11; o pacote completo viaja em `marketing/pacotes/`.
 O guia de marketing centraliza pesquisa primária, checagem D-1/D0, tom sem julgamento,
 formatos, render, calendário, autorização e métricas. Não usar regras antigas de
 7–10 slides obrigatórios, 5–8 hashtags, áudio sempre em alta ou promessas de 5s/30s.
 
 - Personagem aprovado: **Brotô**, poses em `public/assets/mascot/`. Não substitui B1,
-  avatares ou ícones. Pacote de lançamento em `marketing/instagram/rascunhos/nova-fase/`.
+  avatares ou ícones. Pacote de lançamento em `marketing/instagram/15-nova-fase/`.
 - Calendário distingue remoto atual de proposta. Revisão de 13/11/2026 e fontes em
   `marketing/auditoria/2026-11-13/`; posts corrigidos em `marketing/instagram/revisao-2026-11/`.
 - Fontes viajam no Git; renders da revisão são regeneráveis por

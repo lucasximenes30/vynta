@@ -6,7 +6,7 @@ import { createRequire } from 'node:module'
 import assert from 'node:assert/strict'
 const require = createRequire(import.meta.url)
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
-const root = process.cwd(), batch = 'marketing/instagram/revisao-2026-11'
+const root = process.cwd(), batch = process.argv[2] || 'marketing/instagram/revisao-2026-11'
 const posts = JSON.parse(await readFile(join(batch, 'posts.json'), 'utf8'))
 const server = createServer(async (request, response) => {
   const file = resolve(root, '.' + decodeURIComponent(new URL(request.url, 'http://localhost').pathname))

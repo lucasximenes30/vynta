@@ -62,10 +62,12 @@ função narrativa; ele não precisa ocupar todas as telas. Lavanda #14121C, lim
 Variar módulos e composição de screenshots demo conforme o assunto.
 
 Fonte HTML/CSS e legenda por pasta. Feed 1080×1350 CSS @2x; story 1080×1920 @2x.
-Referências: `marketing/instagram/rascunhos/nova-fase/` e
+Template canônico aprovado: `marketing/templates/broto-social/README.md`.
+Pacote: `marketing/pacotes/vynta-broto-social-2026-11.zip`.
+Referências: `marketing/instagram/15-nova-fase/` e
 `marketing/instagram/revisao-2026-11/`.
-Gerar revisão: `node scripts/build-social-revision.mjs`.
-Render: `node scripts/render-social-revision.mjs`, com Playwright disponível
+Gerar novo lote: `node scripts/build-social-revision.mjs marketing/instagram/SEU-LOTE`.
+Render: `node scripts/render-social-revision.mjs marketing/instagram/SEU-LOTE`, com Playwright disponível
 ou `PLAYWRIGHT_MODULE` externo. Não adicionar dependências ao app só para artes.
 
 ## 6. Revisar e entregar

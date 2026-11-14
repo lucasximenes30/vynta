@@ -328,3 +328,24 @@ Recomendação editorial: anúncio em 14/11 às 11h São Paulo, somente depois d
 deploy autorizado e smoke test até 10h30; rolê sugerido para 21/11. Proposta
 ainda não aplicada no Zernio. Nenhum merge, deploy, postagem, e-mail ou push
 real; nenhuma recriação da demo. Arquivos pessoais e stash preservados.
+
+
+## Aprovação e agendamento (14/11/2026)
+
+Pesquisa e materiais aprovados. Template oficial em `marketing/templates/broto-social/`,
+pacote completo versionado em `marketing/pacotes/`. Fontes significam arquivos
+editáveis; tipografia Sora/Manrope é carregada no render. Gerador/render aceitam
+pasta de lote e foram exercitados com exemplo separado (oito renders).
+
+Zernio: sete feeds substituídos e quatorze stories agendados para 15–21/11,
+um feed por dia. Anúncio transferido para domingo, 15/11, conforme “amanhã”
+na instrução de 14/11. Rolê em sábado, 21/11; reset guardado. Verificados
+status, conta, datas/fuso, legendas, tipo, ordem e 52 mídias por hash.
+Stories automáticos não simulam stickers; versões manuais preservadas.
+Calendário e IDs refletem o remoto. Sem publicação imediata, merge ou deploy.
+
+PWA: nenhuma mudança adicional necessária. Ícones B1 versionados, identidade
+manifest estável, cache v14 e fila preservada. Código do app atualiza após deploy;
+ícone instalado pode depender de confirmação no Chrome ou nova adição no iOS.
+Fontes e limitações em `PWA-ATUALIZACAO.md`. Não recomendar reinstalação geral.
+Nenhuma alteração de app desde os testes aprovados de bdb2448 nesta etapa.

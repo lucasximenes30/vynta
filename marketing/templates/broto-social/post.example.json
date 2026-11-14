@@ -1,0 +1,53 @@
+[
+  {
+    "folder": "22-exemplo-tutorial",
+    "date": "2026-11-22T11:00:00-03:00",
+    "category": "BROTÔ EXPLICA",
+    "pose": "guide-pointing-v1",
+    "screen": "reports",
+    "slides": [
+      [
+        "Seu próximo gasto é um bom começo.",
+        "Brotô explica: como registrar e depois entender o seu mês no Vynta.",
+        "cover"
+      ],
+      [
+        "01. Toque em + e escolha a despesa.",
+        "Preencha valor e descrição. Confira data e categoria sugerida antes de salvar.",
+        "number"
+      ],
+      [
+        "02. Confira a forma de pagamento.",
+        "Compra no cartão? Selecione o cartão e informe as parcelas quando houver.",
+        "list"
+      ],
+      [
+        "03. Volte às Finanças.",
+        "Confira o resumo do mês. Receitas com datas futuras ficam separadas; o resultado não é saldo bancário confirmado.",
+        "mascot"
+      ],
+      [
+        "04. Abra os Relatórios.",
+        "Escolha o mês e observe as categorias. A visão depende dos lançamentos que você cadastrou.",
+        "phone"
+      ],
+      [
+        "Um registro hoje. Mais contexto depois.",
+        "Experimente com o Brotô: teste 7 dias grátis, sem cartão. Link na bio.",
+        "cta"
+      ]
+    ],
+    "caption": "Brotô explica: do lançamento ao relatório, um passo de cada vez. 🌱\n\nToque em +, registre a despesa e confira data, categoria e forma de pagamento. Depois, veja como ela aparece no mês e nos relatórios.\n\nReceitas futuras ficam separadas do resultado atual. Os dados dependem dos seus registros: o Vynta não confirma depósitos consultando seu banco.\n\nQual tela você quer ver no próximo tutorial do Brotô?\n\nTeste 7 dias grátis, sem cartão — link na bio.\n\n#somosvynta #controlefinanceiro #financaspessoais #tutorial #vidaorganizada",
+    "poll": [
+      "Qual tutorial você quer ver depois?",
+      "Salário quinzenal",
+      "Cartões e faturas"
+    ],
+    "storyTime": "12h30 e 20h",
+    "coverVariant": "18",
+    "emphasis": [
+      "01",
+      370
+    ]
+  }
+]

@@ -40,3 +40,10 @@ marketing/instagram/rascunhos/*
 # Full-resolution renders are regenerated; compact review previews are versioned.
 marketing/instagram/revisao-2026-11/**/*.png
 marketing/instagram/revisao-2026-11/*.zip
+!marketing/templates/
+!marketing/pacotes/
+!marketing/instagram/15-nova-fase/
+marketing/instagram/15-nova-fase/**/*.png
+!marketing/instagram/agendamento-2026-11-15-a-21.json
+!marketing/instagram/automaticos-check-2026-11.json
+!marketing/instagram/VERIFICACAO-2026-11.md

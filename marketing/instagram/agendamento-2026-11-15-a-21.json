@@ -1,0 +1,441 @@
+[
+  {
+    "id": "6af6f103e03cb82aaa56a526",
+    "title": "15-nova-fase",
+    "kind": "feed",
+    "status": "scheduled",
+    "scheduledFor": "2026-11-15T14:00:00.000Z",
+    "timezone": "America/Sao_Paulo",
+    "sourceFolder": "marketing/instagram/15-nova-fase",
+    "media": [
+      {
+        "url": "https://media.zernio.com/media/1794625739055_a7a71a2f6d393c12_vynta-15-nova-fase-slide-01.png",
+        "path": "marketing/instagram/15-nova-fase/slide-01.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625863486_1807218e445bdd06_vynta-15-nova-fase-slide-02.png",
+        "path": "marketing/instagram/15-nova-fase/slide-02.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625864281_28e66c815266ab0b_vynta-15-nova-fase-slide-03.png",
+        "path": "marketing/instagram/15-nova-fase/slide-03.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625864863_5be66b6a7af58398_vynta-15-nova-fase-slide-04.png",
+        "path": "marketing/instagram/15-nova-fase/slide-04.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625865370_173eee5de13a68c7_vynta-15-nova-fase-slide-05.png",
+        "path": "marketing/instagram/15-nova-fase/slide-05.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625865883_1d6dcdde343f7b11_vynta-15-nova-fase-slide-06.png",
+        "path": "marketing/instagram/15-nova-fase/slide-06.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625866376_81b9f05ca64a4215_vynta-15-nova-fase-slide-07.png",
+        "path": "marketing/instagram/15-nova-fase/slide-07.png"
+      }
+    ]
+  },
+  {
+    "id": "6af7d223b9ec638c5cda7ba2",
+    "title": "15-nova-fase-story-01",
+    "kind": "story",
+    "status": "scheduled",
+    "scheduledFor": "2026-11-15T13:45:00.000Z",
+    "timezone": "America/Sao_Paulo",
+    "sourceFolder": "marketing/instagram/15-nova-fase",
+    "media": [
+      {
+        "url": "https://media.zernio.com/media/1794625867026_091a828f33d581b1_vynta-15-nova-fase-story-01.png",
+        "path": "marketing/instagram/15-nova-fase/story/automaticos/story-01.png"
+      }
+    ]
+  },
+  {
+    "id": "6af7d225b9ec638c5cda7bad",
+    "title": "15-nova-fase-story-02",
+    "kind": "story",
+    "status": "scheduled",
+    "scheduledFor": "2026-11-15T22:00:00.000Z",
+    "timezone": "America/Sao_Paulo",
+    "sourceFolder": "marketing/instagram/15-nova-fase",
+    "media": [
+      {
+        "url": "https://media.zernio.com/media/1794625867487_cdcaf4af16e43300_vynta-15-nova-fase-story-02.png",
+        "path": "marketing/instagram/15-nova-fase/story/automaticos/story-02.png"
+      }
+    ]
+  },
+  {
+    "id": "6af6f112e03cb82aaa56a5c5",
+    "title": "16-planilha-abandonada",
+    "kind": "feed",
+    "status": "scheduled",
+    "scheduledFor": "2026-11-16T15:00:00.000Z",
+    "timezone": "America/Sao_Paulo",
+    "sourceFolder": "marketing/instagram/revisao-2026-11/16-planilha-abandonada",
+    "media": [
+      {
+        "url": "https://media.zernio.com/media/1794625867958_0250d3321ae7596e_vynta-16-planilha-abandonada-slide-01.png",
+        "path": "marketing/instagram/revisao-2026-11/16-planilha-abandonada/slide-01.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625868419_f80591d9b0fb8576_vynta-16-planilha-abandonada-slide-02.png",
+        "path": "marketing/instagram/revisao-2026-11/16-planilha-abandonada/slide-02.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625869080_68e9522344fa00dd_vynta-16-planilha-abandonada-slide-03.png",
+        "path": "marketing/instagram/revisao-2026-11/16-planilha-abandonada/slide-03.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625869701_3a6728a73d68dfd7_vynta-16-planilha-abandonada-slide-04.png",
+        "path": "marketing/instagram/revisao-2026-11/16-planilha-abandonada/slide-04.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625870191_a11ba0553f73d4da_vynta-16-planilha-abandonada-slide-05.png",
+        "path": "marketing/instagram/revisao-2026-11/16-planilha-abandonada/slide-05.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625870717_86a667abcd64f42d_vynta-16-planilha-abandonada-slide-06.png",
+        "path": "marketing/instagram/revisao-2026-11/16-planilha-abandonada/slide-06.png"
+      }
+    ]
+  },
+  {
+    "id": "6af7d22ab9ec638c5cda7c06",
+    "title": "16-planilha-abandonada-story-01",
+    "kind": "story",
+    "status": "scheduled",
+    "scheduledFor": "2026-11-16T11:30:00.000Z",
+    "timezone": "America/Sao_Paulo",
+    "sourceFolder": "marketing/instagram/revisao-2026-11/16-planilha-abandonada",
+    "media": [
+      {
+        "url": "https://media.zernio.com/media/1794625871191_97b61bd20ff2cd47_vynta-16-planilha-abandonada-story-01.png",
+        "path": "marketing/instagram/revisao-2026-11/16-planilha-abandonada/story/automaticos/story-01.png"
+      }
+    ]
+  },
+  {
+    "id": "6af7d22cb9ec638c5cda7c18",
+    "title": "16-planilha-abandonada-story-02",
+    "kind": "story",
+    "status": "scheduled",
+    "scheduledFor": "2026-11-16T22:30:00.000Z",
+    "timezone": "America/Sao_Paulo",
+    "sourceFolder": "marketing/instagram/revisao-2026-11/16-planilha-abandonada",
+    "media": [
+      {
+        "url": "https://media.zernio.com/media/1794625871711_4fbf5d87d54f98e9_vynta-16-planilha-abandonada-story-02.png",
+        "path": "marketing/instagram/revisao-2026-11/16-planilha-abandonada/story/automaticos/story-02.png"
+      }
+    ]
+  },
+  {
+    "id": "6af6f12302f7f00bc854e76f",
+    "title": "17-decimo-terceiro",
+    "kind": "feed",
+    "status": "scheduled",
+    "scheduledFor": "2026-11-17T15:30:00.000Z",
+    "timezone": "America/Sao_Paulo",
+    "sourceFolder": "marketing/instagram/revisao-2026-11/17-decimo-terceiro",
+    "media": [
+      {
+        "url": "https://media.zernio.com/media/1794625872195_3f05adb9fe1c9c38_vynta-17-decimo-terceiro-slide-01.png",
+        "path": "marketing/instagram/revisao-2026-11/17-decimo-terceiro/slide-01.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625872727_c73ed1957548d490_vynta-17-decimo-terceiro-slide-02.png",
+        "path": "marketing/instagram/revisao-2026-11/17-decimo-terceiro/slide-02.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625873224_c854d2a39567227d_vynta-17-decimo-terceiro-slide-03.png",
+        "path": "marketing/instagram/revisao-2026-11/17-decimo-terceiro/slide-03.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625873876_69fdb75932d1db8a_vynta-17-decimo-terceiro-slide-04.png",
+        "path": "marketing/instagram/revisao-2026-11/17-decimo-terceiro/slide-04.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625874530_40f6eee0f2a0d159_vynta-17-decimo-terceiro-slide-05.png",
+        "path": "marketing/instagram/revisao-2026-11/17-decimo-terceiro/slide-05.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625875005_74f9fdcbcc45a747_vynta-17-decimo-terceiro-slide-06.png",
+        "path": "marketing/instagram/revisao-2026-11/17-decimo-terceiro/slide-06.png"
+      }
+    ]
+  },
+  {
+    "id": "6af7d231b9ec638c5cda7c6d",
+    "title": "17-decimo-terceiro-story-01",
+    "kind": "story",
+    "status": "scheduled",
+    "scheduledFor": "2026-11-17T15:00:00.000Z",
+    "timezone": "America/Sao_Paulo",
+    "sourceFolder": "marketing/instagram/revisao-2026-11/17-decimo-terceiro",
+    "media": [
+      {
+        "url": "https://media.zernio.com/media/1794625875630_e25efa98a6ed39ec_vynta-17-decimo-terceiro-story-01.png",
+        "path": "marketing/instagram/revisao-2026-11/17-decimo-terceiro/story/automaticos/story-01.png"
+      }
+    ]
+  },
+  {
+    "id": "6af7d232b9ec638c5cda7c80",
+    "title": "17-decimo-terceiro-story-02",
+    "kind": "story",
+    "status": "scheduled",
+    "scheduledFor": "2026-11-17T23:00:00.000Z",
+    "timezone": "America/Sao_Paulo",
+    "sourceFolder": "marketing/instagram/revisao-2026-11/17-decimo-terceiro",
+    "media": [
+      {
+        "url": "https://media.zernio.com/media/1794625876110_5831869ba12c2af2_vynta-17-decimo-terceiro-story-02.png",
+        "path": "marketing/instagram/revisao-2026-11/17-decimo-terceiro/story/automaticos/story-02.png"
+      }
+    ]
+  },
+  {
+    "id": "6af6f130e03cb82aaa56a6d0",
+    "title": "18-organizar-mes",
+    "kind": "feed",
+    "status": "scheduled",
+    "scheduledFor": "2026-11-18T22:00:00.000Z",
+    "timezone": "America/Sao_Paulo",
+    "sourceFolder": "marketing/instagram/revisao-2026-11/18-organizar-mes",
+    "media": [
+      {
+        "url": "https://media.zernio.com/media/1794625876612_c9da4d0de08c84a5_vynta-18-organizar-mes-slide-01.png",
+        "path": "marketing/instagram/revisao-2026-11/18-organizar-mes/slide-01.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625877093_aea46c991229aed4_vynta-18-organizar-mes-slide-02.png",
+        "path": "marketing/instagram/revisao-2026-11/18-organizar-mes/slide-02.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625877596_25cf0d18c40c6a2e_vynta-18-organizar-mes-slide-03.png",
+        "path": "marketing/instagram/revisao-2026-11/18-organizar-mes/slide-03.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625878072_24ded79549a9f4d0_vynta-18-organizar-mes-slide-04.png",
+        "path": "marketing/instagram/revisao-2026-11/18-organizar-mes/slide-04.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625878549_5039508f24d007ac_vynta-18-organizar-mes-slide-05.png",
+        "path": "marketing/instagram/revisao-2026-11/18-organizar-mes/slide-05.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625879021_60f6eca7a51d35e2_vynta-18-organizar-mes-slide-06.png",
+        "path": "marketing/instagram/revisao-2026-11/18-organizar-mes/slide-06.png"
+      }
+    ]
+  },
+  {
+    "id": "6af7d238b9ec638c5cda7cc6",
+    "title": "18-organizar-mes-story-01",
+    "kind": "story",
+    "status": "scheduled",
+    "scheduledFor": "2026-11-18T15:30:00.000Z",
+    "timezone": "America/Sao_Paulo",
+    "sourceFolder": "marketing/instagram/revisao-2026-11/18-organizar-mes",
+    "media": [
+      {
+        "url": "https://media.zernio.com/media/1794625879553_78e5b08cf6edef00_vynta-18-organizar-mes-story-01.png",
+        "path": "marketing/instagram/revisao-2026-11/18-organizar-mes/story/automaticos/story-01.png"
+      }
+    ]
+  },
+  {
+    "id": "6af7d239b9ec638c5cda7cd8",
+    "title": "18-organizar-mes-story-02",
+    "kind": "story",
+    "status": "scheduled",
+    "scheduledFor": "2026-11-18T23:00:00.000Z",
+    "timezone": "America/Sao_Paulo",
+    "sourceFolder": "marketing/instagram/revisao-2026-11/18-organizar-mes",
+    "media": [
+      {
+        "url": "https://media.zernio.com/media/1794625880050_664d7e48b4428ada_vynta-18-organizar-mes-story-02.png",
+        "path": "marketing/instagram/revisao-2026-11/18-organizar-mes/story/automaticos/story-02.png"
+      }
+    ]
+  },
+  {
+    "id": "6af6f13702f7f00bc854e7a8",
+    "title": "19-gta6-dia-d",
+    "kind": "feed",
+    "status": "scheduled",
+    "scheduledFor": "2026-11-19T13:00:00.000Z",
+    "timezone": "America/Sao_Paulo",
+    "sourceFolder": "marketing/instagram/revisao-2026-11/19-gta6-dia-d",
+    "media": [
+      {
+        "url": "https://media.zernio.com/media/1794625880534_9cfbef15e716e08f_vynta-19-gta6-dia-d-slide-01.png",
+        "path": "marketing/instagram/revisao-2026-11/19-gta6-dia-d/slide-01.png"
+      }
+    ]
+  },
+  {
+    "id": "6af7d23bb2d7e8eb8cbc7018",
+    "title": "19-gta6-dia-d-story-01",
+    "kind": "story",
+    "status": "scheduled",
+    "scheduledFor": "2026-11-19T13:30:00.000Z",
+    "timezone": "America/Sao_Paulo",
+    "sourceFolder": "marketing/instagram/revisao-2026-11/19-gta6-dia-d",
+    "media": [
+      {
+        "url": "https://media.zernio.com/media/1794625881194_950a3c661833046a_vynta-19-gta6-dia-d-story-01.png",
+        "path": "marketing/instagram/revisao-2026-11/19-gta6-dia-d/story/automaticos/story-01.png"
+      }
+    ]
+  },
+  {
+    "id": "6af7d23cd283900840ae9bae",
+    "title": "19-gta6-dia-d-story-02",
+    "kind": "story",
+    "status": "scheduled",
+    "scheduledFor": "2026-11-19T23:00:00.000Z",
+    "timezone": "America/Sao_Paulo",
+    "sourceFolder": "marketing/instagram/revisao-2026-11/19-gta6-dia-d",
+    "media": [
+      {
+        "url": "https://media.zernio.com/media/1794625881826_3f789d9144642c95_vynta-19-gta6-dia-d-story-02.png",
+        "path": "marketing/instagram/revisao-2026-11/19-gta6-dia-d/story/automaticos/story-02.png"
+      }
+    ]
+  },
+  {
+    "id": "6af6f14524f90b0ffc69944b",
+    "title": "20-black-friday-d7",
+    "kind": "feed",
+    "status": "scheduled",
+    "scheduledFor": "2026-11-20T14:00:00.000Z",
+    "timezone": "America/Sao_Paulo",
+    "sourceFolder": "marketing/instagram/revisao-2026-11/20-black-friday-d7",
+    "media": [
+      {
+        "url": "https://media.zernio.com/media/1794625882310_6854de32a5de84a5_vynta-20-black-friday-d7-slide-01.png",
+        "path": "marketing/instagram/revisao-2026-11/20-black-friday-d7/slide-01.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625882785_4948a9879e534785_vynta-20-black-friday-d7-slide-02.png",
+        "path": "marketing/instagram/revisao-2026-11/20-black-friday-d7/slide-02.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625883312_4829ebefdbae6846_vynta-20-black-friday-d7-slide-03.png",
+        "path": "marketing/instagram/revisao-2026-11/20-black-friday-d7/slide-03.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625883831_fb728ec6a05f6ba1_vynta-20-black-friday-d7-slide-04.png",
+        "path": "marketing/instagram/revisao-2026-11/20-black-friday-d7/slide-04.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625884303_1b2430e8edb69b95_vynta-20-black-friday-d7-slide-05.png",
+        "path": "marketing/instagram/revisao-2026-11/20-black-friday-d7/slide-05.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625884801_f6a470490e17571f_vynta-20-black-friday-d7-slide-06.png",
+        "path": "marketing/instagram/revisao-2026-11/20-black-friday-d7/slide-06.png"
+      }
+    ]
+  },
+  {
+    "id": "6af7d242d283900840ae9bce",
+    "title": "20-black-friday-d7-story-01",
+    "kind": "story",
+    "status": "scheduled",
+    "scheduledFor": "2026-11-20T13:00:00.000Z",
+    "timezone": "America/Sao_Paulo",
+    "sourceFolder": "marketing/instagram/revisao-2026-11/20-black-friday-d7",
+    "media": [
+      {
+        "url": "https://media.zernio.com/media/1794625885389_a403adaacd656f60_vynta-20-black-friday-d7-story-01.png",
+        "path": "marketing/instagram/revisao-2026-11/20-black-friday-d7/story/automaticos/story-01.png"
+      }
+    ]
+  },
+  {
+    "id": "6af7d243b9ec638c5cda7d5b",
+    "title": "20-black-friday-d7-story-02",
+    "kind": "story",
+    "status": "scheduled",
+    "scheduledFor": "2026-11-20T22:00:00.000Z",
+    "timezone": "America/Sao_Paulo",
+    "sourceFolder": "marketing/instagram/revisao-2026-11/20-black-friday-d7",
+    "media": [
+      {
+        "url": "https://media.zernio.com/media/1794625885881_c00763fef5d57491_vynta-20-black-friday-d7-story-02.png",
+        "path": "marketing/instagram/revisao-2026-11/20-black-friday-d7/story/automaticos/story-02.png"
+      }
+    ]
+  },
+  {
+    "id": "6af6f0f1e03cb82aaa56a47e",
+    "title": "21-role-40-reais",
+    "kind": "feed",
+    "status": "scheduled",
+    "scheduledFor": "2026-11-21T14:00:00.000Z",
+    "timezone": "America/Sao_Paulo",
+    "sourceFolder": "marketing/instagram/revisao-2026-11/21-role-40-reais",
+    "media": [
+      {
+        "url": "https://media.zernio.com/media/1794625886362_c8a615c8e1467120_vynta-21-role-40-reais-slide-01.png",
+        "path": "marketing/instagram/revisao-2026-11/21-role-40-reais/slide-01.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625886846_b59d518c9dbbcf6a_vynta-21-role-40-reais-slide-02.png",
+        "path": "marketing/instagram/revisao-2026-11/21-role-40-reais/slide-02.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625887328_e98ac4c202c943f8_vynta-21-role-40-reais-slide-03.png",
+        "path": "marketing/instagram/revisao-2026-11/21-role-40-reais/slide-03.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625887804_214a6fff06111bdf_vynta-21-role-40-reais-slide-04.png",
+        "path": "marketing/instagram/revisao-2026-11/21-role-40-reais/slide-04.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625888286_6a08f55176850020_vynta-21-role-40-reais-slide-05.png",
+        "path": "marketing/instagram/revisao-2026-11/21-role-40-reais/slide-05.png"
+      },
+      {
+        "url": "https://media.zernio.com/media/1794625888771_c42cbf888cd75dd5_vynta-21-role-40-reais-slide-06.png",
+        "path": "marketing/instagram/revisao-2026-11/21-role-40-reais/slide-06.png"
+      }
+    ]
+  },
+  {
+    "id": "6af7d248d283900840ae9c11",
+    "title": "21-role-40-reais-story-01",
+    "kind": "story",
+    "status": "scheduled",
+    "scheduledFor": "2026-11-21T13:00:00.000Z",
+    "timezone": "America/Sao_Paulo",
+    "sourceFolder": "marketing/instagram/revisao-2026-11/21-role-40-reais",
+    "media": [
+      {
+        "url": "https://media.zernio.com/media/1794625889252_fd293f94a0a43f72_vynta-21-role-40-reais-story-01.png",
+        "path": "marketing/instagram/revisao-2026-11/21-role-40-reais/story/automaticos/story-01.png"
+      }
+    ]
+  },
+  {
+    "id": "6af7d24ab9ec638c5cda7da4",
+    "title": "21-role-40-reais-story-02",
+    "kind": "story",
+    "status": "scheduled",
+    "scheduledFor": "2026-11-21T22:00:00.000Z",
+    "timezone": "America/Sao_Paulo",
+    "sourceFolder": "marketing/instagram/revisao-2026-11/21-role-40-reais",
+    "media": [
+      {
+        "url": "https://media.zernio.com/media/1794625889879_8efa2ef580e76e60_vynta-21-role-40-reais-story-02.png",
+        "path": "marketing/instagram/revisao-2026-11/21-role-40-reais/story/automaticos/story-02.png"
+      }
+    ]
+  }
+]
