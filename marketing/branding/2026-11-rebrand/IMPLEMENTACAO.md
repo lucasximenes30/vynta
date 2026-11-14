@@ -349,3 +349,43 @@ manifest estável, cache v14 e fila preservada. Código do app atualiza após de
 ícone instalado pode depender de confirmação no Chrome ou nova adição no iOS.
 Fontes e limitações em `PWA-ATUALIZACAO.md`. Não recomendar reinstalação geral.
 Nenhuma alteração de app desde os testes aprovados de bdb2448 nesta etapa.
+
+## Brotô na landing e clareza financeira — 14/11/2026
+
+Após o responsável informar que a versão anterior já está em produção,
+checkout atualizado para main por fast-forward, preservando arquivos locais.
+Pedido adicional: Brotô nas ilustrações da landing. Abertura usa a pose
+apontando ao lado do telefone; CTA final usa a pose celebrando, também no
+mobile. Assets WebP aprovados, sem gerar logo ou personagem novos. Cabeçalho,
+rodapé, notificações e ícones continuam com B1. Nenhuma dependência adicionada.
+
+Conferência financeira feita em transação de banco somente leitura, limitada
+à conta indicada pelo titular. Comparação dos mesmos dados com os cálculos
+anteriores confirmou a separação entre receitas futuras, resultado do mês
+e acumulado. Nenhum lançamento, recorrência ou salário foi alterado. Dados
+pessoais e valores da conta não fazem parte deste documento nem do commit.
+Finanças e Painel agora explicam explicitamente que o resultado desconta
+despesas ainda a vencer e não corresponde ao saldo bancário.
+
+Quatro prints demo recapturados: Painel e Finanças, 780×1688 mobile e
+1600×1000 desktop, WebP. Conta existente, sem seed/recriação. Fontes, imagens
+e render aguardados; quatro exports inspecionados. Release notice simulado
+na revisão, sem consumir recibos reais.
+
+Validação em produção local com Chrome: landing em 320/390/430/768/1440,
+temas do sistema claro/escuro e movimento reduzido; Finanças/Painel em
+320/390/1440, claro/escuro. 22 combinações, documento sem overflow horizontal
+e sem erro JavaScript. O carrossel mantém sua rolagem horizontal intencional.
+Entrada normal do Brotô também verificada em 390 px (imagem carregada,
+opacidade final 1). Capturas locais em `.cache/landing-broto-review/`.
+
+Passaram `npx tsc --noEmit -p .`, `npm run build`,
+`npx tsx scripts/check-security.ts` e `git diff --check`.
+First Load JS sem aumento: landing 117 kB, Painel 119 kB, Finanças 146 kB,
+Agenda/Hábitos 120 kB. Alterações apenas visuais/textuais, sem mudar a
+matemática financeira, schema, service worker ou fila offline.
+
+Ícone Apple público respondeu 200 e é idêntico por SHA-256 ao aprovado;
+orientação específica para instalações antigas no Safari/iPhone em
+`PWA-ATUALIZACAO.md`. Não houve teste em iPhone físico, teclado nativo ou
+reinstalação real do PWA. Sem novo deploy nesta etapa.

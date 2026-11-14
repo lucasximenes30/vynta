@@ -31,7 +31,10 @@ com braços, pés e expressões em `public/assets/mascot/`. Essa autorização v
 para o personagem auxiliar; **a logo B1 e os avatares aprovados não mudam**.
 Poses: apontando, preocupado e celebrando, com PNG transparente e WebP para UI.
 Nome do personagem: **Brotô**. Ele acolhe, ensina e celebra pequenos passos, sem
-julgar o usuário. O tutorial usa o export leve; a landing mantém a matriz aprovada.
+julgar o usuário. Tutorial e ilustrações da landing usam os exports WebP leves.
+Na landing, Brotô aponta junto ao produto e celebra no convite final, inclusive
+no mobile (solicitação aprovada em 14/11). Cabeçalho, rodapé, notificações e
+ícones do aplicativo continuam usando o símbolo B1.
 Pacote de anúncio em `marketing/instagram/15-nova-fase/`, com publicação
 condicionada à versão nova estar disponível.
 
@@ -91,7 +94,9 @@ com valores são ilustrativas. Fontes e auditoria: `2026-11-rebrand/COPY.md`.
 1. Ler este guia e `marketing/README.md` antes de copiar qualquer pasta.
 2. Usar os assets oficiais e a paleta atual; nunca extrair a logo de um PNG antigo.
 3. Os 12 prints em `public/images/landing/` foram recapturados após os ajustes
-   finais de sidebar, lavanda e mobile em 13/11/2026. Recapturar quando o layout
+   finais de sidebar, lavanda e mobile em 13/11/2026. Painel e Finanças (mobile
+   e desktop) foram atualizados em 14/11 após a explicação do resultado mensal.
+   Recapturar quando o layout
    mudar novamente (ver `2026-11-rebrand/IMPLEMENTACAO.md`).
    Não usar imagens legadas soltas em `public/images/` como fonte de novos posts.
 4. Posts já exportados não mudam quando o asset é trocado. PNGs antigos são

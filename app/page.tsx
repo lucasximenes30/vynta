@@ -245,8 +245,8 @@ export default function LandingPage() {
           <a href="#recursos" className="rise mt-6 inline-flex items-center gap-2 text-sm font-semibold text-sprout-lime underline decoration-brand-300 underline-offset-4" style={{ ['--d' as string]: '0.32s' }}>Dá uma olhada por dentro <ArrowRight className="h-4 w-4" /></a>
         </div>
         <div className="rise-soft relative mx-auto h-[420px] w-full max-w-[480px] sm:h-[510px]" style={{ ['--d' as string]: '0.2s' }}>
-          <div className="absolute right-0 top-0 w-[78%] overflow-hidden rounded-[2.5rem] bg-sprout-lavender shadow-[0_24px_70px_-35px_rgba(41,78,72,0.3)]" data-parallax="0.025">
-            <Image src="/assets/logo/mascot.webp" alt="Broto do Vynta, com duas folhas lima e um sorriso" width={640} height={640} priority sizes="(min-width: 640px) 375px, 70vw" className="h-auto w-full" />
+          <div className="absolute right-0 top-0 w-[70%] rounded-full bg-[radial-gradient(ellipse,rgba(173,166,206,0.13),transparent_70%)]" data-parallax="0.025">
+            <Image src="/assets/mascot/guide-pointing-v1.webp" alt="Brotô, o personagem do Vynta, sorrindo e apontando" width={640} height={679} priority sizes="(min-width: 640px) 336px, 65vw" className="h-auto w-full" />
           </div>
           <div className="absolute bottom-6 left-0 w-[44%] sm:bottom-5" data-parallax="-0.025">
             <Phone src="/images/landing/finances-mobile.webp" alt="Finanças do Vynta: saldo, receitas e despesas do mês" priority sizes="(min-width: 640px) 210px, 40vw" />
@@ -595,7 +595,7 @@ export default function LandingPage() {
             </TrackedCTA>
             <p className="text-xs text-white/70">Sem cartão. Sem cobrança automática no fim do teste.</p>
           </div>
-          <Image src="/assets/logo/mascot.webp" alt="" width={320} height={320} sizes="240px" className="lp-float mx-auto hidden w-full rounded-[2rem] md:block" />
+          <Image src="/assets/mascot/celebrating-v1.webp" alt="Brotô comemorando com os braços abertos" width={640} height={679} sizes="(min-width: 768px) 240px, 128px" className="lp-float order-first mx-auto h-auto w-32 md:order-last md:w-full" />
         </div>
       </section>
 

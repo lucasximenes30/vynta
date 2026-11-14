@@ -89,7 +89,7 @@
 - Identidade oficial: `marketing/branding/README.md`. Símbolo B1 aprovado; substitui as camadas azul/roxo. Novos materiais devem usar `public/assets/logo/broto-mark.png` e `mascot.webp`.
 - Paleta: lavanda escura (#14121C), verde profundo, lima e lavanda; creme apenas como apoio. Não copiar branding neon antigo de posts arquivados. `scripts/build-brand-assets.mjs` gera exports técnicos preservando a matriz.
 - Copy atual e evidências: `marketing/branding/2026-11-rebrand/COPY.md`. Não transformar tempos ilustrativos (5s/30s) em garantias. CTA: teste de 7 dias, não plano gratuito permanente.
-- Personagem auxiliar aprovado, chamado **Brotô**: poses em `public/assets/mascot/` (apontando, preocupado, celebrando). Não substitui logo, avatares ou ícones. Tutorial usa WebP leve; matrizes PNG ficam para artes. Pacote de anúncio com data proposta no calendário em `marketing/instagram/15-nova-fase/`.
+- Personagem auxiliar aprovado, chamado **Brotô**: poses em `public/assets/mascot/` (apontando, preocupado, celebrando). Não substitui logo, avatares ou ícones. Tutorial e ilustrações da landing usam WebP leve; matrizes PNG ficam para artes. Na landing, aponta junto ao produto e celebra no CTA final, também no mobile. Cabeçalho e notificações mantêm B1. Pacote de anúncio com data proposta no calendário em `marketing/instagram/15-nova-fase/`.
 
 ## Landing page (`app/page.tsx`)
 - Copy: siga a skill `.devin/skills/copy-conversao` (pesquisa, regras, fatos do produto). Nunca invente depoimento/número de usuários.

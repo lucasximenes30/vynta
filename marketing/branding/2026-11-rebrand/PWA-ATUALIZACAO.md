@@ -34,3 +34,16 @@ Fontes primárias consultadas em 14/11/2026:
 [WebKit — precedência de apple-touch-icon](https://webkit.org/blog/13878/web-push-for-web-apps-on-ios-and-ipados/).
 O guia geral do web.dev é de 2022; detalhes atuais do Chrome seguem o artigo de
 2026. Não houve validação física de iPhone/Safari nesta entrega.
+
+## Conferência em produção — 14/11/2026
+
+O HTML público de `https://www.vynta.digital` referencia
+`/apple-icon.png?d67181b6cf379d94`. O recurso respondeu 200 e seu SHA-256
+coincidiu com `app/apple-icon.png` aprovado. Portanto, o ícone Apple novo está
+publicado; isso não comprova atualização de uma instalação antiga do iOS.
+
+Para uma instalação no Safari/iPhone que ainda exiba o ícone antigo:
+conferir a sincronização de todos os lançamentos offline antes de remover o
+app antigo; abrir o Vynta no Safari e usar Compartilhar → Adicionar à Tela de
+Início. Pode ser necessário entrar novamente e reativar notificações. Não
+limpar os dados do Safari nem descartar a fila offline para trocar o ícone.

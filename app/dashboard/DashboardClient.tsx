@@ -394,18 +394,19 @@ export default function DashboardClient({
                     </p>
                   </div>
                   <div className="p-4 rounded-2xl bg-white dark:bg-surface-800/40 border border-surface-150 dark:border-surface-700/50">
-                    <p className="text-xs font-medium text-surface-500 dark:text-surface-400">Receitas</p>
+                    <p className="text-xs font-medium text-surface-500 dark:text-surface-400">Entradas do mês até hoje</p>
                     <p className="text-xl font-bold mt-1 text-emerald-600 dark:text-emerald-400 truncate">
                       {formatCurrency(balance.income)}
                     </p>
                   </div>
                   <div className="p-4 rounded-2xl bg-white dark:bg-surface-800/40 border border-surface-150 dark:border-surface-700/50">
-                    <p className="text-xs font-medium text-surface-500 dark:text-surface-400">Despesas</p>
+                    <p className="text-xs font-medium text-surface-500 dark:text-surface-400">Despesas do mês</p>
                     <p className="text-xl font-bold mt-1 text-rose-600 dark:text-rose-400 truncate">
                       {formatCurrency(balance.expense)}
                     </p>
                   </div>
                 </div>
+                <p className="text-xs leading-relaxed text-surface-500 dark:text-surface-400">O resultado desconta também despesas que ainda vão vencer no mês. Receitas futuras entram na data cadastrada. Não é o saldo da sua conta bancária.</p>
               </div>
             </div>
 

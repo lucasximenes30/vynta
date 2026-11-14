@@ -605,7 +605,7 @@ export default function FinancesClient({
                   <p className="text-lg font-semibold text-white/90">{formatCurrency(monthly.expense)}</p>
                 </div>
               </div>
-              <p className="mt-3 text-xs leading-relaxed text-white/75">Entradas pelas datas cadastradas, menos despesas previstas neste mês.</p>
+              <p className="mt-3 text-xs leading-relaxed text-white/75">Entradas até hoje menos todas as despesas do mês, inclusive as que ainda vão vencer. Este resultado não é o saldo da sua conta bancária.</p>
               {monthly.pendingIncome > 0 && <p className="mt-2 text-sm text-white/90">Ainda previsto para entrar: <strong>{formatCurrency(monthly.pendingIncome)}</strong></p>}
               <details className="mt-3 text-xs text-white/75"><summary className="cursor-pointer">Ver saldo acumulado</summary><p className="mt-2">{formatCurrency(balance.balance)} até hoje, incluindo meses anteriores. Não é uma consulta ao banco.</p></details>
             </div>
