@@ -16,11 +16,13 @@ const bundle = await build({
       import Calendar from './app/calendar/CalendarClient';
       import Goals from './app/goals/GoalsClient';
       import Habits from './app/habits/HabitsClient';
+      import Salary from './app/finances/SalaryModal';
       import Shell from './components/AppShell';
       import {ThemeProvider} from './lib/theme';
       const today = new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date());
-      window.fetch = async(input) => {
+      window.fetch = async(input, options) => {
         const url = String(input);
+        if (url === '/api/salary') { window.salaryRequest = options; return Response.json({success:true}); }
         if (url.includes('/calendar/events')) return Response.json({events:[{
           id:'fixture-event', title:${JSON.stringify(title)}, description:'Dados sintéticos de teste',
           date:today+'T00:00:00Z', startTime:'14:00', endTime:'15:00', color:'bg-brand-500', category:'Trabalho', reminders:[60]
@@ -32,7 +34,7 @@ const bundle = await build({
         initialHabits={[{id:'habit',title:'Beber dois litros de água diariamente',icon:'Droplets',color:'cyan',order:0,currentStreak:7,bestStreak:14,createdAt:today}]}
         initialCheckins={[]} initialPrevCheckins={[]} initialHistoricalScore={10} initialRanking={[]}
         weekDates={Array.from({length:7},(_,i)=>today.slice(0,8)+String(i+1).padStart(2,'0'))}/>;
-      createRoot(document.getElementById('root')).render(<ThemeProvider><Shell>{location.pathname==='/goals'?<Goals initialGoals={[]}/>:location.pathname==='/habits'?habits:<Calendar/>}</Shell></ThemeProvider>);`,
+      createRoot(document.getElementById('root')).render(<ThemeProvider><Shell>{location.pathname==='/salary'?<Salary open initial={[{amount:1000.50,day:5,payDayType:'fixed'},{amount:1000.75,day:20,payDayType:'fixed'}]} onClose={()=>{}} onSaved={()=>{}}/>:location.pathname==='/goals'?<Goals initialGoals={[]}/>:location.pathname==='/habits'?habits:<Calendar/>}</Shell></ThemeProvider>);`,
     loader: 'tsx', resolveDir: process.cwd(),
   },
   bundle: true, write: false, jsx: 'automatic', format: 'iife',
@@ -86,6 +88,16 @@ try {
     }))
     assert(bounds, `Calendar content fits ${width}px`)
   }
+  const sidebar = page.locator('.app-sidebar')
+  await page.getByRole('button', { name: 'Recolher menu', exact: true }).click()
+  await page.waitForFunction(() => document.querySelector('.app-sidebar').getBoundingClientRect().width === 80)
+  assert.equal(await page.locator('.app-content').evaluate(el => getComputedStyle(el).paddingLeft), '80px')
+  await page.getByRole('button', { name: 'Expandir menu', exact: true }).click()
+  await page.waitForFunction(() => document.querySelector('.app-sidebar').getBoundingClientRect().width === 224)
+  const activeTransform = await sidebar.locator('.nav-active-indicator').evaluate(el => getComputedStyle(el).transform)
+  await sidebar.getByRole('link', { name: 'Finanças', exact: true }).hover()
+  assert.equal(await sidebar.locator('.nav-hover-indicator').evaluate(el => new DOMMatrix(getComputedStyle(el).transform).m42), 54)
+  assert.equal(await sidebar.locator('.nav-active-indicator').evaluate(el => getComputedStyle(el).transform), activeTransform, 'hover must not change current-page marker')
   await page.setViewportSize({ width: 320, height: 568 })
   await page.getByRole('button', { name: 'Mais', exact: true }).click()
   const menu = page.getByRole('dialog', { name: 'Navegação Rápida' })
@@ -143,7 +155,19 @@ try {
   assert(habitSave.y >= 0 && habitSave.y + habitSave.height <= 568, 'Habit footer is reachable by scrolling')
   assert(await page.getByRole('dialog').locator('button[title]').evaluateAll(els => els.every(e => e.getBoundingClientRect().right <= innerWidth)))
   assert.deepEqual(errors, [])
-  console.log('Mobile regressions passed: system theme, 5 widths, long event title, month navigation, short-screen drawer, date/time controls, simulated visual viewport, goals footer and seven habit days. Not a physical keyboard/Safari test.')
+  await page.goto(`http://127.0.0.1:${server.address().port}/salary`)
+  const salary = page.getByRole('dialog', { name: 'Configurar salário' })
+  await salary.waitFor()
+  assert.equal(await page.locator('#salary-amount-0').inputValue(), '1000,5')
+  await page.getByRole('button', { name: 'Salvar', exact: true }).scrollIntoViewIfNeeded()
+  const salarySave = await page.getByRole('button', { name: 'Salvar', exact: true }).boundingBox()
+  assert(salarySave.y >= 0 && salarySave.y + salarySave.height <= 568)
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click()
+  const request = await page.evaluate(() => JSON.parse(window.salaryRequest.body))
+  assert.deepEqual(request.payments.map(p => p.amount), [1000.5, 1000.75], 'reopening salary preserves centavos when saving')
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 320)
+  assert.deepEqual(errors, [])
+  console.log('Mobile regressions passed: system theme, 5 widths, calendar, drawer, dates, simulated keyboard, goals footer, seven habit days, sidebar collapse/hover, salary centavos and footer. Not a physical keyboard/Safari test.')
 } finally {
   await browser.close()
   await new Promise(resolve => server.close(resolve))

@@ -167,7 +167,7 @@ export default function ReportsClient({ initialReport }: { initialReport: Report
           : <div className="report-content space-y-5 sm:space-y-6" key={report.period}>
             <section aria-label="Resumo financeiro" className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
               <article className="report-panel !p-4 sm:!p-5">
-                <div className="mb-4 flex items-center justify-between gap-2"><h3 className="text-xs font-medium text-surface-500 dark:text-surface-400 sm:text-sm">Receitas</h3><ArrowDownLeft className="h-5 w-5 text-emerald-500" /></div>
+                <div className="mb-4 flex items-center justify-between gap-2"><h3 className="text-xs font-medium text-surface-500 dark:text-surface-400 sm:text-sm">Entradas do mês</h3><ArrowDownLeft className="h-5 w-5 text-emerald-500" /></div>
                 <p className="break-words text-lg font-bold tracking-tight tabular-nums sm:text-2xl">{money(summary.income)}</p><Change amount={comparison.incomeChange} />
               </article>
               <article className="report-panel !p-4 sm:!p-5">
@@ -177,9 +177,11 @@ export default function ReportsClient({ initialReport }: { initialReport: Report
               <article className="report-panel col-span-2 !border-violet-200 !bg-violet-50/60 !p-4 dark:!border-violet-500/20 dark:!bg-violet-500/5 sm:col-span-1 sm:!p-5">
                 <div className="mb-4 flex items-center justify-between"><h3 className="text-xs font-medium text-violet-700 dark:text-violet-300 sm:text-sm">Resultado do mês</h3><Wallet className="h-5 w-5 text-violet-500" /></div>
                 <p className={`break-words text-2xl font-bold tracking-tight tabular-nums ${monthResult < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-violet-700 dark:text-violet-300'}`}>{money(monthResult)}</p>
-                <p className="mt-3 text-xs text-surface-500 dark:text-surface-400">{savingsRate === null ? 'Receitas menos despesas do período' : monthResult >= 0 ? `${savingsRate.toFixed(0)}% das receitas restaram no mês` : 'Confira receitas ainda não registradas e gastos previstos'}</p>
+                <p className="mt-3 text-xs text-surface-500 dark:text-surface-400">Entradas até hoje menos despesas previstas no período. Receitas futuras ficam fora deste resultado.</p>
               </article>
             </section>
+
+            {(summary.pendingIncome ?? 0) > 0 && <p className="rounded-xl bg-surface-100 p-4 text-sm text-surface-600 dark:bg-surface-800/50 dark:text-surface-300">Ainda previsto para entrar neste mês: <strong>{money(summary.pendingIncome!)}</strong>. Cada quinzena entra no cálculo a partir da sua data cadastrada.</p>}
 
             {empty ? <section className="report-panel py-10 text-center">
               <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-50 text-violet-500 dark:bg-violet-500/10"><BarChart3 className="h-7 w-7" /></div>
@@ -234,7 +236,7 @@ export default function ReportsClient({ initialReport }: { initialReport: Report
                   <div className="relative grid grid-cols-6 gap-2">{report.trend.map((item, index) => <div key={index} className="min-w-0"><div className="flex h-44 items-end justify-center gap-1.5 sm:h-52"><div className="w-3 max-w-5 rounded-t-md bg-emerald-400 sm:w-5" style={{ height: `${item.income / maxTrend * 100}%`, minHeight: item.income > 0 ? 3 : 0 }} title={`Receitas: ${money(item.income)}`} /><div className="w-3 max-w-5 rounded-t-md bg-violet-400 sm:w-5" style={{ height: `${item.expense / maxTrend * 100}%`, minHeight: item.expense > 0 ? 3 : 0 }} title={`Despesas: ${money(item.expense)}`} /></div><p className={`mt-3 text-center text-[11px] ${index === 5 ? 'font-bold text-violet-600 dark:text-violet-300' : 'text-surface-500'}`}>{item.month}</p></div>)}</div>
                 </div>
                 <details className="border-t border-surface-100 pt-3 dark:border-surface-800"><summary className="cursor-pointer py-2 text-xs font-medium text-surface-600 dark:text-surface-400">Ver valores por mês</summary><div className="overflow-x-auto"><table className="mt-2 w-full text-xs tabular-nums"><caption className="sr-only">Receitas e despesas por mês</caption><thead><tr className="text-surface-500"><th className="py-2 text-left">Mês</th><th className="text-right">Receitas</th><th className="text-right">Despesas</th></tr></thead><tbody>{report.trend.map((item, index) => <tr key={index}><th className="py-2 text-left font-normal">{item.month} {item.year}</th><td className="text-right">{money(item.income)}</td><td className="text-right">{money(item.expense)}</td></tr>)}</tbody></table></div></details>
-                <div className="mt-4 rounded-xl bg-surface-50 p-4 dark:bg-surface-800/40"><p className="flex items-center justify-between gap-3 text-xs text-surface-500"><span>Saldo acumulado até este mês</span><span className="font-semibold tabular-nums text-surface-800 dark:text-surface-200">{money(summary.balance)}</span></p><p className="mt-2 text-[11px] leading-relaxed text-surface-500">Inclui o saldo dos meses anteriores. O resultado do mês considera apenas este período.</p></div>
+                <div className="mt-4 rounded-xl bg-surface-50 p-4 dark:bg-surface-800/40"><p className="flex items-center justify-between gap-3 text-xs text-surface-500"><span>Saldo acumulado até {selectedMonth === currentMonth ? 'hoje' : 'o fim do período'}</span><span className="font-semibold tabular-nums text-surface-800 dark:text-surface-200">{money(summary.accumulatedBalance ?? summary.balance)}</span></p><p className="mt-2 text-[11px] leading-relaxed text-surface-500">Inclui meses anteriores, pelas datas cadastradas. Não confirma recebimentos no banco. O resultado do mês considera apenas este período.</p></div>
               </section>
             </div>
 

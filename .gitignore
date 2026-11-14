@@ -28,3 +28,7 @@ marketing/instagram/*
 marketing/instagram/variavel-de-post/*
 !marketing/instagram/variavel-de-post/README.md
 !marketing/instagram/variavel-de-post/template.html
+# Launch package stays with the rebranding branch; older local batches remain untouched.
+!marketing/instagram/rascunhos/
+marketing/instagram/rascunhos/*
+!marketing/instagram/rascunhos/nova-fase/

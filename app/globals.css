@@ -221,6 +221,18 @@
   }
 }
 
+/* One persistent marker travels between items without remounting the navigation. */
+.nav-active-indicator { transition: transform 280ms cubic-bezier(.22,1,.36,1), opacity 160ms ease; }
+.nav-hover-indicator { transition: transform 180ms cubic-bezier(.22,1,.36,1), opacity 120ms ease; }
+.app-sidebar { transition: width 240ms cubic-bezier(.22,1,.36,1), padding 240ms ease; }
+.app-content { transition: padding-left 240ms cubic-bezier(.22,1,.36,1); }
+@media (min-width:1024px) {
+  .app-shell[data-sidebar-collapsed="true"] > .app-content { padding-left:5rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-active-indicator, .nav-hover-indicator, .app-sidebar, .app-content { transition: none !important; }
+}
+
 /* Transform-only so content is visible (and counts for LCP) from the very first frame. */
 @keyframes dashboardFadeIn {
   from {

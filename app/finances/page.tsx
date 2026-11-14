@@ -44,6 +44,7 @@ function serializeData(transactions: any[], balance: any, monthly: any) {
     },
     monthly: {
       income: Number(monthly.income),
+      pendingIncome: Number(monthly.pendingIncome),
       expense: Number(monthly.expense),
       balance: Number(monthly.balance),
       transactionCount: monthly.transactionCount,

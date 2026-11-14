@@ -76,7 +76,8 @@
 
 ## Salário
 - Config em Finanças → botão "Salário" (`app/finances/SalaryModal.tsx` → `POST|DELETE /api/salary` → `services/salary.service.ts`).
-- Salário = transação(ões) INCOME recorrentes com `salarySlot` 1 (mensal ou 1ª quinzena) e 2 (2ª quinzena). `payDayType` `'fixed'` (dia do mês) ou `'business_day'` (`recurringDay` = N-ésimo dia útil — ver `lib/payday.ts`, `effectivePayDay`). `date` = 1º dia do mês da configuração, então só conta do mês atual em diante.
+- Resumos: `income` só inclui datas já alcançadas; `pendingIncome` separa receitas futuras. `balance` é resultado do mês; `accumulatedBalance` é o histórico até hoje (ou fim do mês passado). Não misturar as duas grandezas nem antecipar a segunda quinzena. `financialToday` usa o dia de São Paulo, independente do fuso do servidor. Despesas do mês continuam incluindo os compromissos previstos; não são saldo bancário confirmado.
+- Salário = transação(ões) INCOME recorrentes com `salarySlot` 1 (mensal ou 1ª quinzena) e 2 (2ª quinzena). `payDayType` `'fixed'` (dia do mês) ou `'business_day'` (`recurringDay` = N-ésimo dia útil — ver `lib/payday.ts`, `effectivePayDay`). A primeira ocorrência usa a data de configuração (`createdAt`): começa no primeiro pagamento nessa data ou depois dela, sem incluir pagamentos anteriores retroativamente.
 
 ## Navegação / cache do cliente
 - `experimental.staleTimes.dynamic = 30` (next.config): telas visitadas são reaproveitadas por 30s. `components/RouterCacheSync.tsx` marca o cache como sujo após qualquer `fetch` não-GET bem-sucedido para `/api/*` e faz `router.refresh()` na próxima troca de tela. Mutações novas via `fetch('/api/...')` já ficam cobertas.
@@ -88,6 +89,7 @@
 - Identidade oficial: `marketing/branding/README.md`. Símbolo B1 aprovado; substitui as camadas azul/roxo. Novos materiais devem usar `public/assets/logo/broto-mark.png` e `mascot.webp`.
 - Paleta: lavanda escura (#14121C), verde profundo, lima e lavanda; creme apenas como apoio. Não copiar branding neon antigo de posts arquivados. `scripts/build-brand-assets.mjs` gera exports técnicos preservando a matriz.
 - Copy atual e evidências: `marketing/branding/2026-11-rebrand/COPY.md`. Não transformar tempos ilustrativos (5s/30s) em garantias. CTA: teste de 7 dias, não plano gratuito permanente.
+- Personagem auxiliar solicitado depois da aprovação B1: propostas em `public/assets/mascot/` (apontando, preocupado, celebrando). Não substitui logo, avatares ou ícones. Tutorial usa WebP leve; matrizes PNG ficam para artes. Pacote de anúncio sem data em `marketing/instagram/rascunhos/nova-fase/`.
 
 ## Landing page (`app/page.tsx`)
 - Copy: siga a skill `.devin/skills/copy-conversao` (pesquisa, regras, fatos do produto). Nunca invente depoimento/número de usuários.

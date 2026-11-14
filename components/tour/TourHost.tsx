@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import {
   ArrowRight,
@@ -56,7 +57,7 @@ const STEPS: Record<TourStepId, StepDef> = {
     icon: Wallet,
     tile: 'bg-emerald-500 shadow-emerald-500/30',
     title: 'Quanto entra por mês?',
-    description: 'Cadastre seu salário uma vez só e o Vynta lança ele sozinho todo mês. Assim você sempre sabe quanto ainda pode gastar.',
+    description: 'Cadastre o valor e a data de cada pagamento. Cada quinzena entra no resultado quando sua data chega; o restante fica como previsto.',
     tips: () => ['Recebe no 5º dia útil? Tem opção pra isso.', 'Recebe em duas quinzenas? Também dá.'],
     cta: 'Configurar meu salário',
     skip: 'Não tenho salário fixo',
@@ -68,7 +69,7 @@ const STEPS: Record<TourStepId, StepDef> = {
     icon: Receipt,
     tile: 'bg-rose-500 shadow-rose-500/30',
     title: 'Anote seu primeiro gasto',
-    description: 'Pensa no último gasto que você fez: um café, um iFood, um Uber... Coloca aí! Leva uns 5 segundos.',
+    description: 'Pensa no último gasto que você fez: um café, um iFood, um Uber... Vamos registrar juntos?',
     tips: () => ['Digite um nome como gasolina, estacionamento ou pizza: a categoria é sugerida na hora. Você pode mudar antes de salvar.'],
     cta: 'Anotar meu primeiro gasto',
     skip: 'Faço isso depois',
@@ -253,9 +254,7 @@ export default function TourHost() {
                 <X className="h-4 w-4" />
               </button>
             )}
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/20">
-              {finishing ? <PartyPopper className="h-7 w-7" /> : <Sparkles className="h-7 w-7" />}
-            </div>
+            <Image src="/assets/mascot/celebrating-v1.webp" alt="" width={88} height={96} className="mb-4 h-24 w-[88px] object-contain" />
             <h2 className="font-display text-2xl font-bold leading-tight tracking-tight">
               {finishing ? 'Seu Vynta está pronto! 🎉' : 'Bem-vindo ao Vynta! 👋'}
             </h2>
@@ -395,9 +394,7 @@ export default function TourHost() {
     >
       {confirmExit ? ExitConfirm : celebrating ? (
         <div key={celebrating} className="flex flex-col items-center py-4 text-center animate-in zoom-in-95 fade-in">
-          <span className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-500/40">
-            <Check className="h-8 w-8" strokeWidth={3} />
-          </span>
+          <Image src="/assets/mascot/celebrating-v1.webp" alt="" width={88} height={96} className="mb-4 h-24 w-[88px] object-contain" />
           <p className="font-display text-xl font-bold text-surface-900 dark:text-white">Mandou bem! ✨</p>
           <p className="mt-1.5 max-w-[280px] text-sm text-surface-500 dark:text-surface-400">{STEPS[celebrating].success}</p>
           <div className="mt-5 w-full">{progress}</div>
@@ -418,15 +415,13 @@ export default function TourHost() {
 
           {progress}
 
-          <div className="mt-5 flex items-start gap-4">
-            <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg ${step.tile}`}>
-              <Icon className="h-6 w-6" />
-            </span>
+          <div className="mt-5 flex items-center gap-4">
+            <Image src="/assets/mascot/guide-pointing-v1.webp" alt="" width={72} height={80} className="h-20 w-[72px] shrink-0 object-contain" />
             <div className="min-w-0">
               <h3 className="font-display text-lg font-bold leading-snug text-surface-900 dark:text-white">{step.title}</h3>
-              <p className="mt-1 text-sm leading-relaxed text-surface-500 dark:text-surface-400">{step.description}</p>
             </div>
           </div>
+          <p className="mt-3 text-sm leading-relaxed text-surface-500 dark:text-surface-400">{step.description}</p>
 
           <ul className="mt-4 space-y-2">
             {step.tips(desktop).map((tip) => (

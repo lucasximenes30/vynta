@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react'
 
 interface MonthData {
   income: number
+  pendingIncome?: number
   expense: number
   balance: number
   transactionCount: number
@@ -154,6 +155,8 @@ export default function MonthlyReport({ formatCurrency, formatConverted }: Month
         </div>
       </div>
 
+      <p className="mb-4 text-xs text-surface-500 dark:text-surface-400">Entradas pelas datas já alcançadas, menos despesas previstas no mês. Receitas futuras não entram no resultado.</p>
+      {(comparison?.current.pendingIncome ?? 0) > 0 && <p className="mb-4 text-sm text-surface-600 dark:text-surface-300">Ainda previsto: {formatCurrency(comparison!.current.pendingIncome!)} no mês selecionado.</p>}
       {loading ? (
         <div className="card flex items-center justify-center py-8">
           <div className="animate-spin">
@@ -198,7 +201,7 @@ export default function MonthlyReport({ formatCurrency, formatConverted }: Month
                   </div>
                   <div className="border-t border-surface-150 dark:border-surface-700/60 pt-3 flex items-center justify-between">
                     <span className="text-sm font-medium text-surface-700 dark:text-surface-300">
-                      {"Saldo Atual"}
+                      {"Resultado do mês"}
                     </span>
                     <span className="text-base font-bold text-brand-600 dark:text-brand-400">
                       {formatCurrency(comparison.current.balance)}
@@ -239,7 +242,7 @@ export default function MonthlyReport({ formatCurrency, formatConverted }: Month
                   </div>
                   <div className="border-t border-surface-150 dark:border-surface-700/60 pt-3 flex items-center justify-between">
                     <span className="text-sm font-medium text-surface-700 dark:text-surface-300">
-                      {"Saldo Atual"}
+                      {"Resultado do mês"}
                     </span>
                     <span className="text-base font-bold text-brand-600 dark:text-brand-400">
                       {formatCurrency(comparison.previous.balance)}

@@ -1,0 +1,55 @@
+{
+  "metrics": [
+    {
+      "width": 1440,
+      "label": "Finanças",
+      "ms": 239
+    },
+    {
+      "width": 1440,
+      "label": "Hábitos",
+      "ms": 186
+    },
+    {
+      "width": 1440,
+      "label": "Painel",
+      "ms": 78
+    },
+    {
+      "width": 1440,
+      "label": "Finanças",
+      "ms": 92
+    },
+    {
+      "width": 1440,
+      "label": "Painel",
+      "ms": 63
+    },
+    {
+      "width": 390,
+      "label": "Finanças",
+      "ms": 129
+    },
+    {
+      "width": 390,
+      "label": "Hábitos",
+      "ms": 87
+    },
+    {
+      "width": 390,
+      "label": "Painel",
+      "ms": 56
+    },
+    {
+      "width": 390,
+      "label": "Finanças",
+      "ms": 81
+    },
+    {
+      "width": 390,
+      "label": "Painel",
+      "ms": 65
+    }
+  ],
+  "errors": []
+}

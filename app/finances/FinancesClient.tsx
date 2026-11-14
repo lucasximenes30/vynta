@@ -7,10 +7,10 @@ import { logoutAndRedirect } from '@/lib/logout'
 
 import { useState, useEffect, useCallback, useRef, useMemo, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 
 import MonthlyReport from '@/components/MonthlyReport'
 import EditTransactionModal from '@/components/EditTransactionModal'
-import SalaryModal from './SalaryModal'
 import CategorySelect from '@/components/CategorySelect'
 import * as Lucide from 'lucide-react'
 import NotificationDropdown from '@/components/NotificationDropdown'
@@ -23,8 +23,12 @@ import { useTourAction } from '@/lib/tour'
 interface Session { userId: string; email: string; name: string }
 interface Transaction { id: string; title: string; amount: string; installmentAmount?: number; type: 'INCOME' | 'EXPENSE'; category: string; date: string; isInstallment?: boolean; totalInstallments?: number; purchaseDate?: string; dueDay?: number; _activeInstallment?: number; isRecurring?: boolean; recurringDay?: number; payDayType?: 'fixed' | 'business_day'; salarySlot?: number; _recurringStatus?: { isRecurring: boolean; day: number | null; status: 'DUE' | 'PAID' | 'UPCOMING'; daysUntil: number | null }; isActive?: boolean; endDate?: string; createdAt?: string; cardId?: string; paymentMethod?: string }
 interface Balance { income: number; expense: number; balance: number }
-interface Monthly { income: number; expense: number; balance: number; transactionCount: number }
+interface Monthly { income: number; pendingIncome: number; expense: number; balance: number; transactionCount: number }
 interface Card { id: string; name: string; lastFourDigits: string; dueDay: number; closingDay: number }
+
+const SalaryModal = dynamic(() => import('./SalaryModal'), {
+  loading: () => <div role="status" className="fixed bottom-24 left-4 right-4 z-[60] rounded-2xl bg-surface-900 p-4 text-center text-sm text-white shadow-lg">Abrindo configuração do salário…</div>,
+})
 
 // Cache de taxa de câmbio (atualiza a cada 5 min)
 const cacheKey = 'vynta_exchange_rate'
@@ -109,6 +113,8 @@ export default function FinancesClient({
   const [rateError, setRateError] = useState(false)
 
   useEffect(() => {
+    // This screen is BRL-only; avoid an unused external exchange-rate request on every visit.
+    if (locale === 'pt-BR') { setRateLoading(false); return }
     setRateLoading(true)
     setRateError(false)
     getExchangeRate().then((r) => {
@@ -579,26 +585,29 @@ export default function FinancesClient({
           <div className="relative z-10 flex flex-col md:flex-row gap-6 md:gap-8">
             <div className="flex-1">
               <div className="space-y-1">
-                <p className="text-sm/6 font-medium text-white/70">{"Saldo Atual"}</p>
+                <p className="text-sm/6 font-medium text-white/70">Resultado do mês</p>
                 <div className="flex items-baseline gap-3 flex-wrap">
-                  <p className="text-4xl sm:text-5xl font-bold tracking-[-0.02em] leading-none">{formatCurrency(balance.balance)}</p>
+                  <p className="text-4xl sm:text-5xl font-bold tracking-[-0.02em] leading-none">{formatCurrency(monthly.balance)}</p>
                   {!isBRL && (
                     <span className="text-sm font-medium text-white/50">
-                      ≈ {formatConverted(balance.balance)}
+                      ≈ {formatConverted(monthly.balance)}
                     </span>
                   )}
                 </div>
               </div>
               <div className="mt-4 sm:mt-6 flex flex-wrap gap-6 md:gap-8">
                 <div className="space-y-0.5">
-                  <p className="text-xs/5 font-medium text-white/60">{"Receitas"}</p>
+                  <p className="text-xs/5 font-medium text-white/60">Entradas do mês até hoje</p>
                   <p className="text-lg font-semibold text-white/90">{formatCurrency(monthly.income)}</p>
                 </div>
                 <div className="space-y-0.5">
-                  <p className="text-xs/5 font-medium text-white/60">{"Despesas"}</p>
+                  <p className="text-xs/5 font-medium text-white/60">Despesas do mês</p>
                   <p className="text-lg font-semibold text-white/90">{formatCurrency(monthly.expense)}</p>
                 </div>
               </div>
+              <p className="mt-3 text-xs leading-relaxed text-white/75">Entradas pelas datas cadastradas, menos despesas previstas neste mês.</p>
+              {monthly.pendingIncome > 0 && <p className="mt-2 text-sm text-white/90">Ainda previsto para entrar: <strong>{formatCurrency(monthly.pendingIncome)}</strong></p>}
+              <details className="mt-3 text-xs text-white/75"><summary className="cursor-pointer">Ver saldo acumulado</summary><p className="mt-2">{formatCurrency(balance.balance)} até hoje, incluindo meses anteriores. Não é uma consulta ao banco.</p></details>
             </div>
 
             <div className="w-full md:w-auto flex flex-row flex-wrap md:flex-col gap-3">

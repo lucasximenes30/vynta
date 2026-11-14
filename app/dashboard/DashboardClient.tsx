@@ -388,7 +388,7 @@ export default function DashboardClient({
                 {/* Balance display */}
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div className="p-4 rounded-2xl bg-white dark:bg-surface-800/40 border border-surface-150 dark:border-surface-700/50">
-                    <p className="text-xs font-medium text-surface-500 dark:text-surface-400">Saldo Geral</p>
+                    <p className="text-xs font-medium text-surface-500 dark:text-surface-400">Resultado do mês</p>
                     <p className="text-xl font-bold mt-1 text-surface-900 dark:text-white truncate">
                       {formatCurrency(balance.balance)}
                     </p>

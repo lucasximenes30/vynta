@@ -165,3 +165,90 @@ biblioteca de animação foi adicionada.
 - Não foram efetuados pagamentos, disparos de mensagens ou publicações sociais.
 - Trabalho restrito a `codex/rebranding-vynta`, sem merge na main ou deploy.
   Arquivos locais pré-existentes permanecem fora deste trabalho.
+
+## Continuação — salário, movimento e personagem (13/11/2026)
+
+### Resultado implementado
+
+- Finanças, Painel e Relatórios usam resultado **mensal**. O saldo acumulado
+  aparece separadamente, limitado à data atual no mês em andamento.
+- Cada quinzena entra no cálculo a partir de sua data cadastrada. Entradas
+  futuras ficam em `pendingIncome`, fora do resultado, tendência e análise
+  avançada. Exemplo testado: R$ 1.000 na primeira quinzena, R$ 1.000 ainda
+  previsto e R$ 500 de despesas resultam em R$ 500, não R$ 1.500.
+- Despesas continuam incluindo os compromissos previstos no mês; a interface
+  explica essa regra. Os valores seguem datas cadastradas, sem integração que
+  confirme recebimentos bancários. A data de referência usa São Paulo para
+  não antecipar o pagamento na virada do dia UTC.
+- Reabrir e salvar salário preserva centavos. Modal acompanha a viewport
+  visível e permite rolar até o rodapé. Remoção com falha não informa sucesso.
+  A descrição de dia útil agora informa corretamente que feriados não são
+  ajustados; a regra existente considera segunda a sexta.
+- O vídeo do Biip enviado pelo responsável foi analisado: hover independente,
+  destaque ativo que percorre a sidebar, recolhimento/expansão e entrada curta
+  do conteúdo. Aplicação no Vynta em CSS, preservando B1 e o shell entre rotas.
+  A barra inferior também desloca o destaque. Movimento reduzido desliga
+  essas transições. Não houve acesso autenticado ao Biip pela extensão.
+- Personagem derivado B1 em três poses: apontando, preocupado e celebrando.
+  PNGs transparentes e WebPs de UI em `public/assets/mascot/`. O tutorial usa
+  o personagem, com descrições e ações legíveis em mobile. Logo, avatares,
+  favicon e ícones PWA aprovados não foram substituídos.
+- Sete slides e dois stories renderizados, legenda e instruções em
+  `marketing/instagram/rascunhos/nova-fase/`. Data ainda não escolhida; material
+  pronto para revisão e publicação manual depois do deploy autorizado.
+- Doze prints da landing recapturados após os ajustes, nas mesmas dimensões
+  e formatos. Imagens/fontes/gráficos aguardados; somente dados demo.
+- Cache estático v12 para os novos assets. Cache de dados v7 e fila offline
+  preservados. Nenhuma alteração de schema ou recriação da demo nesta etapa.
+
+### Validação desta continuação
+
+- Passaram `npx tsc --noEmit -p .`, `npm run build`,
+  `npx tsx scripts/check-security.ts` e `git diff --check`.
+- `scripts/check-security.ts`: teste isolado de quinzenas antes/no dia de
+  pagamento, dia útil, configuração tardia, virada UTC/Brasil, separação entre
+  saldo mensal/acumulado e consistência dos gráficos/análise avançada.
+  A leitura de transações continua única, sem consultas adicionais por mês.
+- `node scripts/check-mobile-layout.mjs`: cinco larguras, temas, calendário,
+  eventos longos, campos de data, drawer, sete dias de hábitos, modais/rodapés,
+  viewport visual reduzida, sidebar recolhida/hover e centavos do salário.
+- `node scripts/check-offline.mjs`: cache frio, rotas não visitadas, TTL,
+  persistência da fila, falhas, replay e isolamento de contas passaram.
+- Chrome com build de produção local: Finanças, Painel e Relatórios em
+  320/390/430/768/1440 px, temas claro/escuro (30 combinações), sem overflow
+  horizontal. Tutorial e Salário em 320×568, botões alcançáveis por rolagem.
+- Dez trocas reais de rota em desktop/mobile, sem remontar o shell e sem
+  erros JavaScript. Destaque alinhado ao item ativo e redução de movimento
+  verificados. Tempos locais aquecidos de 56–239 ms entre clique e rota/título
+  visíveis; não equivalem a uma medição de rede móvel/cold start em produção.
+- Sete slides e dois stories inspecionados após o render; corrigidas
+  sobreposições entre personagem/textos e afastados phones do rodapé.
+  Arte final: 2160×2700; stories: 2160×3840.
+- Evidências, vídeo e métricas em [`segunda-revisao/README.md`](segunda-revisao/README.md).
+
+| Rota | Entrega anterior (789fb51) | Esta continuação |
+| --- | --- | --- |
+| Landing | 117 kB | 117 kB |
+| Painel | 119 kB | 119 kB |
+| Agenda | 120 kB | 120 kB |
+| Hábitos | 120 kB | 120 kB |
+| Finanças | 146 kB | 146 kB |
+| Relatórios | 119 kB | 119 kB |
+
+First Load JS arredondado pelo Next. Modal de salário carregado sob demanda;
+removida a chamada desnecessária de câmbio na tela BRL. Sem nova biblioteca de
+animação nem dependência de produção. Em relação ao baseline inicial, Agenda
+e Hábitos mantêm o acréscimo de 1 kB documentado na primeira revisão.
+
+### Limites da evidência
+
+Safari/iPhone físico, teclado nativo, gestos e splash do PWA instalado continuam
+sem teste em aparelho. Isso descreve o ambiente de teste disponível, não um
+defeito confirmado aguardando autorização para correção. Chrome responsivo e
+viewport visual simulada não foram apresentados como testes de iPhone.
+
+Geração remota de insights não foi revalidada (limitação de integração já
+registrada acima); capturas usam os relatórios locais. Não houve merge na main,
+deploy, postagem, pagamento, e-mail ou push real. O novo personagem é uma
+proposta de aplicação solicitada pelo responsável, sem substituir a identidade
+aprovada. Arquivos pessoais e o stash preexistente continuam preservados.

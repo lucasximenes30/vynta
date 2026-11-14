@@ -32,6 +32,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const router = useRouter()
   const [showQuickActions, setShowQuickActions] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   useEffect(() => {
     if (!showQuickActions) return
@@ -66,11 +67,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     { Icon: Lucide.CheckSquare, label: 'Hábitos', href: '/habits' },
     { Icon: Lucide.LayoutGrid, label: 'Mais', opensMenu: true },
   ]
+  const mobileActiveIndex = showQuickActions ? 4 : pathname === '/dashboard' ? 0
+    : pathname.startsWith('/finances') || pathname.startsWith('/cards') ? 1 : pathname.startsWith('/habits') ? 3 : 4
 
   return (
-    <div className="app-shell flex min-h-[100dvh] w-full relative pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0 bg-surface-50 dark:bg-surface-950 transition-colors duration-300">
+    <div data-sidebar-collapsed={sidebarCollapsed} className="app-shell flex min-h-[100dvh] w-full relative pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0 bg-surface-50 dark:bg-surface-950 transition-colors duration-300">
       {/* Desktop Sidebar */}
-      <Sidebar />
+      <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(value => !value)} />
       
       {/* Main Content Area */}
       {/* Offset content on desktop (pl-20 for collapsed sidebar) */}
@@ -174,11 +177,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile Bottom Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/80 dark:bg-[#1e1a28]/95 backdrop-blur-lg border-t border-surface-200/80 dark:border-surface-800/80 pb-safe">
-        <div className="flex items-center justify-around h-16 px-2">
+        <div className="relative mx-2 grid h-16 grid-cols-5 items-center">
+          <span aria-hidden className="nav-active-indicator pointer-events-none absolute left-0 top-1 flex h-8 w-1/5 justify-center" style={{ transform: `translateX(${mobileActiveIndex * 100}%)` }}><span className="h-full w-12 rounded-xl bg-brand-100/60 dark:bg-sprout-lavender/10" /></span>
           {MOBILE_NAV_ITEMS.map((item) => {
             if (item.isAction) {
               return (
-                <div key="action" className="relative -top-5 flex justify-center w-16">
+                <div key="action" className="relative -top-5 flex justify-center w-full">
                   <button
                     onClick={() => openQuickAdd('EXPENSE')}
                     aria-label="Anotar gasto"
@@ -195,7 +199,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <button
                   key="menu"
                   onClick={() => setShowQuickActions(true)}
-                  className="flex flex-col items-center justify-center w-16 h-full gap-0.5 transition-colors group"
+                  className="relative flex flex-col items-center justify-center w-full h-full gap-0.5 transition-colors group"
                 >
                   <item.Icon className={`w-5 h-5 transition-transform group-active:scale-90 ${showQuickActions ? 'text-brand-600 dark:text-brand-400' : 'text-surface-400 dark:text-surface-500'}`} />
                   <span className={`text-[9px] font-semibold transition-colors uppercase tracking-wider ${showQuickActions ? 'text-brand-600 dark:text-brand-400 font-bold' : 'text-surface-400 dark:text-surface-500'}`}>
@@ -213,9 +217,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href as string}
                 aria-current={isActive ? 'page' : undefined}
-                className="relative flex flex-col items-center justify-center w-16 h-full gap-0.5 transition-colors group"
+                className="relative flex flex-col items-center justify-center w-full h-full gap-0.5 transition-colors group"
               >
-                {isActive && <span aria-hidden className="absolute top-1 h-8 w-12 rounded-xl bg-brand-100/60 dark:bg-sprout-lavender/10" />}
                 <Icon className={`relative w-5 h-5 transition-transform group-active:scale-90 ${isActive ? 'text-brand-600 dark:text-brand-400' : 'text-surface-400 dark:text-surface-500'}`} />
                 <span className={`relative text-[9px] font-semibold transition-colors uppercase tracking-wider ${isActive ? 'text-brand-600 dark:text-brand-400 font-bold' : 'text-surface-400 dark:text-surface-500'}`}>
                   {item.label}

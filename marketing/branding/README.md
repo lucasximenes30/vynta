@@ -24,6 +24,15 @@ acessórios ou criar outro personagem. A matriz tem fundo lavanda; não fingir q
 Na assinatura, símbolo + palavra “Vynta” em Sora, sem slogan em tamanhos pequenos.
 Não usar a silhueta técnica do badge como logo principal.
 
+### Personagem para tutoriais e posts — proposta v1
+
+Por solicitação posterior do responsável, o broto ganhou uma proposta de corpo
+com braços, pés e expressões em `public/assets/mascot/`. Essa autorização vale
+para o personagem auxiliar; **a logo B1 e os avatares aprovados não mudam**.
+Poses: apontando, preocupado e celebrando, com PNG transparente e WebP para UI.
+O tutorial usa o export leve; a landing mantém a matriz aprovada. Rever o
+personagem e o pacote `marketing/instagram/rascunhos/nova-fase/` antes de publicar.
+
 ## Direção final (ajuste solicitado pelo responsável)
 
 A landing e os materiais principais mantêm o **minimalismo escuro**, agora com

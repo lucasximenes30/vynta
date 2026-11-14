@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import * as Lucide from 'lucide-react'
+import { useVisibleViewport } from '@/lib/useVisibleViewport'
 
 export interface SalaryPaymentPrefill {
   amount: number
@@ -24,10 +25,11 @@ interface PaymentForm {
 }
 
 export default function SalaryModal({ open, onClose, initial, onSaved }: Props) {
+  const viewport = useVisibleViewport()
   const [mode, setMode] = useState<'monthly' | 'biweekly'>(initial.length === 2 ? 'biweekly' : 'monthly')
   const [payments, setPayments] = useState<PaymentForm[]>(
     initial.length > 0
-      ? initial.map((p) => ({ amount: String(p.amount), day: String(p.day), payDayType: p.payDayType }))
+      ? initial.map((p) => ({ amount: String(p.amount).replace('.', ','), day: String(p.day), payDayType: p.payDayType }))
       : [{ amount: '', day: '', payDayType: 'fixed' }],
   )
   const [saving, setSaving] = useState(false)
@@ -91,7 +93,8 @@ export default function SalaryModal({ open, onClose, initial, onSaved }: Props) 
   const remove = async () => {
     setRemoving(true)
     try {
-      await fetch('/api/salary', { method: 'DELETE' })
+      const response = await fetch('/api/salary', { method: 'DELETE' })
+      if (!response.ok) { setError('Não foi possível remover o salário. Tente novamente.'); return }
       onSaved()
       onClose()
     } catch {
@@ -104,9 +107,9 @@ export default function SalaryModal({ open, onClose, initial, onSaved }: Props) 
   const labels = mode === 'biweekly' ? ['1ª quinzena', '2ª quinzena'] : ['Pagamento mensal']
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={onClose}>
+    <div role="dialog" aria-modal="true" aria-labelledby="salary-title" className="fixed inset-x-0 top-0 h-[100dvh] z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" style={{ top: viewport.top, height: viewport.height || undefined }} onClick={onClose}>
       <div
-        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-elevated dark:bg-surface-900 dark:border dark:border-surface-700/60 animate-in zoom-in-95 fade-in duration-200 max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-elevated dark:bg-surface-900 dark:border dark:border-surface-700/60 animate-in zoom-in-95 fade-in duration-200 max-h-full overflow-y-auto overscroll-contain"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 mb-5">
@@ -114,8 +117,8 @@ export default function SalaryModal({ open, onClose, initial, onSaved }: Props) 
             <Lucide.Banknote className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-surface-900 dark:text-surface-100">{'Configurar salário'}</h3>
-            <p className="text-xs text-surface-500 dark:text-surface-400">{'Entra como receita todo mês automaticamente'}</p>
+            <h3 id="salary-title" className="text-base font-semibold text-surface-900 dark:text-surface-100">{'Configurar salário'}</h3>
+            <p className="text-xs text-surface-500 dark:text-surface-400">Cada pagamento entra na data cadastrada</p>
           </div>
         </div>
 
@@ -143,8 +146,9 @@ export default function SalaryModal({ open, onClose, initial, onSaved }: Props) 
               <p className="text-xs font-bold uppercase tracking-wider text-surface-500 dark:text-surface-400">{labels[i]}</p>
 
               <div>
-                <label className="block text-sm font-semibold text-surface-700 dark:text-surface-200 mb-1.5">{'Valor'}</label>
+                <label htmlFor={`salary-amount-${i}`} className="block text-sm font-semibold text-surface-700 dark:text-surface-200 mb-1.5">{'Valor'}</label>
                 <input
+                  id={`salary-amount-${i}`}
                   type="text"
                   inputMode="decimal"
                   className="input-field"
@@ -175,10 +179,11 @@ export default function SalaryModal({ open, onClose, initial, onSaved }: Props) 
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-surface-700 dark:text-surface-200 mb-1.5">
+                  <label htmlFor={`salary-day-${i}`} className="block text-sm font-semibold text-surface-700 dark:text-surface-200 mb-1.5">
                     {p.payDayType === 'business_day' ? 'Nº do dia útil' : 'Dia do mês'}
                   </label>
                   <input
+                    id={`salary-day-${i}`}
                     type="text"
                     inputMode="numeric"
                     className="input-field"
@@ -190,7 +195,7 @@ export default function SalaryModal({ open, onClose, initial, onSaved }: Props) 
               </div>
               {p.payDayType === 'business_day' && (
                 <p className="text-[11px] text-surface-400 dark:text-surface-500">
-                  {`Ex: 5 = cai no 5º dia útil do mês (seg–sex, feriados não contam)`}
+                  {`Ex: 5 = 5º dia de segunda a sexta. O cálculo não ajusta feriados.`}
                 </p>
               )}
             </div>
