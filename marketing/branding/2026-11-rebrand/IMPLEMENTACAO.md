@@ -285,3 +285,46 @@ First Load JS permaneceu igual à entrega 804351c: Landing 117 kB, Painel
 Doze prints recapturados nos formatos anteriores e artes renderizadas novamente
 para refletir a barra inferior atual. Cache estático v13; dados v7 e fila
 offline intactos. Nenhum merge na main, deploy ou publicação.
+
+## Brotô, apresentação da nova fase e revisão editorial (13/11/2026)
+
+O personagem aprovado recebeu o nome **Brotô**, aplicado ao anúncio, stories e
+novo aviso no app. A apresentação usa o shell logado e carregamento separado,
+com foco contido/restaurado, Escape, viewport visível e movimento reduzido.
+Recibo durável por conta/edição na tabela Notification existente, chave única
+para concorrência entre abas/aparelhos. Sem schema novo. Preview Vercel não
+consome o recibo. A semântica é no máximo uma autorização: se a resposta se
+perder depois da gravação, o aviso pode não aparecer; não repetirá por isso.
+Detalhes e capturas em [broto-release/README.md](broto-release/README.md).
+
+Validação executada: TypeScript, build, regressões isoladas de segurança,
+mobile, offline e `git diff --check`, todos aprovados. O teste mobile/offline
+usou `PLAYWRIGHT_MODULE` apontando para instalação externa; nenhuma dependência
+foi adicionada ao app. Testes de recibo cobrem oito chamadas concorrentes,
+contas independentes, falha de armazenamento, sessão, Origin, rate limit,
+identidade derivada da sessão e preview sem consumir.
+
+QA visual em Chrome com produção local e sessão demo: dez combinações
+320/390/430/768/1440 × claro/escuro, sem overflow ou erro JS; botão acessível
+em 320×568, Tab/Escape e reload; espera por diálogo/tutorial e retomada após
+offline verificadas. Endpoint do aviso simulado, sem consumir
+recibo de usuário real. Não foi teste de Safari/iPhone físico/teclado nativo
+ou instalação PWA. Limites de ambiente continuam explícitos.
+
+First Load JS igual à entrega f17a52e: landing 117 kB, Painel 119 kB,
+Agenda/Hábitos 120 kB, Finanças 146 kB e Relatórios 119 kB. Cache estático v14;
+dados v7 e fila offline preservados. Sem biblioteca de animação nova.
+
+Auditoria do Zernio: sete agendados, 47 mídias conferidas contra os PNGs locais
+(idênticas), legendas completas e dez registros publicados com métricas.
+Pesquisa primária, fontes, limites da amostra e proposta de calendário em
+`marketing/auditoria/2026-11-13/README.md`. Sete pacotes revisados: 37 artes de
+feed e 14 stories, além dos sete slides e dois stories do lançamento com nome.
+Fontes/imagens aguardadas no render e todos os previews inspecionados.
+Guias de marketing, AGENTS e skill local atualizados para pesquisa verificável,
+tom sem julgamento e aprendizado por métricas, sem regras de algoritmo inventadas.
+
+Recomendação editorial: anúncio em 14/11 às 11h São Paulo, somente depois de
+deploy autorizado e smoke test até 10h30; rolê sugerido para 21/11. Proposta
+ainda não aplicada no Zernio. Nenhum merge, deploy, postagem, e-mail ou push
+real; nenhuma recriação da demo. Arquivos pessoais e stash preservados.

@@ -23,6 +23,7 @@ import * as Lucide from 'lucide-react'
 const TourHost = dynamic(() => import('./tour/TourHost'), { ssr: false })
 // Activity heartbeat + first-month offer + Instagram prompt
 const EngagementHost = dynamic(() => import('./engagement/EngagementHost'), { ssr: false })
+const ReleaseNotice = dynamic(() => import('./ReleaseNotice'), { ssr: false })
 
 // Main app routes prefetched once the shell is mounted so screen switches are instant
 const PREFETCH_ROUTES = ['/dashboard', '/finances', '/habits']
@@ -101,6 +102,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <RouterCacheSync />
       <TourHost />
       <EngagementHost />
+      <ReleaseNotice />
 
       {/* Quick Actions Overlay (Mobile) */}
       {showQuickActions && (

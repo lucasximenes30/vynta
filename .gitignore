@@ -32,3 +32,11 @@ marketing/instagram/variavel-de-post/*
 !marketing/instagram/rascunhos/
 marketing/instagram/rascunhos/*
 !marketing/instagram/rascunhos/nova-fase/
+# Editorial instructions, audit, and reviewed sources travel with the branch.
+!marketing/AGENTS.md
+!marketing/auditoria/
+!marketing/instagram/CALENDARIO.md
+!marketing/instagram/revisao-2026-11/
+# Full-resolution renders are regenerated; compact review previews are versioned.
+marketing/instagram/revisao-2026-11/**/*.png
+marketing/instagram/revisao-2026-11/*.zip

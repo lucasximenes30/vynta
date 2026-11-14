@@ -60,7 +60,7 @@ export default function EngagementHost() {
       inFlight = false
       if (!res?.ok) return // Offline/server failures must allow retry when connectivity returns.
       write(K.lastPing, String(Date.now()))
-      if (cancelled || readTour()?.active) return
+      if (cancelled || readTour()?.active || document.querySelector('[data-release-notice]')) return
 
       if (data?.promo && days.length >= 2 && read(K.promoShown) !== today()) {
         write(K.promoShown, today())

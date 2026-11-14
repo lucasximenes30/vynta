@@ -153,7 +153,7 @@ export default function RouterCacheSync() {
           if (parsedUrl.origin === window.location.origin) {
             window.dispatchEvent(new CustomEvent(API_MUTATION_EVENT, { detail: { path: parsedUrl.pathname, method } }))
           }
-          if (parsedUrl.origin === window.location.origin && parsedUrl.pathname.startsWith('/api/') && !/^\/api\/(track|push)\b/.test(parsedUrl.pathname)) {
+          if (parsedUrl.origin === window.location.origin && parsedUrl.pathname.startsWith('/api/') && !/^\/api\/(track|push|release-notice)\b/.test(parsedUrl.pathname)) {
             dirty.current = true
           }
         }

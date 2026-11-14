@@ -43,6 +43,43 @@ async function isolated(entry: string, mocks: Record<string, string>) {
 }
 
 async function main() {
+  const releaseState = globalThis as any
+  releaseState.__releaseRows = new Map()
+  releaseState.__releaseFailure = false
+  const release = await isolated('services/releaseNotice.service.ts', {
+    '@/lib/prisma': `export const prisma={notification:{findUnique:async({where})=>{if(globalThis.__releaseFailure)throw Error('db down');return globalThis.__releaseRows.get(where.id)},create:async({data})=>{if(globalThis.__releaseRows.has(data.id))throw {code:'P2002'};globalThis.__releaseRows.set(data.id,data);return data}}}`,
+  })
+  const releaseRace = await Promise.all(Array.from({ length: 8 }, () => release.claimReleaseNotice('alice')))
+  assert.equal(releaseRace.filter(Boolean).length, 1, 'only one concurrent tab/device may present a release')
+  assert.equal(await release.claimReleaseNotice('alice'), false, 'reload/new browser does not repeat the release')
+  assert.equal(await release.claimReleaseNotice('bob'), true, 'different accounts retain their own receipt')
+  releaseState.__releaseFailure = true
+  await assert.rejects(release.claimReleaseNotice('charlie'), /db down/)
+  assert.equal(releaseState.__releaseRows.size, 2, 'storage failure does not consume a receipt')
+  releaseState.__releaseUser = null
+  releaseState.__releaseClaims = []
+  releaseState.__releaseLimited = false
+  const releaseRoute = await isolated('app/api/release-notice/route.ts', {
+    '@/lib/auth': 'export const getSession=async()=>globalThis.__releaseUser',
+    '@/lib/rateLimit': 'export const enforceRateLimits=async()=>globalThis.__releaseLimited ? Response.json({error:"limited"},{status:429}):null',
+    '@/services/releaseNotice.service': 'export const claimReleaseNotice=async(id)=>{globalThis.__releaseClaims.push(id);return true}',
+  })
+  const releaseRequest = (origin = 'https://www.vynta.digital') => new Request('https://www.vynta.digital/api/release-notice', {method:'POST',headers:{Origin:origin},body:JSON.stringify({userId:'attacker'})})
+  assert.equal((await releaseRoute.POST(releaseRequest())).status, 401)
+  releaseState.__releaseUser = {userId:'alice'}
+  assert.equal((await releaseRoute.POST(releaseRequest('https://other.test'))).status, 403)
+  assert.equal((await releaseRoute.POST(releaseRequest())).status, 200)
+  assert.deepEqual(releaseState.__releaseClaims, ['alice'], 'identity comes only from the authenticated session')
+  releaseState.__releaseLimited = true
+  assert.equal((await releaseRoute.POST(releaseRequest())).status, 429)
+  releaseState.__releaseLimited = false
+  const originalVercelEnvironment = process.env.VERCEL_ENV
+  process.env.VERCEL_ENV = 'preview'
+  assert.equal((await (await releaseRoute.POST(releaseRequest())).json()).show, false)
+  assert.equal(releaseState.__releaseClaims.length, 1, 'preview cannot consume production receipts')
+  if (originalVercelEnvironment === undefined) delete process.env.VERCEL_ENV
+  else process.env.VERCEL_ENV = originalVercelEnvironment
+
   process.env.JWT_SECRET = randomUUID() + randomUUID()
   const waf = JSON.parse(readFileSync(resolve('docs/vercel-waf-policy.json'), 'utf8'))
   for (const rule of waf.rules) for (const path of waf.integrationPathsOutsideRules) assert(!new RegExp(rule.value).test(path), `${rule.name} must exclude ${path}`)
