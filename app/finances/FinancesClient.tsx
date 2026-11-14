@@ -957,7 +957,7 @@ export default function FinancesClient({
                   </span>
                 )}
               </h3>
-              <div className="flex items-center gap-2">
+              <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
                 {/* Filter toggle button */}
                 <button
                   type="button"
@@ -989,6 +989,7 @@ export default function FinancesClient({
                 </button>
                 {/* Month selector */}
                 <select
+                  aria-label="Mês das transações"
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(e.target.value)}
                   className="input-field text-sm py-1.5 px-3 w-full sm:w-44 border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 h-9"

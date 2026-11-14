@@ -21,6 +21,7 @@ const sora = Sora({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.APP_URL || 'https://www.vynta.digital'),
   title: {
     default: 'Vynta',
     template: '%s | Vynta',

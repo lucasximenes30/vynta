@@ -11,7 +11,7 @@ export function QuickAddMock() {
         <div className="mx-auto mt-2.5 h-1 w-10 rounded-full bg-surface-700" />
         <div className="space-y-3.5 p-4">
           <div className="flex gap-1.5 rounded-xl bg-surface-800 p-1 text-[11px] font-semibold">
-            <span className="flex-1 rounded-lg bg-surface-700 py-1.5 text-center text-rose-400">Gasto</span>
+            <span className="flex-1 rounded-lg bg-surface-900 py-1.5 text-center text-rose-300">Gasto</span>
             <span className="flex-1 py-1.5 text-center text-surface-500">Entrada</span>
           </div>
           <div>
@@ -19,12 +19,12 @@ export function QuickAddMock() {
             <p className="font-display text-[1.7rem] font-bold leading-tight tracking-tight text-white">R$ 32,50</p>
           </div>
           <div className="rounded-xl border border-surface-700 bg-surface-800 px-3 py-2.5 text-xs text-white">Uber até o metrô<span className="ml-px inline-block h-3.5 w-px translate-y-0.5 animate-pulse bg-brand-300" /></div>
-          <div className="flex gap-1.5">
+          <div className="flex flex-wrap gap-1.5">
             {['Mercado', 'iFood', 'Academia'].map((s) => (
               <span key={s} className="rounded-full border border-surface-700 bg-surface-800 px-2.5 py-1 text-[10px] font-medium text-surface-300">{s}</span>
             ))}
           </div>
-          <div className="flex gap-1.5">
+          <div className="flex flex-wrap gap-1.5">
             {[
               { Icon: Car, label: 'Transporte', active: true },
               { Icon: Coffee, label: 'Restaurante', active: false },
@@ -71,7 +71,7 @@ export function NotificationsMock() {
                 </div>
                 <p className="text-[12px] leading-snug text-white/75">{p.body}</p>
                 {p.actions && (
-                  <div className="mt-2 flex gap-1.5">
+                  <div className="mt-2 flex flex-wrap gap-1.5">
                     {p.actions.map((a) => (
                       <span key={a} className="rounded-lg bg-white/10 px-2 py-1 text-[11px] font-semibold text-white/90">{a}</span>
                     ))}

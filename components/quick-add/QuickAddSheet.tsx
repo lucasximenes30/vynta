@@ -9,6 +9,7 @@ import {
 import { localizeCategoryName, resolveCanonicalCategory } from '@/lib/categories'
 import { resolveTransactionCategory, guessCategory, normalizeText, QUICK_EXPENSE_CATEGORIES, QUICK_INCOME_CATEGORIES } from '@/lib/quickCategorize'
 import { todayDateValue, type QuickAddType } from '@/lib/quickAdd'
+import { useVisibleViewport } from '@/lib/useVisibleViewport'
 
 export interface QuickAddSubmit {
   title: string
@@ -57,35 +58,6 @@ function localDayOffset(days: number) {
   const d = new Date()
   d.setDate(d.getDate() + days)
   return todayDateValue(d)
-}
-
-/**
- * Tracks the *visible* part of the screen (above the on-screen keyboard). iOS doesn't resize the
- * layout viewport when the keyboard opens — it pans it — so `fixed inset-0` ends up partly behind
- * the keyboard and partly above the top of the screen. Pinning the sheet's container to the
- * visual viewport keeps it exactly in the visible area on iOS and Android.
- */
-function useVisibleViewport() {
-  const read = () => {
-    const vv = typeof window !== 'undefined' ? window.visualViewport : null
-    if (!vv) return { top: 0, height: typeof window !== 'undefined' ? window.innerHeight : 0, keyboard: false }
-    return { top: vv.offsetTop, height: vv.height, keyboard: window.innerHeight - vv.height > 120 }
-  }
-  const [vp, setVp] = useState(read)
-  useEffect(() => {
-    const vv = window.visualViewport
-    if (!vv) return
-    let frame = 0
-    const update = () => {
-      cancelAnimationFrame(frame)
-      frame = requestAnimationFrame(() => setVp(read()))
-    }
-    vv.addEventListener('resize', update)
-    vv.addEventListener('scroll', update)
-    update()
-    return () => { cancelAnimationFrame(frame); vv.removeEventListener('resize', update); vv.removeEventListener('scroll', update) }
-  }, [])
-  return vp
 }
 
 const CLOSE_MS = 180

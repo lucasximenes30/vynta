@@ -16,6 +16,7 @@ const THEME_STORAGE_KEY = 'vynta_theme'
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>('system')
+  const [systemDark, setSystemDark] = useState(false)
 
   useEffect(() => {
     const saved = localStorage.getItem(THEME_STORAGE_KEY) as Theme | null
@@ -29,9 +30,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const resolvedTheme = (() => {
     if (theme === 'light') return 'light' as const
     if (theme === 'dark') return 'dark' as const
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches)
-      return 'dark' as const
-    return 'light' as const
+    return systemDark ? 'dark' as const : 'light' as const
   })()
 
   // Sync dark class on html element
@@ -46,14 +45,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // Listen for system theme changes
   useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)')
-    const handler = () => {
-      if (theme === 'system') {
-        setTheme((prev) => prev) // force re-render
-      }
-    }
+    const handler = () => setSystemDark(media.matches)
+    handler()
     media.addEventListener('change', handler)
     return () => media.removeEventListener('change', handler)
-  }, [theme])
+  }, [])
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, resolvedTheme }}>

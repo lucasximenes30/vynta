@@ -42,7 +42,7 @@ largura da agenda/campos de data e hora no PWA. A versão clara deste checkpoint
 - Guia de branding, instruções para agentes e template de posts atualizados.
   Removidos do template os exemplos de promessas de 5/30 segundos.
 
-## Verificação e limites
+## Verificação do segundo commit — histórico
 
 - `npx tsc --noEmit -p .`: passou.
 - `npm run build`: passou. First Load JS da landing 117 kB, agenda 119 kB,
@@ -62,3 +62,106 @@ largura da agenda/campos de data e hora no PWA. A versão clara deste checkpoint
   usá-las como demonstração exata do novo layout em campanhas.
 - Branch de trabalho; sem merge ou deploy em produção. Mudanças pré-existentes
   nos locks e documentos locais não fazem parte destes commits.
+
+## Revisão final — 13/11/2026
+
+Esta etapa conclui a revisão visual em Chrome que estava pendente acima.
+B1, avatares aprovados e a direção lavanda/lima/verde foram preservados.
+
+### Correções encontradas na revisão
+
+- Landing em 320 px: removida a largura mínima implícita das grades de
+  notificações/lançamento rápido; chips agora quebram linha. Ajustado contraste
+  do indicador de gasto e do valor de renda do simulador.
+- Tema do sistema: mudanças claro/escuro passam a atualizar a interface em
+  tempo real. Movimento reduzido também cobre menus, sheets e elementos revelados.
+- Agenda, Metas e Hábitos acompanham a área visível via `visualViewport`,
+  compartilhando o hook já usado no lançamento rápido. Rodapé de Metas fica
+  dentro da área disponível; modal de Hábitos permite rolar até Salvar.
+- Drawer Mais rolável em telas baixas, com bloqueio do scroll de fundo e Escape.
+- Hábitos: títulos e estatísticas legíveis, ações separadas no celular e seletor
+  de ícones sem corte; preservadas as sete colunas de dias.
+- Filtros de Finanças quebram linha; cabeçalho de Ajustes cabe em 320 px.
+- `metadataBase` usa `APP_URL`, com fallback para o domínio público.
+- Cache estático passou de v10 para v11. Cache de dados v7 e código da fila
+  offline permanecem intactos. Zoom por gesto continua permitido.
+
+### Testes efetivamente executados
+
+- Build de produção local no Google Chrome headless, viewports 320, 390, 430,
+  768 e 1440 px. Conta demo existente: senha atualizada com autorização explícita;
+  sem executar seed, apagar/recriar conta ou modificar schema.
+- Landing inteira nas cinco larguras: texto, preços, imagens (inclusive galeria
+  com carregamento tardio), FAQ, destinos dos links, CTA e barra fixa mobile.
+  Simulador no máximo: renda R$ 15.000 e 30%, resultado R$ 4.500/mês e
+  R$ 54.000/ano. Login e cadastro abriram pelos links, sem cadastrar/comprar.
+  Nenhuma imagem quebrada ou overflow horizontal da página. A galeria mantém
+  sua rolagem horizontal intencional.
+- Dez telas × cinco larguras × dois temas do sistema = 100 verificações:
+  Agenda, Hábitos, Painel, Finanças, Cartões, Metas, Relatórios, Notas, Treino
+  e Ajustes. Sem erros JavaScript, cabeçalhos cortados ou overflow da página.
+- Navegação inferior e sidebar mantendo o shell; drawer Mais em 320×568,
+  fechamento e restauração do scroll; preferência de movimento reduzido.
+- Agenda: navegação de meses, título longo sintético, formulário novo e edição
+  de evento demo existente, campos Data/Início/Fim. Formulários preenchidos
+  e fechados sem gravar eventos/transações de teste na conta.
+- Campos de data de Finanças, Metas e lançamento rápido; sete dias de Hábitos;
+  rolagem dos modais e acesso aos botões inferiores em telas baixas.
+- Regressão isolada com componentes reais: viewport visual simulada com altura
+  390 e deslocamento 70, comprovando rodapé dentro da área visível. É simulação
+  de geometria do teclado, não teste de teclado físico ou Safari.
+- Troca de tema sem recarregar; auditoria automatizada **somente de contraste**
+  da landing com axe, sem violações no resultado final.
+- Avatares sob recorte circular e ícones maskable sob máscara circular com área
+  segura de 80%, inspecionados visualmente. Dimensões dos ícones/shortcuts do
+  manifest conferidas; favicon, Apple e OG preservados. Evidências em `validacao/`.
+- Atualização do SW em contexto isolado: remove v10, cria v11 e preserva
+  marcadores no cache de dados e na fila pendente. Regressões offline cobrem
+  TTL de 48h, falhas, replay, IDs dependentes e isolamento por conta.
+
+### Prints e reprodução
+
+Os 12 WebPs de `public/images/landing/` foram recapturados da demo após os
+ajustes: nove mobile 780×1688 (390×844 @2x) e três desktop 1600×1000. Fontes,
+imagens e barras dos gráficos aguardam carregamento antes do screenshot.
+O ranking global de Hábitos fica fora do recorte; não foram exportados dados
+de outras contas. `og.jpg` permanece 1200×630.
+
+- `scripts/capture-branding.mjs`: usa apenas origem local e login da demo existente;
+  não executa seed. Executar com `node --env-file=.env scripts/capture-branding.mjs`
+  contra o servidor local, com `DEMO_PASSWORD` configurado sem expor a senha.
+- `scripts/check-mobile-layout.mjs`: após build, executar com Node; componentes
+  reais com dados sintéticos, sem acesso ao banco.
+- Ambos usam Chrome/Playwright. `PLAYWRIGHT_MODULE` pode apontar para uma
+  instalação externa; nenhuma dependência foi adicionada ao bundle do app.
+- Exemplos finais e matriz de resultados estão em [`validacao/README.md`](validacao/README.md).
+
+### Verificação técnica final
+
+Passaram: `npx tsc --noEmit -p .`, `npm run build`,
+`npx tsx scripts/check-security.ts`, `git diff --check`,
+`node scripts/check-mobile-layout.mjs` e `node scripts/check-offline.mjs`.
+Lint não executado: configuração interativa existente.
+
+| Rota | Baseline First Load JS | Final |
+| --- | --- | --- |
+| Landing | 117 kB | 117 kB |
+| Agenda | 119 kB | 120 kB |
+| Painel | 119 kB | 119 kB |
+| Hábitos | 119 kB | 120 kB |
+
+Valores arredondados pelo Next. Agenda e Hábitos cresceram 1 kB; nenhuma
+biblioteca de animação foi adicionada.
+
+### Limitações restantes
+
+- Não houve Safari/iPhone físico, teclado nativo, instalação real do PWA ou
+  verificação visual do splash instalado. O splash foi revisado no código;
+  máscaras e atualização do SW foram testadas separadamente no Chrome.
+- A validação responsiva não substitui teste de gestos/áreas seguras em aparelho.
+- Relatórios foram capturados com seu fallback local de dados. A integração
+  externa de IA retornou erro de modelo no ambiente; chamadas de IA e trackers
+  externos foram bloqueados nas capturas finais. Não foi validada geração remota.
+- Não foram efetuados pagamentos, disparos de mensagens ou publicações sociais.
+- Trabalho restrito a `codex/rebranding-vynta`, sem merge na main ou deploy.
+  Arquivos locais pré-existentes permanecem fora deste trabalho.

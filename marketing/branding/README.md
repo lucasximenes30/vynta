@@ -79,9 +79,9 @@ com valores são ilustrativas. Fontes e auditoria: `2026-11-rebrand/COPY.md`.
 
 1. Ler este guia e `marketing/README.md` antes de copiar qualquer pasta.
 2. Usar os assets oficiais e a paleta atual; nunca extrair a logo de um PNG antigo.
-3. Os prints em `public/images/landing/` já usam B1; sidebar, lavanda escura e
-   agenda tiveram ajustes posteriores. Recapturar a tela escolhida antes de um
-   novo post que demonstre o layout atual (ver `2026-11-rebrand/IMPLEMENTACAO.md`).
+3. Os 12 prints em `public/images/landing/` foram recapturados após os ajustes
+   finais de sidebar, lavanda e mobile em 13/11/2026. Recapturar quando o layout
+   mudar novamente (ver `2026-11-rebrand/IMPLEMENTACAO.md`).
    Não usar imagens legadas soltas em `public/images/` como fonte de novos posts.
 4. Posts já exportados não mudam quando o asset é trocado. PNGs antigos são
    arquivo histórico, não base de branding. Antes de publicar um post já

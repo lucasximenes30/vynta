@@ -211,7 +211,9 @@
   .report-button:active, .report-icon-button:active { transform: scale(.97); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .app-route-content *, .app-route-content *::before, .app-route-content *::after {
+  .app-shell, .app-shell *, .app-shell *::before, .app-shell *::after,
+  .landing *, .landing *::before, .landing *::after,
+  #vynta-pwa-boot, #vynta-pwa-boot * {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -381,6 +383,17 @@
 .lp-faq { interpolate-size: allow-keywords; }
 .lp-faq details::details-content { block-size: 0; overflow: hidden; transition: block-size 0.35s var(--ease-out-expo), content-visibility 0.35s allow-discrete; }
 .lp-faq details[open]::details-content { block-size: auto; }
+
+/* Also applies when the visitor enables reduced motion with the page already open. */
+@media (prefers-reduced-motion: reduce) {
+  .motion [data-reveal], .motion [data-reveal] .pop-in, .motion [data-reveal] .grow-x {
+    opacity: 1;
+    translate: none;
+    scale: none;
+  }
+  .landing [data-parallax] { translate: none !important; }
+  .lp-faq details::details-content { transition: none; }
+}
 
 /* Sprout identity: editorial emphasis, using the existing motion system. */
 .lp-highlight {

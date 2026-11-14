@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 import * as Lucide from 'lucide-react'
 import { getIconByName } from '@/lib/icons'
 import { useTourAction } from '@/lib/tour'
+import { useVisibleViewport } from '@/lib/useVisibleViewport'
 
 const HabitsRadarChart = dynamic(() => import('./HabitsRadarChart'), { ssr: false })
 
@@ -145,6 +146,7 @@ export default function HabitsClient({
   initialRanking,
 }: Props) {
   const router = useRouter()
+  const viewport = useVisibleViewport()
   
   const isBRL = true;
   const today = todayLocal()
@@ -556,10 +558,10 @@ export default function HabitsClient({
                     </div>
 
                     {/* Habit info */}
-                    <div className="flex min-w-0 flex-row items-center justify-between w-full sm:w-auto pr-0 sm:pr-2">
-                      <div className="flex items-center gap-2.5 overflow-hidden">
+                    <div className="flex min-w-0 flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-0 justify-between w-full sm:w-auto pr-0 sm:pr-2">
+                      <div className="flex min-w-0 items-center gap-2.5 overflow-hidden">
                         {/* Drag handle for mobile */}
-                        <div className="sm:hidden flex items-center justify-center p-1 -ml-1 text-surface-400 active:text-brand-500 cursor-grab">
+                        <div className="sm:hidden flex shrink-0 items-center justify-center p-1 -ml-1 text-surface-400 active:text-brand-500 cursor-grab">
                            <Lucide.GripVertical className="h-5 w-5" />
                         </div>
                         <div
@@ -569,10 +571,10 @@ export default function HabitsClient({
                           <HabitIcon name={habit.icon} className="h-5 w-5 sm:h-4 sm:w-4" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-base sm:text-sm font-semibold sm:font-medium text-surface-800 dark:text-surface-200 truncate leading-tight">
+                          <p className="text-base sm:text-sm font-semibold sm:font-medium text-surface-800 dark:text-surface-200 break-words sm:truncate leading-tight">
                             {habit.title}
                           </p>
-                          <div className="flex items-center gap-2 mt-1">
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
                             <p className={`text-[11px] sm:text-[10px] font-medium flex items-center gap-1 px-1.5 py-0.5 rounded ${habit.currentStreak > 0 ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 border border-orange-200/50 dark:border-orange-800/50' : 'bg-surface-100 text-surface-500 dark:bg-surface-800 dark:text-surface-400 border border-surface-200 dark:border-surface-700/50'}`}>
                               {habit.currentStreak > 0 ? '🔥' : <span className="opacity-50">🔥</span>} 
                               <span>Atual: {habit.currentStreak}</span>
@@ -587,9 +589,9 @@ export default function HabitsClient({
                       </div>
                       
                       {/* Mobile Actions */}
-                      <div className="flex sm:hidden items-center gap-1 shrink-0">
-                        <button onClick={() => openEditModal(habit)} className="p-2 text-surface-400 hover:text-brand-600 rounded-lg active:bg-surface-100 dark:active:bg-surface-800"><Lucide.Pencil className="w-4 h-4"/></button>
-                        <button onClick={() => handleDeleteTrigger(habit.id)} className="p-2 text-surface-400 hover:text-red-600 rounded-lg active:bg-surface-100 dark:active:bg-surface-800"><Lucide.Trash2 className="w-4 h-4"/></button>
+                      <div className="flex sm:hidden self-end items-center gap-1 shrink-0">
+                        <button aria-label={`Editar hábito: ${habit.title}`} onClick={() => openEditModal(habit)} className="p-2 text-surface-400 hover:text-brand-600 rounded-lg active:bg-surface-100 dark:active:bg-surface-800"><Lucide.Pencil className="w-4 h-4"/></button>
+                        <button aria-label={`Excluir hábito: ${habit.title}`} onClick={() => handleDeleteTrigger(habit.id)} className="p-2 text-surface-400 hover:text-red-600 rounded-lg active:bg-surface-100 dark:active:bg-surface-800"><Lucide.Trash2 className="w-4 h-4"/></button>
                       </div>
                     </div>
 
@@ -910,19 +912,24 @@ export default function HabitsClient({
         {/* ── Create Modal ── */}
         {showModal && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="habit-modal-title"
+            className="fixed inset-x-0 top-0 h-[100dvh] z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+            style={{ top: viewport.top, height: viewport.height || undefined }}
             onClick={closeModal}
         >
           <div
-            className="w-full max-w-md rounded-2xl bg-white dark:bg-surface-900 shadow-elevated border border-surface-200 dark:border-surface-700/60 p-6 space-y-5 animate-dashboard-fade"
+            className="w-full max-w-md max-h-full overflow-y-auto overscroll-contain rounded-2xl bg-white dark:bg-surface-900 shadow-elevated border border-surface-200 dark:border-surface-700/60 p-6 space-y-5 animate-dashboard-fade"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal header */}
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-surface-900 dark:text-surface-100">
+              <h2 id="habit-modal-title" className="text-lg font-semibold text-surface-900 dark:text-surface-100">
                 {editingHabit ? 'Editar Hábito' : 'Novo Hábito'}
               </h2>
               <button
+                aria-label="Fechar hábito"
                 onClick={closeModal}
                 className="h-8 w-8 flex items-center justify-center rounded-lg text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
               >
@@ -982,13 +989,13 @@ export default function HabitsClient({
               {/* Icon picker */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-surface-700 dark:text-surface-300">Ícone</label>
-                <div className="grid grid-cols-8 gap-1.5 p-2 rounded-xl bg-surface-50 dark:bg-surface-800/50 border border-surface-200 dark:border-surface-700/50">
+                <div className="grid grid-cols-6 sm:grid-cols-8 gap-1.5 p-2 rounded-xl bg-surface-50 dark:bg-surface-800/50 border border-surface-200 dark:border-surface-700/50">
                   {HABIT_ICON_NAMES.map((ic) => (
                     <button
                       key={ic}
                       type="button"
                       onClick={() => setFormIcon(ic)}
-                      className={`h-9 w-9 flex items-center justify-center rounded-lg transition-all ${
+                      className={`h-9 w-full min-w-0 flex items-center justify-center rounded-lg transition-all ${
                         formIcon === ic
                           ? 'bg-brand-100 dark:bg-brand-900/40 text-brand-600 dark:text-brand-400 ring-2 ring-brand-500/30'
                           : 'text-surface-500 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700 hover:text-surface-700 dark:hover:text-surface-200'

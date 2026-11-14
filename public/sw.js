@@ -1,5 +1,5 @@
 /* Vynta service worker: fast shell, 48h offline cache (pages, RSC & GET APIs), Web Push and local offline notifications. */
-const STATIC_CACHE = 'vynta-static-v10'
+const STATIC_CACHE = 'vynta-static-v11'
 const DATA_CACHE = 'vynta-data-v7'
 importScripts('/offline-queue.js')
 const CACHE_TTL_MS = 48 * 60 * 60 * 1000 // 48 hours

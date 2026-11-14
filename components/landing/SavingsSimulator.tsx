@@ -51,7 +51,7 @@ export default function SavingsSimulator() {
     <div ref={ref} className="rounded-3xl border border-white/10 bg-[#241f31] p-6 sm:p-10">
       <p className="font-display text-[1.6rem] font-semibold leading-[1.6] tracking-tight text-[#f5f2fa] sm:text-4xl sm:leading-[1.5]">
         Eu ganho
-        <Pill label="Quanto você ganha por mês" value={income} onChange={setIncome} tone="bg-sprout-lavender text-[#294e48]" options={INCOMES.map((v) => ({ v, t: brl(v) }))} />
+        <Pill label="Quanto você ganha por mês" value={income} onChange={setIncome} tone="bg-sprout-lavender text-brand-950" options={INCOMES.map((v) => ({ v, t: brl(v) }))} />
         por mês e quero guardar
         <Pill label="Quanto quer guardar" value={percent} onChange={setPercent} tone="bg-sprout-lime text-[#294e48]" options={PERCENTS.map((v) => ({ v, t: `${v}%` }))} />
         dele.

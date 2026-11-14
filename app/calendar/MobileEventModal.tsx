@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import * as Lucide from 'lucide-react'
 import { format } from 'date-fns'
+import { useVisibleViewport } from '@/lib/useVisibleViewport'
 
 const COLORS = [
   { value: 'bg-brand-500', label: 'Verde Vynta (Padrão)' },
@@ -44,6 +45,7 @@ export default function MobileEventModal({
   selectedDate: Date
 }) {
   const [loading, setLoading] = useState(false)
+  const viewport = useVisibleViewport()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
@@ -132,7 +134,7 @@ export default function MobileEventModal({
 
   // Mobile-first full screen/bottom sheet approach with safe areas and sticky footer
   return (
-    <div className="fixed inset-x-0 top-0 z-[100] flex h-[100dvh] max-w-full flex-col bg-surface-50 dark:bg-surface-950 sm:hidden animate-in slide-in-from-bottom-full duration-300" role="dialog" aria-modal="true" aria-labelledby="mobile-event-title">
+    <div className="fixed inset-x-0 top-0 z-[100] flex h-[100dvh] max-w-full flex-col bg-surface-50 dark:bg-surface-950 sm:hidden animate-in slide-in-from-bottom-full duration-300" style={{ top: viewport.top, height: viewport.height || undefined }} role="dialog" aria-modal="true" aria-labelledby="mobile-event-title">
       
       {/* Header */}
       <div className="flex-shrink-0 flex items-center justify-between px-4 py-4 bg-white dark:bg-surface-900 border-b border-surface-200 dark:border-surface-800 pt-safe">

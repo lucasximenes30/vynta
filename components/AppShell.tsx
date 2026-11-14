@@ -34,6 +34,20 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [showQuickActions, setShowQuickActions] = useState(false)
 
   useEffect(() => {
+    if (!showQuickActions) return
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setShowQuickActions(false)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.body.style.overflow = previous
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [showQuickActions])
+
+  useEffect(() => {
     const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection
     if (connection?.saveData || ['slow-2g', '2g', '3g'].includes(connection?.effectiveType ?? '')) return
     const prefetchAll = () => PREFETCH_ROUTES.forEach((route) => router.prefetch(route))
@@ -78,13 +92,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
             onClick={() => setShowQuickActions(false)}
           />
-          <div className="relative bg-white dark:bg-surface-900 rounded-t-[2.5rem] p-6 pb-[calc(6rem+env(safe-area-inset-bottom))] shadow-2xl animate-in slide-in-from-bottom duration-300 border-t border-surface-200 dark:border-surface-800/80">
+          <div role="dialog" aria-modal="true" aria-labelledby="quick-navigation-title" className="relative max-h-[100dvh] overflow-y-auto overscroll-contain bg-white dark:bg-surface-900 rounded-t-[2.5rem] p-6 pb-[calc(6rem+env(safe-area-inset-bottom))] shadow-2xl animate-in slide-in-from-bottom duration-300 border-t border-surface-200 dark:border-surface-800/80">
             {/* Drawer Indicator */}
             <div className="mx-auto w-12 h-1.5 rounded-full bg-surface-200 dark:bg-surface-800 mb-6" />
             
             <div className="flex justify-between items-center mb-6">
-              <h3 className="font-display text-lg font-bold text-surface-900 dark:text-white">Navegação Rápida</h3>
+              <h3 id="quick-navigation-title" className="font-display text-lg font-bold text-surface-900 dark:text-white">Navegação Rápida</h3>
               <button 
+                aria-label="Fechar navegação rápida"
                 onClick={() => setShowQuickActions(false)}
                 className="p-2 rounded-xl bg-surface-50 dark:bg-surface-800 text-surface-500 hover:bg-surface-150 transition-colors"
               >

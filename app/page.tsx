@@ -330,7 +330,7 @@ export default function LandingPage() {
 
       {/* Quick add */}
       <section id="recursos" className="scroll-mt-24 border-t border-white/10">
-        <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 py-20 sm:px-6 md:py-28 lg:grid-cols-2 lg:gap-16">
+        <div className="mx-auto grid grid-cols-1 max-w-6xl items-center gap-12 px-5 py-20 sm:px-6 md:py-28 lg:grid-cols-2 lg:gap-16">
           <div className="order-2 lg:order-1" data-reveal="zoom">
             <div className="relative">
               <div aria-hidden className="absolute inset-0 m-auto h-64 w-64 rounded-full bg-sprout-lavender/15 blur-[80px]" />
@@ -361,7 +361,7 @@ export default function LandingPage() {
 
       {/* Push reminders */}
       <section className="border-t border-white/10 bg-[#211d2c]/60">
-        <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 py-20 sm:px-6 md:py-28 lg:grid-cols-2 lg:gap-16">
+        <div className="mx-auto grid grid-cols-1 max-w-6xl items-center gap-12 px-5 py-20 sm:px-6 md:py-28 lg:grid-cols-2 lg:gap-16">
           <div className="space-y-7">
             <span data-reveal className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-500/15">
               <Bell className="h-5 w-5 text-sprout-lime" />
