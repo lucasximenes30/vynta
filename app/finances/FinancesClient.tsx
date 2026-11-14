@@ -29,6 +29,7 @@ interface Card { id: string; name: string; lastFourDigits: string; dueDay: numbe
 const SalaryModal = dynamic(() => import('./SalaryModal'), {
   loading: () => <div role="status" className="fixed bottom-24 left-4 right-4 z-[60] rounded-2xl bg-surface-900 p-4 text-center text-sm text-white shadow-lg">Abrindo configuração do salário…</div>,
 })
+const BankAccounts = dynamic(() => import('./BankAccounts'), { loading: () => <p className="text-sm text-surface-500">Carregando contas bancárias…</p> })
 
 // Cache de taxa de câmbio (atualiza a cada 5 min)
 const cacheKey = 'vynta_exchange_rate'
@@ -578,6 +579,7 @@ export default function FinancesClient({
       </header>
 
       <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 sm:px-6 py-6 sm:py-8">
+        <BankAccounts />
         {/* Balance Card */}
         <div className="rounded-2xl bg-gradient-to-br from-brand-500 via-brand-600 to-brand-800 p-6 sm:p-10 text-white shadow-lg dark:shadow-brand-700/20 border border-white/20 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />

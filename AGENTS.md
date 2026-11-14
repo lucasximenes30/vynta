@@ -74,7 +74,20 @@
 - Sininho + push + avaliador offline do SW alertam `card_bill` 7/3/1 dias antes e no vencimento (`lib/notifications.ts`, `pushScheduler` chave `invoice:{cardId}:{due}:{d}`, SW `invoiceBills` + dedupe via `localKey`). Transações com `cardId` NUNCA geram notificação própria — só a fatura única avisa.
 - Atribuição mensal: gastos de cartão pertencem ao mês de VENCIMENTO da fatura (postagem em out → fatura de nov → conta em nov), não ao mês da postagem. `txInMonth`/`cardTxContributesToMonth` e `computeBalance` em `services/transaction.service.ts` implementam isso — parcelas/recorrentes importados só contam a partir da fatura de postagem (`postingParcelaIndex`), nunca retroativo.
 
-## Salário
+## Contas bancárias (14/11/2026)
+- Finanças mostra `BankAccounts`, carregado dinamicamente, com cadastro de contas,
+  conta principal e saldo manual por data. `BankAccount`/`bank_accounts` é separado
+  de Transaction: saldo informado não é receita, resultado mensal nem acumulado.
+- Não inferir saldo bancário usando salários, parcelas ou transferências. Esta
+  versão não sincroniza bancos nem atualiza saldo ao lançar transações. UI deve
+  manter essa limitação explícita e mostrar a data da conferência.
+- API `/api/bank-accounts` e `/[id]`: sessão, Origin, limite persistente, validação
+  de centavos/data e escopo por usuário. Mutações serializam pelo registro do
+  proprietário para manter uma conta principal. Não pedir agência, senha ou cartão.
+- Alteração de schema aplicada via db:push após diff somente aditivo. Testes
+  isolados em `scripts/check-security.ts`; documentação em `docs/bank-accounts.md`.
+
+## Salário — configuração e cálculo
 - Config em Finanças → botão "Salário" (`app/finances/SalaryModal.tsx` → `POST|DELETE /api/salary` → `services/salary.service.ts`).
 - Resumos: `income` só inclui datas já alcançadas; `pendingIncome` separa receitas futuras. `balance` é resultado do mês; `accumulatedBalance` é o histórico até hoje (ou fim do mês passado). Não misturar as duas grandezas nem antecipar a segunda quinzena. `financialToday` usa o dia de São Paulo, independente do fuso do servidor. Despesas do mês continuam incluindo os compromissos previstos; não são saldo bancário confirmado.
 - Salário = transação(ões) INCOME recorrentes com `salarySlot` 1 (mensal ou 1ª quinzena) e 2 (2ª quinzena). `payDayType` `'fixed'` (dia do mês) ou `'business_day'` (`recurringDay` = N-ésimo dia útil — ver `lib/payday.ts`, `effectivePayDay`). A primeira ocorrência usa a data de configuração (`createdAt`): começa no primeiro pagamento nessa data ou depois dela, sem incluir pagamentos anteriores retroativamente.

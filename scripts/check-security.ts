@@ -21,6 +21,7 @@ import ExcelJS from 'exceljs'
 import { authenticAbacateWebhook, ABACATEPAY_PUBLIC_KEY } from '../lib/abacateWebhook'
 import { APP_SESSION_SECONDS, ADMIN_SESSION_SECONDS } from '../lib/sessionPolicy'
 import { financialToday } from '../lib/financialPeriod'
+import { parseBankBalance } from '../lib/bankAccounts'
 
 /** Bundle the real handler with explicit local doubles. No database, AI, email or push is contacted. */
 async function isolated(entry: string, mocks: Record<string, string>) {
@@ -43,6 +44,39 @@ async function isolated(entry: string, mocks: Record<string, string>) {
 }
 
 async function main() {
+  assert.equal(parseBankBalance('129,12'), 12912)
+  assert.equal(parseBankBalance('-1.234,56'), -123456)
+  for (const value of ['1,234', '12.34', '1e3', '', 'NaN']) assert.equal(parseBankBalance(value), null)
+  const bankState = globalThis as any
+  bankState.__bankUser = null
+  bankState.__bankCalls = []
+  bankState.__bankLimited = false
+  const bankMocks = {
+    '@/lib/auth': 'export const getSession=async()=>globalThis.__bankUser',
+    '@/lib/rateLimit': 'export const enforceRateLimits=async()=>globalThis.__bankLimited?Response.json({error:"limited"},{status:429}):null',
+    '@/services/bankAccount.service': 'export class BankAccountError extends Error{};export const getBankAccounts=async(id)=>{globalThis.__bankCalls.push(id);return []};export const saveBankAccount=async(id,data,key)=>{globalThis.__bankCalls.push({id,data,key});return {id:key}};export const removeBankAccount=async(id,key)=>globalThis.__bankCalls.push({id,key})',
+  }
+  const bankRoute = await isolated('app/api/bank-accounts/route.ts', bankMocks)
+  const bankIdRoute = await isolated('app/api/bank-accounts/[id]/route.ts', bankMocks)
+  const bankRequest = (method: string, origin = 'https://www.vynta.digital') => new Request('https://www.vynta.digital/api/bank-accounts', {method,headers:{Origin:origin},...(method==='GET'?{}:{body:JSON.stringify({userId:'victim'})})})
+  assert.equal((await bankRoute.GET(bankRequest('GET'))).status,401)
+  assert.equal((await bankRoute.POST(bankRequest('POST'))).status,401)
+  bankState.__bankUser = {userId:'alice'}
+  assert.equal((await bankRoute.POST(bankRequest('POST','https://evil.test'))).status,403)
+  assert.equal((await bankRoute.POST(bankRequest('POST'))).status,201)
+  assert.equal(bankState.__bankCalls[0].id,'alice','owner always comes from session')
+  bankState.__bankLimited = true
+  assert.equal((await bankRoute.POST(bankRequest('POST'))).status,429)
+  bankState.__bankLimited = false
+  assert.equal((await bankIdRoute.DELETE(bankRequest('DELETE'),{params:Promise.resolve({id:'invalid'})})).status,400)
+  const bankService = await isolated('services/bankAccount.service.ts', {
+    '@/lib/prisma': `export const prisma={$transaction:async fn=>fn({$queryRaw:async()=>[],bankAccount:{findMany:async({where})=>[{id:'alice-account',userId:where.userId,name:'Principal',isPrimary:true}],updateMany:async()=>{throw Error('unexpected write')},create:async()=>{throw Error('unexpected write')}}})}`,
+  })
+  const accountInput = {name:'Itaú',balanceCents:12912,balanceDate:'2026-11-14',isPrimary:true}
+  await assert.rejects(bankService.saveBankAccount('alice',accountInput,'bob-account'), /Conta não encontrada/)
+  for (const patch of [{balanceCents:1.5},{balanceDate:'2026-02-30'},{balanceDate:'2099-01-01'},{userId:'bob'}]) {
+    assert.equal(bankService.bankAccountSchema.safeParse({...accountInput,...patch}).success,false)
+  }
   const releaseState = globalThis as any
   releaseState.__releaseRows = new Map()
   releaseState.__releaseFailure = false
