@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
-import { getLocalToday } from '@/lib/dateUtils'
+import { workoutDateKey } from '@/lib/workoutSession'
 import { getActiveWorkoutPlanByUser } from '@/services/workoutPlan.service'
 import { getWorkoutDaysByPlan } from '@/services/workoutDay.service'
 import { getWorkoutDayExercisesByPlan } from '@/services/workoutDayExercise.service'
@@ -17,7 +17,7 @@ export default async function WorkoutPage() {
   if (!session) redirect('/login')
 
   const activePlan = await getActiveWorkoutPlanByUser(session.userId)
-  const todayDateKey = getLocalToday()
+  const todayDateKey = workoutDateKey()
   const [initialDays, initialDayExercises, initialTodayAssignment] = activePlan
     ? await Promise.all([
         getWorkoutDaysByPlan(session.userId, activePlan.id),

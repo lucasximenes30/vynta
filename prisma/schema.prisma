@@ -319,6 +319,7 @@ model WorkoutDay {
   name           String
   order          Int
   weekDay        Int?
+  archivedAt     DateTime?
   createdAt      DateTime               @default(now())
   updatedAt      DateTime               @updatedAt
   dayAssignments WorkoutDayAssignment[]
@@ -365,6 +366,7 @@ model WorkoutDayExercise {
   reps         String
   targetWeight Decimal?   @db.Decimal(8, 2)
   notes        String?
+  archivedAt   DateTime?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   exercise     Exercise   @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
@@ -383,6 +385,9 @@ model WorkoutSession {
   date         DateTime                 @default(now())
   completed    Boolean                  @default(false)
   dayNotes     String?
+  planName     String?
+  dayName      String?
+  durationSeconds Int?
   createdAt    DateTime                 @default(now())
   updatedAt    DateTime                 @updatedAt
   exercises    WorkoutSessionExercise[]
@@ -400,6 +405,7 @@ model WorkoutSessionExercise {
   id               String                      @id @default(uuid())
   workoutSessionId String
   exerciseId       String
+  exerciseName     String?
   setsDone         Int?
   repsDone         String?
   weightUsed       Decimal?                    @db.Decimal(8, 2)

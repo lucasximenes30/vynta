@@ -1,3 +1,4 @@
+import { workoutDayBounds, workoutDateKey } from '@/lib/workoutTime'
 import { prisma } from '@/lib/prisma'
 import { registerWorkoutCompletion } from '@/services/userStats.service'
 import { cache } from 'react'
@@ -128,13 +129,7 @@ export interface UpdateWorkoutLogInput {
 }
 
 function getTodayBounds(baseDate = new Date()): { start: Date; end: Date } {
-  const start = new Date(baseDate)
-  start.setHours(0, 0, 0, 0)
-
-  const end = new Date(start)
-  end.setDate(end.getDate() + 1)
-
-  return { start, end }
+  return workoutDayBounds(baseDate)
 }
 
 function normalizeOptionalNotes(notes?: string | null): string | null | undefined {
@@ -304,14 +299,27 @@ export const getTodayWorkoutLog = cache(async (
 
   const { start, end } = getTodayBounds()
 
+  const latest = await prisma.workoutSession.findFirst({
+    where: { userId, ...(input?.workoutId ? { workoutDayId: input.workoutId } : {}), date: { gte: start, lt: end } },
+    orderBy: { date: 'desc' }, include: { exercises: true },
+  })
+  if (latest) return {
+    id: latest.id, userId, workoutId: latest.workoutDayId, date: latest.date.toISOString(),
+    completed: latest.completed, notes: latest.dayNotes,
+    createdAt: latest.createdAt.toISOString(), updatedAt: latest.updatedAt.toISOString(),
+    exerciseLogs: latest.exercises.map(e => ({ id: e.id, workoutLogId: latest.id,
+      exerciseId: e.exerciseId, done: e.completed, createdAt: e.createdAt.toISOString(), updatedAt: e.updatedAt.toISOString() })),
+  }
+
   const log = await workoutLogDelegate(prisma).findFirst({
     where: {
       userId,
       ...(input?.workoutId ? { workoutId: input.workoutId } : {}),
-      date: {
-        gte: start,
-        lt: end,
-      },
+      OR: [
+        { date: { gte: start, lt: end } },
+        // Legacy check-ins used midnight UTC as a calendar label.
+        { date: new Date(`${workoutDateKey()}T00:00:00Z`) },
+      ],
     },
     include: {
       exerciseLogs: true,
@@ -356,6 +364,7 @@ export async function upsertTodayWorkoutLog(
     }))
 
   const logId = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM users WHERE id = ${userId} FOR UPDATE`
     if (!existing) {
       const created = await workoutLogDelegate(tx).create({
         data: {
@@ -454,6 +463,7 @@ export async function updateWorkoutLog(
   ensureExercisesBelongToWorkout(normalizedExercises, allowedExerciseIds)
 
   await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM users WHERE id = ${userId} FOR UPDATE`
     const updateData: Record<string, unknown> = {}
 
     if (input.completed !== undefined) {
@@ -488,7 +498,7 @@ export async function updateWorkoutLog(
       await registerWorkoutCompletion(
         userId,
         {
-          workoutDate: existing.date,
+          workoutDate: new Date(Date.UTC(existing.date.getUTCFullYear(), existing.date.getUTCMonth(), existing.date.getUTCDate(), 12)),
           completedAllExercises: didCompleteAllAllowedExercises(allowedExerciseIds, effectiveExercises),
         },
         tx

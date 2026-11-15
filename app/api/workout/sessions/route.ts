@@ -1,65 +1,43 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getSession } from '@/lib/auth'
-import { completeWorkoutSession } from '@/services/workoutSession.service'
+import { isAllowedMutationOrigin } from '@/lib/requestPolicy'
+import { enforceRateLimits } from '@/lib/rateLimit'
+import { offlineRecordId } from '@/lib/offlineMutation'
+import { completeWorkoutSession, getWorkoutSessions, WorkoutSessionError } from '@/services/workoutSession.service'
 
-const completeWorkoutSessionSchema = z.object({
-  planId: z.string().min(1, 'Plano invalido'),
-  workoutDayId: z.string().min(1, 'Treino invalido'),
-  date: z.string().datetime().optional(),
-  dayNotes: z.string().max(1000).optional(),
-  exercises: z
-    .array(
-      z.object({
-        exerciseId: z.string().min(1, 'Exercicio invalido'),
-        setsDone: z.number().int().min(1).max(50).nullable().optional(),
-        repsDone: z.string().trim().max(30).nullable().optional(),
-        weightUsed: z.number().min(0).nullable().optional(),
-        completed: z.boolean().optional(),
-        notes: z.string().max(600).optional(),
-        sets: z
-          .array(
-            z.object({
-              setNumber: z.number().int().min(1),
-              plannedReps: z.string().trim().max(30).nullable().optional(),
-              actualReps: z.number().int().min(0).max(1000).nullable().optional(),
-              weight: z.number().min(0).nullable().optional(),
-              completed: z.boolean().optional(),
-            })
-          )
-          .max(50, 'Muitas séries')
-          .optional(),
-      })
-    )
-    .min(1, 'Informe os exercicios realizados')
-    .max(200, 'Muitos exercicios informados'),
-})
-
-export async function POST(request: NextRequest) {
+const json = (data: unknown, status = 200) => NextResponse.json(data, { status, headers: { 'Cache-Control': 'private, no-store' } })
+function failure(error: unknown) {
+  if (error instanceof WorkoutSessionError) return json({ error: error.message }, error.status)
+  if (error instanceof z.ZodError || error instanceof SyntaxError) return json({ error: 'Confira os dados do treino: séries, repetições e cargas.' }, 400)
+  return json({ error: 'Não foi possível salvar ou carregar o treino. Tente novamente.' }, 503)
+}
+async function authorize(request: Request) {
+  if (!isAllowedMutationOrigin(request)) return { response: json({ error: 'Origem não permitida.' }, 403) }
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
+  if (!session) return { response: json({ error: 'Entre novamente para sincronizar seu treino.' }, 401) }
+  if (!session.canUseWorkout) return { response: json({ error: 'O módulo de treinos não está disponível nesta conta.' }, 403) }
+  const owner = request.headers.get('x-vynta-owner')
+  if (owner && owner !== session.userId) return { response: json({ error: 'Este treino pertence a outra conta.' }, 403) }
+  return { userId: session.userId }
+}
+export async function GET(request: Request) {
   try {
-    const body = await request.json()
-    const data = completeWorkoutSessionSchema.parse(body)
-
-    const workoutSession = await completeWorkoutSession(session.userId, {
-      planId: data.planId,
-      workoutDayId: data.workoutDayId,
-      date: data.date,
-      dayNotes: data.dayNotes,
-      exercises: data.exercises,
-    })
-
-    return NextResponse.json({ workoutSession }, { status: 201 })
-  } catch (error: unknown) {
-    const message =
-      error instanceof z.ZodError
-        ? error.issues[0]?.message ?? 'Dados invalidos'
-        : error instanceof Error
-          ? error.message
-          : 'Something went wrong'
-
-    return NextResponse.json({ error: message }, { status: 400 })
-  }
+    const auth = await authorize(request)
+    if (auth.response) return auth.response
+    const query = new URL(request.url).searchParams
+    return json({ sessions: await getWorkoutSessions(auth.userId!, query.get('dayId') || undefined, query.get('before') || undefined) })
+  } catch (error) { return failure(error) }
+}
+export async function POST(request: Request) {
+  try {
+    const auth = await authorize(request)
+    if (auth.response) return auth.response
+    const limited = await enforceRateLimits([{ key: `workout-session:${auth.userId}`, limit: 60, windowSec: 900 }])
+    if (limited) return limited
+    const key = request.headers.get('x-vynta-mutation-id')
+    if (key && !z.string().uuid().safeParse(key).success) return json({ error: 'Identificador inválido.' }, 400)
+    const id = offlineRecordId(request, auth.userId!)
+    return json({ workoutSession: await completeWorkoutSession(auth.userId!, await request.json(), id) }, 201)
+  } catch (error) { return failure(error) }
 }

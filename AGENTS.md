@@ -98,6 +98,37 @@
 - Pixels de marketing (Utmify, Facebook) e o Google Tag Manager (`components/GoogleTagManager.tsx`, `GTM-TVT2XQSL`, serve a tag do GA4) só carregam nas rotas de aquisição/checkout (`components/MarketingScripts.tsx`); não os coloque nas telas logadas.
 - Animações simples: use as classes CSS `animate-in fade-in zoom-in-95 slide-in-from-bottom-*` (definidas em `globals.css`) em vez de framer-motion; `collapse-grid[data-open]` para acordeões.
 
+## Treinos — execução e histórico (14/11/2026)
+
+- `WorkoutRunner` é dinâmico, exclusivo de Treinos. Hoje/Ficha/Progresso usam a
+  mesma execução; não reintroduzir uma segunda conclusão por checklist.
+  A entrada do diálogo usa fill `backwards`. Trava de rolagem/restauração de foco
+  pertencem à abertura/fechamento; trocas execução/envio/resumo apenas focam o
+  diálogo com `preventScroll`, sem destravar a página por trás.
+- Rascunho v1 em `lib/workoutDraft.ts`: localStorage por conta, revisão para
+  detectar outra aba, UUID estável e payload final imutável até confirmação.
+  Não apagar em logout/erro/401/429/5xx, nem transferir para outra conta. É local
+  ao aparelho e não substitui a fila offline global (que permanece intacta).
+- Retentativa ao abrir Treinos, voltar à aba ou ficar online. POST usa
+  `x-vynta-owner` e `x-vynta-mutation-id`; API deriva ID por usuário, valida
+  sessão/permissão/Origin e limita via armazenamento persistente. Transação
+  serializa pelo usuário e devolve a sessão existente antes de pontuar outra vez.
+- Séries realmente marcadas determinam conclusão parcial/completa. Repetições
+  0–1000, séries 1–50, cargas decimais; não usar o parser de séries para repetições.
+  Meta de carga/repetições nunca equivale automaticamente a valor realizado.
+- Descanso usa deadline; duração acumula tempo ativo incluindo descanso e exclui
+  pausa explícita. Não prometer alarme no iPhone bloqueado ou sincronização de
+  rascunhos entre aparelhos. Datas de treino usam São Paulo, semana segunda=0.
+- Arquivar plano (`isActive=false`), dia/exercício da ficha (`archivedAt`), nunca
+  deletar em cascata pela interface. Sessões têm snapshots de nomes e duração;
+  registros antigos sem duração são identificados como antigos. Conta excluída
+  continua seguindo suas relações de exclusão. Não inventar histórico retroativo.
+- `getTodayWorkoutLog` projeta a sessão mais recente, com fallback aos check-ins
+  antigos. Check-ins e sessões não são somados como se fossem dois treinos.
+  Pontos continuam limitados a uma concessão diária; sessões no mesmo dia são distintas.
+- `scripts/check-workout.ts` é isolado e integra `scripts/check-security.ts`.
+  SQL aditivo e resultados/limitações em `docs/treinos-2.0-2026-11-14.md`.
+
 ## Branding — broto (13/11/2026)
 - Identidade oficial: `marketing/branding/README.md`. Símbolo B1 aprovado; substitui as camadas azul/roxo. Novos materiais devem usar `public/assets/logo/broto-mark.png` e `mascot.webp`.
 - Paleta: lavanda escura (#14121C), verde profundo, lima e lavanda; creme apenas como apoio. Não copiar branding neon antigo de posts arquivados. `scripts/build-brand-assets.mjs` gera exports técnicos preservando a matriz.

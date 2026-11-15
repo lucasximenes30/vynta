@@ -96,7 +96,7 @@ export async function deleteWorkoutPlan(id: string, userId: string): Promise<voi
     throw new Error('Plano não encontrado')
   }
 
-  await delegate.deleteMany({
-    where: { id, userId },
+  await prisma.workoutPlan.updateMany({
+    where: { id, userId }, data: { isActive: false },
   })
 }

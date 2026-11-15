@@ -1,3 +1,4 @@
+import { workoutDateKey } from '@/lib/workoutSession'
 import { prisma } from '@/lib/prisma'
 import { cache } from 'react'
 
@@ -82,14 +83,14 @@ export interface WorkoutCompletionStatsResult {
 }
 
 function toDayStart(value: Date): Date {
-  const date = new Date(value)
-  date.setHours(0, 0, 0, 0)
-  return date
+  return new Date(`${workoutDateKey(value)}T12:00:00Z`)
 }
 
 function getDayDiff(from: Date, to: Date): number {
-  const fromDay = toDayStart(from).getTime()
-  const toDay = toDayStart(to).getTime()
+  // Stored legacy values were midnight (UTC or server-local); preserve their
+  // calendar label instead of shifting them backwards by applying São Paulo twice.
+  const fromDay = Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate())
+  const toDay = Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), to.getUTCDate())
   return Math.round((toDay - fromDay) / DAY_IN_MS)
 }
 

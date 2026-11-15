@@ -147,6 +147,7 @@ export const getWorkoutDayAssignmentByDate = cache(async (
     where: {
       userId,
       planId: input.planId,
+      workoutDay: { archivedAt: null },
       date,
     },
   })

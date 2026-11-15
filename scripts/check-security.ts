@@ -1,3 +1,4 @@
+import { checkWorkout } from './check-workout'
 import { analyzeFinancialHealth } from '../lib/financialHealth'
 import { guessCategory, resolveTransactionCategory } from '../lib/quickCategorize'
 import { localizeCategoryName } from '../lib/categories'
@@ -44,6 +45,7 @@ async function isolated(entry: string, mocks: Record<string, string>) {
 }
 
 async function main() {
+  await checkWorkout()
   assert.equal(parseBankBalance('129,12'), 12912)
   assert.equal(parseBankBalance('-1.234,56'), -123456)
   for (const value of ['1,234', '12.34', '1e3', '', 'NaN']) assert.equal(parseBankBalance(value), null)

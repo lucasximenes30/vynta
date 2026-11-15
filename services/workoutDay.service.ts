@@ -113,7 +113,7 @@ export const getWorkoutDaysByPlan = cache(async (userId: string, planId: string)
   await ensurePlanOwnership(userId, planId)
 
   const days = await workoutDayDelegate(prisma).findMany({
-    where: { planId },
+    where: { planId, archivedAt: null },
     orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
   })
 
@@ -185,8 +185,8 @@ export async function deleteWorkoutDay(userId: string, dayId: string): Promise<v
 
   await ensurePlanOwnership(userId, existing.planId)
 
-  await workoutDayDelegate(prisma).delete({
-    where: { id: dayId },
+  await workoutDayDelegate(prisma).update({
+    where: { id: dayId }, data: { archivedAt: new Date() },
   })
 }
 
@@ -208,6 +208,7 @@ export async function reorderWorkoutDay(
   const adjacentDay = await workoutDayDelegate(prisma).findFirst({
     where: {
       planId: currentDay.planId,
+      archivedAt: null,
       order: direction === 'up' ? { lt: currentDay.order } : { gt: currentDay.order },
     },
     orderBy: { order: direction === 'up' ? 'desc' : 'asc' },

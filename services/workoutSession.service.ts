@@ -1,438 +1,83 @@
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { registerWorkoutCompletion } from '@/services/userStats.service'
+import { workoutSessionSchema, type CompleteWorkoutSessionInput } from '@/lib/workoutSession'
 
-interface WorkoutDayRecord {
-  id: string
-  planId: string
+export type { CompleteWorkoutSessionInput } from '@/lib/workoutSession'
+export class WorkoutSessionError extends Error {
+  constructor(message: string, public status = 400) { super(message) }
 }
+const include = {
+  workoutDay: { select: { name: true } },
+  plan: { select: { name: true } },
+  exercises: { orderBy: { createdAt: 'asc' as const }, include: { exercise: { select: { namePt: true } }, sets: { orderBy: { setNumber: 'asc' as const } } } },
+} satisfies Prisma.WorkoutSessionInclude
+type SessionRecord = Prisma.WorkoutSessionGetPayload<{ include: typeof include }>
 
-interface WorkoutDayDelegate {
-  findFirst(args: {
-    where: Record<string, unknown>
-    select?: Record<string, unknown>
-  }): Promise<WorkoutDayRecord | null>
-}
-
-interface WorkoutDayExerciseRecord {
-  id: string
-  exerciseId: string
-}
-
-interface WorkoutDayExerciseDelegate {
-  findMany(args: {
-    where: Record<string, unknown>
-    select?: Record<string, unknown>
-    orderBy?: Record<string, unknown> | Array<Record<string, unknown>>
-  }): Promise<WorkoutDayExerciseRecord[]>
-}
-
-interface WorkoutSessionRecord {
-  id: string
-  userId: string
-  planId: string
-  workoutDayId: string
-  date: Date
-  completed: boolean
-  dayNotes: string | null
-  createdAt: Date
-  updatedAt: Date
-}
-
-interface WorkoutSessionDelegate {
-  create(args: {
-    data: Record<string, unknown>
-  }): Promise<WorkoutSessionRecord>
-}
-
-interface WorkoutSessionExerciseRecord {
-  id: string
-  workoutSessionId: string
-  exerciseId: string
-  setsDone: number | null
-  repsDone: string | null
-  weightUsed: unknown
-  completed: boolean
-  notes: string | null
-  createdAt: Date
-  updatedAt: Date
-  sets?: WorkoutSessionExerciseSetRecord[]
-}
-
-interface WorkoutSessionExerciseSetRecord {
-  id: string
-  workoutSessionExerciseId: string
-  setNumber: number
-  plannedReps: string | null
-  actualReps: number | null
-  weight: unknown
-  completed: boolean
-  createdAt: Date
-  updatedAt: Date
-}
-
-interface WorkoutSessionExerciseDelegate {
-  createMany(args: {
-    data: Array<Record<string, unknown>>
-  }): Promise<{ count: number }>
-  findMany(args: {
-    where: Record<string, unknown>
-    orderBy?: Record<string, unknown> | Array<Record<string, unknown>>
-    include?: Record<string, unknown>
-  }): Promise<WorkoutSessionExerciseRecord[]>
-}
-
-function workoutDayDelegate(client: unknown): WorkoutDayDelegate {
-  return (client as { workoutDay: WorkoutDayDelegate }).workoutDay
-}
-
-function workoutDayExerciseDelegate(client: unknown): WorkoutDayExerciseDelegate {
-  return (client as { workoutDayExercise: WorkoutDayExerciseDelegate }).workoutDayExercise
-}
-
-function workoutSessionDelegate(client: unknown): WorkoutSessionDelegate {
-  return (client as { workoutSession: WorkoutSessionDelegate }).workoutSession
-}
-
-function workoutSessionExerciseDelegate(client: unknown): WorkoutSessionExerciseDelegate {
-  return (client as { workoutSessionExercise: WorkoutSessionExerciseDelegate }).workoutSessionExercise
-}
-
-export interface CompleteWorkoutSessionInput {
-  planId: string
-  workoutDayId: string
-  date?: string
-  dayNotes?: string
-  exercises: Array<{
-    exerciseId: string
-    setsDone?: number | null
-    repsDone?: string | null
-    weightUsed?: number | null
-    completed?: boolean
-    notes?: string
-    sets?: Array<{
-      setNumber: number
-      plannedReps?: string | null
-      actualReps?: number | null
-      weight?: number | null
-      completed?: boolean
-    }>
-  }>
-}
-
-export interface WorkoutSessionExerciseDTO {
-  id: string
-  workoutSessionId: string
-  exerciseId: string
-  setsDone: number | null
-  repsDone: string | null
-  weightUsed: string | null
-  completed: boolean
-  notes: string | null
-  createdAt: string
-  updatedAt: string
-  sets: WorkoutSessionExerciseSetDTO[]
-}
-
-export interface WorkoutSessionExerciseSetDTO {
-  id: string
-  workoutSessionExerciseId: string
-  setNumber: number
-  plannedReps: string | null
-  actualReps: number | null
-  weight: string | null
-  completed: boolean
-  createdAt: string
-  updatedAt: string
-}
-
-export interface WorkoutSessionDTO {
-  id: string
-  userId: string
-  planId: string
-  workoutDayId: string
-  date: string
-  completed: boolean
-  dayNotes: string | null
-  createdAt: string
-  updatedAt: string
-  exercises: WorkoutSessionExerciseDTO[]
-}
-
-function decimalToString(value: unknown): string | null {
-  if (value === null || value === undefined) return null
-  if (typeof value === 'string') return value
-  if (typeof value === 'number') return String(value)
-  if (typeof value === 'object' && value && 'toString' in value) {
-    return String(value)
-  }
-  return null
-}
-
-function toWorkoutSessionExerciseSetDTO(
-  item: WorkoutSessionExerciseSetRecord
-): WorkoutSessionExerciseSetDTO {
+function dto(row: SessionRecord) {
   return {
-    id: item.id,
-    workoutSessionExerciseId: item.workoutSessionExerciseId,
-    setNumber: item.setNumber,
-    plannedReps: item.plannedReps,
-    actualReps: item.actualReps,
-    weight: decimalToString(item.weight),
-    completed: item.completed,
-    createdAt: item.createdAt.toISOString(),
-    updatedAt: item.updatedAt.toISOString(),
+    id: row.id, planId: row.planId, workoutDayId: row.workoutDayId,
+    planName: row.planName ?? row.plan.name, dayName: row.dayName ?? row.workoutDay.name,
+    date: row.date.toISOString(), completed: row.completed, dayNotes: row.dayNotes,
+    durationSeconds: row.durationSeconds,
+    exercises: row.exercises.map(item => ({
+      id: item.id, exerciseId: item.exerciseId, name: item.exerciseName ?? item.exercise.namePt,
+      completed: item.completed, setsDone: item.setsDone, notes: item.notes,
+      sets: item.sets.map(set => ({ setNumber: set.setNumber, actualReps: set.actualReps, weight: set.weight?.toString() ?? null, completed: set.completed })),
+    })),
   }
 }
+export type WorkoutSessionDTO = ReturnType<typeof dto>
 
-function toWorkoutSessionExerciseDTO(
-  item: WorkoutSessionExerciseRecord
-): WorkoutSessionExerciseDTO {
-  return {
-    id: item.id,
-    workoutSessionId: item.workoutSessionId,
-    exerciseId: item.exerciseId,
-    setsDone: item.setsDone,
-    repsDone: item.repsDone,
-    weightUsed: decimalToString(item.weightUsed),
-    completed: item.completed,
-    notes: item.notes,
-    createdAt: item.createdAt.toISOString(),
-    updatedAt: item.updatedAt.toISOString(),
-    sets: item.sets ? item.sets.map(toWorkoutSessionExerciseSetDTO) : [],
-  }
-}
-
-function toWorkoutSessionDTO(
-  session: WorkoutSessionRecord,
-  exercises: WorkoutSessionExerciseRecord[]
-): WorkoutSessionDTO {
-  return {
-    id: session.id,
-    userId: session.userId,
-    planId: session.planId,
-    workoutDayId: session.workoutDayId,
-    date: session.date.toISOString(),
-    completed: session.completed,
-    dayNotes: session.dayNotes,
-    createdAt: session.createdAt.toISOString(),
-    updatedAt: session.updatedAt.toISOString(),
-    exercises: exercises.map(toWorkoutSessionExerciseDTO),
-  }
-}
-
-async function ensureWorkoutDayOwnership(
-  userId: string,
-  planId: string,
-  workoutDayId: string
-): Promise<WorkoutDayRecord> {
-  const day = await workoutDayDelegate(prisma).findFirst({
-    where: {
-      id: workoutDayId,
-      planId,
-      plan: { userId },
-    },
-    select: {
-      id: true,
-      planId: true,
-    },
+export async function getWorkoutSessions(userId: string, dayId?: string, before?: string) {
+  const cursor = before ? await prisma.workoutSession.findFirst({ where: { id: before, userId }, select: { id: true, date: true } }) : null
+  if (before && !cursor) throw new WorkoutSessionError('Página de histórico inválida.')
+  const rows = await prisma.workoutSession.findMany({
+    where: { userId, ...(dayId ? { workoutDayId: dayId } : {}), ...(cursor ? { OR: [{ date: { lt: cursor.date } }, { date: cursor.date, id: { lt: cursor.id } }] } : {}) },
+    orderBy: [{ date: 'desc' }, { id: 'desc' }], take: 20, include,
   })
-
-  if (!day) {
-    throw new Error('Treino nao encontrado')
-  }
-
-  return day
+  return rows.map(dto)
 }
 
-function normalizeSessionDate(value?: string): Date {
-  if (!value) return new Date()
-
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) {
-    throw new Error('Data da sessao invalida')
-  }
-
-  return parsed
-}
-
-function normalizeDayNotes(value?: string): string | null {
-  if (!value) return null
-
-  const normalized = value.trim()
-  if (!normalized) return null
-
-  if (normalized.length > 1000) {
-    throw new Error('Observacao do treino muito longa')
-  }
-
-  return normalized
-}
-
-function normalizeOptionalSetsDone(value?: number | null): number | null {
-  if (value === null || value === undefined) return null
-
-  if (!Number.isInteger(value) || value < 1 || value > 50) {
-    throw new Error('Series realizadas invalidas')
-  }
-
-  return value
-}
-
-function normalizeOptionalRepsDone(value?: string | null): string | null {
-  if (value === null || value === undefined) return null
-
-  const normalized = value.trim()
-  if (!normalized) return null
-
-  if (normalized.length > 30) {
-    throw new Error('Repeticoes realizadas muito longas')
-  }
-
-  return normalized
-}
-
-function normalizeOptionalWeightUsed(value?: number | null): number | null {
-  if (value === null || value === undefined) return null
-
-  if (!Number.isFinite(value) || value < 0) {
-    throw new Error('Carga utilizada invalida')
-  }
-
-  return Math.round(value * 100) / 100
-}
-
-function normalizeOptionalExerciseNotes(value?: string): string | null {
-  if (!value) return null
-
-  const normalized = value.trim()
-  if (!normalized) return null
-
-  if (normalized.length > 600) {
-    throw new Error('Observacao do exercicio muito longa')
-  }
-
-  return normalized
-}
-
-function didCompleteAllPlannedExercises(
-  plannedExercises: WorkoutDayExerciseRecord[],
-  normalizedExercises: Array<{ exerciseId: string; completed: boolean }>
-): boolean {
-  if (plannedExercises.length === 0) return false
-
-  const completedByExerciseId = new Map<string, boolean>()
-
-  for (const item of normalizedExercises) {
-    completedByExerciseId.set(item.exerciseId, item.completed)
-  }
-
-  for (const planned of plannedExercises) {
-    if (!completedByExerciseId.get(planned.exerciseId)) {
-      return false
+export async function completeWorkoutSession(userId: string, raw: CompleteWorkoutSessionInput, id?: string): Promise<WorkoutSessionDTO> {
+  const input = workoutSessionSchema.parse(raw)
+  const date = input.date ? new Date(input.date) : new Date()
+  if (date.getTime() > Date.now() + 300000) throw new WorkoutSessionError('Não é possível registrar um treino no futuro.')
+  // Serialize retries per account. The route derives the primary key from account + mutation UUID.
+  return prisma.$transaction(async tx => {
+    await tx.$queryRaw`SELECT id FROM users WHERE id = ${userId} FOR UPDATE`
+    if (id) {
+      const existing = await tx.workoutSession.findFirst({ where: { id, userId }, include })
+      if (existing) return dto(existing)
     }
-  }
-
-  return true
-}
-
-export async function completeWorkoutSession(
-  userId: string,
-  input: CompleteWorkoutSessionInput
-): Promise<WorkoutSessionDTO> {
-  await ensureWorkoutDayOwnership(userId, input.planId, input.workoutDayId)
-
-  if (input.exercises.length === 0) {
-    throw new Error('Informe os exercicios realizados')
-  }
-
-  const plannedExercises = await workoutDayExerciseDelegate(prisma).findMany({
-    where: { workoutDayId: input.workoutDayId },
-    select: { id: true, exerciseId: true },
-    orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
-  })
-
-  if (plannedExercises.length === 0) {
-    throw new Error('Este treino nao possui exercicios')
-  }
-
-  const allowedExerciseIds = new Set(plannedExercises.map((item) => item.exerciseId))
-
-  const normalizedExercises = input.exercises.map((item) => {
-    if (!item.exerciseId || !allowedExerciseIds.has(item.exerciseId)) {
-      throw new Error('Exercicio invalido para este treino')
-    }
-
-    return {
-      exerciseId: item.exerciseId,
-      setsDone: normalizeOptionalSetsDone(item.setsDone),
-      repsDone: normalizeOptionalRepsDone(item.repsDone),
-      weightUsed: normalizeOptionalWeightUsed(item.weightUsed),
-      completed: Boolean(item.completed),
-      notes: normalizeOptionalExerciseNotes(item.notes),
-      sets: Array.isArray(item.sets)
-        ? item.sets.map((set) => ({
-            setNumber: set.setNumber,
-            plannedReps: normalizeOptionalRepsDone(set.plannedReps),
-            actualReps: normalizeOptionalSetsDone(set.actualReps),
-            weight: normalizeOptionalWeightUsed(set.weight),
-            completed: Boolean(set.completed),
-          }))
-        : [],
-    }
-  })
-
-  const date = normalizeSessionDate(input.date)
-  const dayNotes = normalizeDayNotes(input.dayNotes)
-  const completedAllExercises = didCompleteAllPlannedExercises(plannedExercises, normalizedExercises)
-
-  const session = await prisma.$transaction(async (tx) => {
-    const createdSession = await workoutSessionDelegate(tx).create({
-      data: {
-        userId,
-        planId: input.planId,
-        workoutDayId: input.workoutDayId,
-        date,
-        completed: true,
-        dayNotes,
-        exercises: {
-          create: normalizedExercises.map((item) => ({
-            exerciseId: item.exerciseId,
-            setsDone: item.setsDone,
-            repsDone: item.repsDone,
-            weightUsed: item.weightUsed,
-            completed: item.completed,
-            notes: item.notes,
-            sets: {
-              create: item.sets?.map((set) => ({
-                setNumber: set.setNumber,
-                plannedReps: set.plannedReps,
-                actualReps: set.actualReps,
-                weight: set.weight,
-                completed: set.completed,
-              })) || [],
-            },
-          })),
-        },
-      },
+    const day = await tx.workoutDay.findFirst({
+      where: { id: input.workoutDayId, planId: input.planId, plan: { userId } },
+      include: { plan: true, exercises: { include: { exercise: true } } },
     })
-
-    await registerWorkoutCompletion(
-      userId,
-      {
-        workoutDate: date,
-        completedAllExercises,
-      },
-      tx
-    )
-
-    return createdSession
-  })
-
-  const sessionExercises = await workoutSessionExerciseDelegate(prisma).findMany({
-    where: { workoutSessionId: session.id },
-    orderBy: [{ createdAt: 'asc' }],
-    include: { sets: { orderBy: { setNumber: 'asc' } } },
-  })
-
-  return toWorkoutSessionDTO(session, sessionExercises)
+    if (!day) throw new WorkoutSessionError('Treino não encontrado.', 404)
+    const used = new Set<string>()
+    const normalized = input.exercises.map(item => {
+      const planned = day.exercises.find(p => item.workoutDayExerciseId ? p.id === item.workoutDayExerciseId && p.exerciseId === item.exerciseId : p.exerciseId === item.exerciseId && !used.has(p.id))
+      if (!planned || used.has(planned.id)) throw new WorkoutSessionError('Exercício inválido ou repetido neste treino.')
+      used.add(planned.id)
+      const sets = item.sets ?? []
+      if (new Set(sets.map(s => s.setNumber)).size !== sets.length) throw new WorkoutSessionError('Número de série repetido.')
+      const done = sets.filter(s => s.completed).length
+      const completed = sets.length ? done >= planned.sets && done === sets.length : Boolean(item.completed)
+      return { exerciseId: item.exerciseId, exerciseName: planned.exercise.namePt,
+        setsDone: sets.length ? done : item.setsDone, repsDone: item.repsDone,
+        weightUsed: item.weightUsed, completed, notes: item.notes,
+        sets: { create: sets.map(s => ({ ...s, weight: s.weight == null ? null : Math.round(s.weight * 100) / 100 })) },
+      }
+    })
+    if (!normalized.some(e => e.completed || (e.setsDone ?? 0) > 0)) throw new WorkoutSessionError('Marque ao menos uma série realizada antes de finalizar.')
+    const completed = normalized.every(e => e.completed) && day.exercises.filter(e => !e.archivedAt).every(e => used.has(e.id))
+    const row = await tx.workoutSession.create({ data: {
+      ...(id ? { id } : {}), userId, planId: day.planId, workoutDayId: day.id, date,
+      completed, dayNotes: input.dayNotes, durationSeconds: input.durationSeconds,
+      planName: day.plan.name, dayName: day.name, exercises: { create: normalized },
+    }, include })
+    await registerWorkoutCompletion(userId, { workoutDate: date, completedAllExercises: completed }, tx)
+    return dto(row)
+  }, { timeout: 15000 })
 }

@@ -220,7 +220,7 @@ export const getWorkoutDayExercises = cache(async (userId: string, workoutDayId:
   await ensureWorkoutDayOwnership(userId, workoutDayId)
 
   const items = await workoutDayExerciseDelegate(prisma).findMany({
-    where: { workoutDayId },
+    where: { workoutDayId, archivedAt: null },
     include: { exercise: true },
     orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
   })
@@ -236,7 +236,8 @@ export const getWorkoutDayExercisesByPlan = cache(async (
 
   const items = await workoutDayExerciseDelegate(prisma).findMany({
     where: {
-      workoutDay: { planId },
+      archivedAt: null,
+      workoutDay: { planId, archivedAt: null },
     },
     include: { exercise: true },
     orderBy: [{ workoutDayId: 'asc' }, { order: 'asc' }, { createdAt: 'asc' }],
@@ -335,8 +336,8 @@ export async function deleteWorkoutDayExercise(userId: string, id: string): Prom
     throw new Error('Exercicio do treino nao encontrado')
   }
 
-  await workoutDayExerciseDelegate(prisma).delete({
-    where: { id },
+  await workoutDayExerciseDelegate(prisma).update({
+    where: { id }, data: { archivedAt: new Date() },
   })
 }
 
@@ -360,6 +361,7 @@ export async function reorderWorkoutDayExercise(
   const adjacent = await workoutDayExerciseDelegate(prisma).findFirst({
     where: {
       workoutDayId: current.workoutDayId,
+      archivedAt: null,
       order: direction === 'up' ? { lt: current.order } : { gt: current.order },
     },
     include: { exercise: true },
