@@ -1,8 +1,10 @@
 'use client'
 
 import Script from 'next/script'
+import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import FacebookPixel from './FacebookPixel'
+import { captureUtmFromLocation } from '@/lib/utm'
 import UtmifyPixel from './UtmifyPixel'
 import GoogleTagManager from './GoogleTagManager'
 
@@ -12,6 +14,9 @@ const MARKETING_ROUTES = ['/', '/login', '/register', '/sucesso', '/payment', '/
 
 export default function MarketingScripts() {
   const pathname = usePathname()
+  useEffect(() => {
+    captureUtmFromLocation()
+  }, [pathname])
   const enabled = MARKETING_ROUTES.some((r) => pathname === r || (r !== '/' && pathname.startsWith(`${r}/`)))
   if (!enabled) return null
 

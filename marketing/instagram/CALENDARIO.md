@@ -51,5 +51,26 @@ os três itens do lançamento. Não houve merge ou deploy pelo agente.
 GTA VI: reconferir a fonte oficial em 18/11 e antes do post de 19/11. Alternativa
 sem data/preço em `revisao-2026-11/19-gta6-dia-d/fallback-legenda.txt`.
 Monitorar publicações/falhas no Zernio; agendado não significa já publicado.
+
+## Campanha GTA VI v6 — agendada em 15/11/2026
+
+Aprovada por Lucas por e-mail (17h07) + confirmação de horários no chat.
+Fila preservada: nenhum post de outro tema foi removido ou substituído.
+Artes em `C:\Users\lucas\OpenBot\Shared\vynta-marketing\gta6-2026-11\artes-v6\`.
+
+| Dia | Item | Horário (São Paulo) | Post ID |
+| --- | --- | --- | --- |
+| Ter 17 | Feed GTA parcelas (novo) | 19h | 6afa15f433248e70a913acf8 |
+| Ter 17 | Stories GTA 1, 2, 3 | 14h, 16h30, 21h30 | 6afa15fa…ad3a, 6afa15fc…ad4c, 6afa15fe…df8a |
+| Qui 19 | Feed GTA dia D (atualizado, mesmo ID/horário 10h) | 10h | 6af6f13702f7f00bc854e7a8 |
+| Qui 19 | Stories GTA 1, 2, 3 | 10h30, 16h, 20h | 6af7d23b…7018, 6afa1606…ada2, 6af7d23c…e9bae |
+| Sáb 21 | Feed GTA lanche (novo) | 18h | 6afa160974095114e04fdfa1 |
+| Sáb 21 | Stories GTA 1, 2, 3 | 12h30, 15h30, 20h30 | 6afa160f…adeb, 6afa1611…dfdf, 6afa1612…adfd |
+
+Os posts antigos de 19/11 (feed + 2 stories) receberam a arte v6 no lugar da
+r5, mantendo IDs e horários — não houve exclusão de item pré-existente.
+Legenda do feed de 19/11 revalidada em D-1/D0 conforme regra acima.
+Snapshot pré-mudança: `zernio-before-gta6-v6.json` (fora do repo); inventário
+de IDs criados: `agendamento-gta6-v6.json` (mesma pasta).
 O estado deste calendário é um snapshot confirmado em 14/11, não monitoramento
 contínuo automático. Reavaliar métricas em 24h, 72h e 7 dias.

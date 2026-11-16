@@ -8,6 +8,7 @@ import FunnelTracker from '@/components/FunnelTracker'
 import PromoOfferCard from '@/components/engagement/PromoOfferCard'
 import { event as fbEvent } from '@/components/FacebookPixel'
 import { trackFunnelEvent, getOrCreateSessionId } from '@/lib/funnel'
+import { gtmEvent } from '@/lib/gtm'
 import {
   PLANS,
   PLAN_FEATURES,
@@ -33,6 +34,7 @@ export default function SubscriptionClient({ session, promoEligible, onPromoMont
   const handleUpgrade = async (tier: BillingTier) => {
     trackFunnelEvent('checkout_started', { planTier: tier })
     fbEvent('InitiateCheckout', { value: PLANS[tier].priceCents / 100, currency: 'BRL', content_name: tier })
+    gtmEvent('begin_checkout', { value: PLANS[tier].priceCents / 100, currency: 'BRL', plan_tier: tier })
     setLoading(true)
     setError('')
 

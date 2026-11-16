@@ -7,6 +7,7 @@ import { Check, Eye, EyeOff, Loader2 } from 'lucide-react'
 import BrandLogo from '@/components/BrandLogo'
 import { event as fbEvent } from '@/components/FacebookPixel'
 import { trackFunnelEvent } from '@/lib/funnel'
+import { gtmEvent } from '@/lib/gtm'
 import { TRIAL_DAYS, isBillingTier } from '@/lib/plans'
 import { detachPushFromAccount } from '@/lib/push'
 import { clearLocalTour } from '@/lib/tour'
@@ -68,6 +69,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
       if (isRegister) {
         trackFunnelEvent('signup_completed', intendedPlan ? { planTier: intendedPlan } : undefined)
         fbEvent('CompleteRegistration', {}, data.eventId)
+        gtmEvent('sign_up', intendedPlan ? { plan_tier: intendedPlan } : undefined)
       }
 
       setRedirecting(true)

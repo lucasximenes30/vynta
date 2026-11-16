@@ -3,11 +3,13 @@
 import { useState } from 'react'
 import { Loader2, Sparkles } from 'lucide-react'
 import { trackFunnelEvent, getOrCreateSessionId } from '@/lib/funnel'
+import { gtmEvent } from '@/lib/gtm'
 import { PLANS, PROMO_FIRST_MONTH, formatBRL } from '@/lib/plans'
 
 /** Opens the first-month offer checkout. Resolves with an error message, or redirects. */
 export async function startPromoCheckout(source: string): Promise<string> {
   trackFunnelEvent('checkout_started', { planTier: 'promo', source })
+  gtmEvent('begin_checkout', { value: PROMO_FIRST_MONTH.priceCents / 100, currency: 'BRL', plan_tier: 'promo' })
   try {
     const res = await fetch('/api/payments/create', {
       method: 'POST',

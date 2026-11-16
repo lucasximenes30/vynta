@@ -1,3 +1,5 @@
+import { getUtmMetadata } from './utm'
+
 const SESSION_COOKIE_NAME = 'vynta_session_id'
 
 function getCookie(name: string): string | null {
@@ -52,7 +54,7 @@ export async function trackFunnelEvent(eventName: string, metadata?: Record<stri
       body: JSON.stringify({
         sessionId,
         eventName,
-        metadata,
+        metadata: { ...metadata, utm: getUtmMetadata() },
       }),
       keepalive: true,
     }).catch(() => {

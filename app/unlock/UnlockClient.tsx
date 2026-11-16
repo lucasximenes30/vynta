@@ -7,6 +7,7 @@ import FunnelTracker from '@/components/FunnelTracker'
 import PromoOfferCard from '@/components/engagement/PromoOfferCard'
 import { event as fbEvent } from '@/components/FacebookPixel'
 import { trackFunnelEvent, getOrCreateSessionId } from '@/lib/funnel'
+import { gtmEvent } from '@/lib/gtm'
 import { CheckCircle2, ArrowRight, ShieldCheck, Zap } from 'lucide-react'
 import { JWTPayload } from '@/lib/auth'
 import {
@@ -35,6 +36,7 @@ export default function UnlockClient({ session, state, feature, promoEligible }:
     trackFunnelEvent('checkout_started', { planTier: tier, source: 'unlock' })
     trackFunnelEvent('payment_attempted', { planTier: tier, source: 'unlock' })
     fbEvent('InitiateCheckout', { value: PLANS[tier].priceCents / 100, currency: 'BRL', content_name: tier })
+    gtmEvent('begin_checkout', { value: PLANS[tier].priceCents / 100, currency: 'BRL', plan_tier: tier })
     setLoading(true)
     setError('')
     try {
