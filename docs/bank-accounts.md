@@ -1,4 +1,34 @@
-# Contas bancárias — 14/11/2026
+# Saldo conferido e cadastro legado — 16/11/2026
+
+O bloco de cadastro de contas foi retirado de Finanças. Quando já existe saldo
+principal registrado, o resumo o mostra como **saldo conferido no extrato**,
+acompanhado da data e do aviso de que novos lançamentos não o atualizam.
+O resultado mensal continua separado, com receitas alcançadas e despesas previstas.
+Sem saldo conferido, o resumo mantém o resultado mensal como antes.
+
+A tabela, os dados e as APIs existentes foram preservados; não houve db:push,
+DROP, migração, cadastro automático nem mudança na matemática de receitas,
+parcelas, recorrências ou faturas. O saldo é lido no servidor e serializado
+somente para a sessão titular. O cliente não busca mais o componente BankAccounts.
+
+Conciliações pessoais não entram no Git: fontes e backups ficam locais, e a
+explicação fica em nota privada da conta. Correspondências de salário e despesas
+não são repetidas; pagamentos de fatura com compras detalhadas não viram uma
+segunda despesa. Movimentações próprias e de reservas não viram ganhos/consumo.
+Itens sem evidência suficiente são documentados, sem apagamento especulativo.
+
+O histórico agora separa lançamentos avulsos, próximos lançamentos e recorrências/
+parcelas do mês. Ordenação por data com desempate estável, sem simular que toda
+recorrência aconteceu hoje. Datas de parcelas/recorrências correspondem à ocorrência
+selecionada (dia útil, fim do mês e vencimento do cartão). O filtro usa essa mesma
+data; a interface não afirma quitação só porque a data passou.
+
+Verificações: regressões isoladas em scripts/check-security.ts, build e revisão
+visual em Chrome emulado. Não equivale a teste de Safari/PWA em iPhone físico.
+
+---
+
+Registro da implementação original (14/11):
 
 Cadastro manual em Finanças, separado das transações. Guarda nome, saldo exato
 em Decimal(12,2), data da conferência e conta principal. Não guarda número de

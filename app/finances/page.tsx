@@ -33,6 +33,7 @@ function serializeData(transactions: any[], balance: any, monthly: any) {
     endDate: t.endDate?.toISOString(),
     createdAt: t.createdAt?.toISOString(),
     cardId: t.cardId ?? undefined,
+    paymentMethod: t.paymentMethod ?? undefined,
   }))
 
   return {
@@ -72,6 +73,11 @@ async function FinancesContent({ session }: { session: JWTPayload }) {
         subscriptionStatus: true,
         subscriptionEndDate: true,
         role: true,
+        bankAccounts: {
+          where: { isPrimary: true },
+          select: { balance: true, balanceDate: true },
+          take: 1,
+        },
       },
     }),
     getTransactionsByUser(session.userId),
@@ -103,6 +109,10 @@ async function FinancesContent({ session }: { session: JWTPayload }) {
       balance={data.balance}
       monthly={data.monthly}
       cards={cards}
+      confirmedBalance={user.bankAccounts[0] ? {
+        amount: Number(user.bankAccounts[0].balance),
+        date: user.bankAccounts[0].balanceDate.toISOString().slice(0, 10),
+      } : undefined}
     />
   )
 }

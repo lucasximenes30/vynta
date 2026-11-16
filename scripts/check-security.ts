@@ -23,6 +23,7 @@ import { authenticAbacateWebhook, ABACATEPAY_PUBLIC_KEY } from '../lib/abacateWe
 import { APP_SESSION_SECONDS, ADMIN_SESSION_SECONDS } from '../lib/sessionPolicy'
 import { financialToday } from '../lib/financialPeriod'
 import { parseBankBalance } from '../lib/bankAccounts'
+import { historyDate, compareHistoryTransactions } from '../lib/transactionHistory'
 
 /** Bundle the real handler with explicit local doubles. No database, AI, email or push is contacted. */
 async function isolated(entry: string, mocks: Record<string, string>) {
@@ -46,6 +47,19 @@ async function isolated(entry: string, mocks: Record<string, string>) {
 
 async function main() {
   await checkWorkout()
+  const recurringHistory = { id: 'recurring', date: '2026-01-01T12:00:00Z', isRecurring: true, recurringDay: 31 }
+  assert.equal(historyDate(recurringHistory, '2026-02', []), '2026-02-28', 'history clamps the selected occurrence, not the registration date')
+  assert.equal(historyDate({ ...recurringHistory, recurringDay: 5, payDayType: 'business_day' }, '2026-11', []), '2026-11-06')
+  assert.equal(historyDate({ ...recurringHistory, cardId: 'card' }, '2026-11', [{ id: 'card', dueDay: 15 }]), '2026-11-15', 'card recurring history uses invoice due date')
+  assert.equal(historyDate({ id: 'installment', date: '2026-01-01', isInstallment: true, dueDay: 10 }, '2026-11', []), '2026-11-10')
+  assert.equal(historyDate({ id: 'purchase', date: '2026-11-13T12:00:00Z' }, '2026-11', []), '2026-11-13')
+  const sameDayHistory = [
+    { id: 'first', date: '2026-11-13', createdAt: '2026-11-13T10:00:00Z' },
+    { id: 'second', date: '2026-11-13', createdAt: '2026-11-13T11:00:00Z' },
+    { id: 'yesterday', date: '2026-11-12', createdAt: '2026-11-13T12:00:00Z' },
+  ]
+  assert.deepEqual([...sameDayHistory].sort(compareHistoryTransactions).map(row => row.id), ['second', 'first', 'yesterday'])
+  assert.deepEqual([...sameDayHistory].sort((a, b) => compareHistoryTransactions(a, b, false)).map(row => row.id), ['yesterday', 'first', 'second'])
   assert.equal(parseBankBalance('129,12'), 12912)
   assert.equal(parseBankBalance('-1.234,56'), -123456)
   for (const value of ['1,234', '12.34', '1e3', '', 'NaN']) assert.equal(parseBankBalance(value), null)

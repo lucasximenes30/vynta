@@ -74,10 +74,12 @@
 - Sininho + push + avaliador offline do SW alertam `card_bill` 7/3/1 dias antes e no vencimento (`lib/notifications.ts`, `pushScheduler` chave `invoice:{cardId}:{due}:{d}`, SW `invoiceBills` + dedupe via `localKey`). Transações com `cardId` NUNCA geram notificação própria — só a fatura única avisa.
 - Atribuição mensal: gastos de cartão pertencem ao mês de VENCIMENTO da fatura (postagem em out → fatura de nov → conta em nov), não ao mês da postagem. `txInMonth`/`cardTxContributesToMonth` e `computeBalance` em `services/transaction.service.ts` implementam isso — parcelas/recorrentes importados só contam a partir da fatura de postagem (`postingParcelaIndex`), nunca retroativo.
 
-## Contas bancárias (14/11/2026)
-- Finanças mostra `BankAccounts`, carregado dinamicamente, com cadastro de contas,
-  conta principal e saldo manual por data. `BankAccount`/`bank_accounts` é separado
-  de Transaction: saldo informado não é receita, resultado mensal nem acumulado.
+## Saldo conferido / cadastro legado (16/11/2026)
+- O bloco de cadastro `BankAccounts` foi retirado de Finanças a pedido do titular.
+  O resumo pode mostrar o saldo principal já registrado, com data explícita e aviso
+  de que os lançamentos não o atualizam. O resultado mensal fica separado.
+  `BankAccount`/`bank_accounts` é separado de Transaction: saldo informado não é
+  receita, resultado mensal nem acumulado. Preservar tabela e registros legados.
 - Não inferir saldo bancário usando salários, parcelas ou transferências. Esta
   versão não sincroniza bancos nem atualiza saldo ao lançar transações. UI deve
   manter essa limitação explícita e mostrar a data da conferência.
@@ -86,6 +88,15 @@
   proprietário para manter uma conta principal. Não pedir agência, senha ou cartão.
 - Alteração de schema aplicada via db:push após diff somente aditivo. Testes
   isolados em `scripts/check-security.ts`; documentação em `docs/bank-accounts.md`.
+
+- Histórico de Finanças: lançamentos avulsos por data primeiro; próximos avulsos
+  e recorrências/parcelas em seções próprias. Nunca dar a data de hoje a todas as
+  recorrências para ordenar. `lib/transactionHistory.ts` calcula a ocorrência no
+  mês selecionado, com dia útil, limite do mês e vencimento da fatura; o filtro
+  de data usa a mesma data exibida. Data prevista não confirma pagamento.
+- Conciliações pessoais ficam em dados/notas da conta e backups locais fora do
+  Git. Não lançar saldo como receita nem repetir salário ou pagamento de fatura
+  já representado por itens; preservar parcelas e documentar itens sem evidência.
 
 ## Salário — configuração e cálculo
 - Config em Finanças → botão "Salário" (`app/finances/SalaryModal.tsx` → `POST|DELETE /api/salary` → `services/salary.service.ts`).

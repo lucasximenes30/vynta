@@ -17,6 +17,7 @@ import NotificationDropdown from '@/components/NotificationDropdown'
 import { getInstallmentInfo, formatShortDate, isInstallmentActiveInMonth, getInstallmentForMonth } from '@/lib/installments'
 import { cardTxContributesToMonth, parcelaNumberForDueMonth } from '@/lib/invoice'
 import { firstPayMonthIdx } from '@/lib/payday'
+import { historyDate, compareHistoryTransactions } from '@/lib/transactionHistory'
 import { getLocalToday } from '@/lib/dateUtils'
 import { useTourAction } from '@/lib/tour'
 
@@ -29,7 +30,6 @@ interface Card { id: string; name: string; lastFourDigits: string; dueDay: numbe
 const SalaryModal = dynamic(() => import('./SalaryModal'), {
   loading: () => <div role="status" className="fixed bottom-24 left-4 right-4 z-[60] rounded-2xl bg-surface-900 p-4 text-center text-sm text-white shadow-lg">Abrindo configuração do salário…</div>,
 })
-const BankAccounts = dynamic(() => import('./BankAccounts'), { loading: () => <p className="text-sm text-surface-500">Carregando contas bancárias…</p> })
 
 // Cache de taxa de câmbio (atualiza a cada 5 min)
 const cacheKey = 'vynta_exchange_rate'
@@ -76,6 +76,7 @@ interface Props {
   balance: Balance
   monthly: Monthly
   cards?: Card[]
+  confirmedBalance?: { amount: number; date: string }
 }
 
 async function getExchangeRate(): Promise<number> {
@@ -95,7 +96,7 @@ async function getExchangeRate(): Promise<number> {
 }
 
 export default function FinancesClient({
-  session, transactions: serverTransactions, balance, monthly, cards = [],
+  session, transactions: serverTransactions, balance, monthly, cards = [], confirmedBalance,
 }: Props) {
   const router = useRouter()
   const [, startTransition] = useTransition()
@@ -145,7 +146,7 @@ export default function FinancesClient({
 
   const formatDate = (dateStr: string) => {
     const loc = 'pt-BR'
-    return new Date(dateStr).toLocaleDateString(loc, { day: '2-digit', month: 'short', year: 'numeric' })
+    return new Date(`${dateStr.slice(0, 10)}T12:00:00Z`).toLocaleDateString(loc, { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' })
   }
 
   // Delete transaction
@@ -303,8 +304,8 @@ export default function FinancesClient({
   const [profileName, setProfileName] = useState(session.name)
 
   // Month filter for transaction history
-  const now = new Date()
-  const currentYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
+  const currentYM = today.slice(0, 7)
   const [selectedMonth, setSelectedMonth] = useState(currentYM)
   const [sortDesc, setSortDesc] = useState(true) // true = most recent first
 
@@ -365,10 +366,6 @@ export default function FinancesClient({
       }
 
       return false
-    }).sort((a, b) => {
-      const dateA = a.isRecurring ? now : new Date(a.date)
-      const dateB = b.isRecurring ? now : new Date(b.date)
-      return sortDesc ? dateB.getTime() - dateA.getTime() : dateA.getTime() - dateB.getTime()
     }).map((txn) => {
       // Inject _activeInstallment for the selected month
       if (txn.isInstallment && txn.totalInstallments && txn.purchaseDate) {
@@ -383,14 +380,14 @@ export default function FinancesClient({
       }
       return txn
     })
-  }, [transactions, selectedMonth, sortDesc, cards])
+  }, [transactions, selectedMonth, cards])
 
   const displayedTransactions = useMemo(() => {
     return filteredMonthTransactions.filter((txn) => {
       if (filterType !== 'ALL' && txn.type !== filterType) return false
       
       if (filterDate) {
-        const txnDateStr = new Date(txn.date).toISOString().split('T')[0]
+        const txnDateStr = historyDate(txn, selectedMonth, cards)
         if (txnDateStr !== filterDate) return false
       }
 
@@ -402,10 +399,22 @@ export default function FinancesClient({
 
       return true
     })
-  }, [filteredMonthTransactions, filterType, filterDate, filterCategory, filterCardId])
+  }, [filteredMonthTransactions, filterType, filterDate, filterCategory, filterCardId, selectedMonth, cards])
+
+  const historySections = useMemo(() => {
+    const dated = displayedTransactions.map(txn => ({ txn, date: historyDate(txn, selectedMonth, cards) }))
+    const compare = (a: typeof dated[number], b: typeof dated[number]) =>
+      compareHistoryTransactions({ ...a.txn, date: a.date }, { ...b.txn, date: b.date }, sortDesc)
+    return [
+      { title: 'Lançamentos recentes', scheduled: false, entries: dated.filter(({ txn, date }) => !txn.isRecurring && !txn.isInstallment && date <= today).sort(compare) },
+      { title: 'Próximos lançamentos', scheduled: false, entries: dated.filter(({ txn, date }) => !txn.isRecurring && !txn.isInstallment && date > today).sort(compare) },
+      { title: 'Recorrências e parcelas do mês', scheduled: true, entries: dated.filter(({ txn }) => txn.isRecurring || txn.isInstallment).sort(compare) },
+    ].filter(section => section.entries.length > 0)
+  }, [displayedTransactions, selectedMonth, cards, sortDesc, today])
 
   // Get last 6 months for selector
   const monthOptions = useMemo(() => {
+    const now = new Date(`${today}T12:00:00`)
     const opts: { value: string; label: string }[] = []
     for (let i = 0; i < 6; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
@@ -418,7 +427,7 @@ export default function FinancesClient({
       opts.push({ value: ym, label })
     }
     return opts
-  }, [isBRL])
+  }, [isBRL, today])
 
   // Salary config — recurring INCOME transactions flagged with salarySlot
   const [salaryModalOpen, setSalaryModalOpen] = useState(false)
@@ -579,7 +588,6 @@ export default function FinancesClient({
       </header>
 
       <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 sm:px-6 py-6 sm:py-8">
-        <BankAccounts />
         {/* Balance Card */}
         <div className="rounded-2xl bg-gradient-to-br from-brand-500 via-brand-600 to-brand-800 p-6 sm:p-10 text-white shadow-lg dark:shadow-brand-700/20 border border-white/20 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
@@ -587,16 +595,17 @@ export default function FinancesClient({
           <div className="relative z-10 flex flex-col md:flex-row gap-6 md:gap-8">
             <div className="flex-1">
               <div className="space-y-1">
-                <p className="text-sm/6 font-medium text-white/70">Resultado do mês</p>
+                <p className="text-sm/6 font-medium text-white/70">{confirmedBalance ? 'Saldo conferido no extrato' : 'Resultado do mês'}</p>
                 <div className="flex items-baseline gap-3 flex-wrap">
-                  <p className="text-4xl sm:text-5xl font-bold tracking-[-0.02em] leading-none">{formatCurrency(monthly.balance)}</p>
+                  <p className="text-4xl sm:text-5xl font-bold tracking-[-0.02em] leading-none">{formatCurrency(confirmedBalance?.amount ?? monthly.balance)}</p>
                   {!isBRL && (
                     <span className="text-sm font-medium text-white/50">
-                      ≈ {formatConverted(monthly.balance)}
+                      ≈ {formatConverted(confirmedBalance?.amount ?? monthly.balance)}
                     </span>
                   )}
                 </div>
               </div>
+              {confirmedBalance && <p className="mt-3 text-xs leading-relaxed text-white/80">Conferido em {formatDate(confirmedBalance.date)}. Valor do extrato nessa data; lançamentos posteriores não atualizam este saldo automaticamente.</p>}
               <div className="mt-4 sm:mt-6 flex flex-wrap gap-6 md:gap-8">
                 <div className="space-y-0.5">
                   <p className="text-xs/5 font-medium text-white/60">Entradas do mês até hoje</p>
@@ -607,6 +616,7 @@ export default function FinancesClient({
                   <p className="text-lg font-semibold text-white/90">{formatCurrency(monthly.expense)}</p>
                 </div>
               </div>
+              {confirmedBalance && <p className="mt-4 text-sm text-white/90">Resultado do mês: <strong>{formatCurrency(monthly.balance)}</strong></p>}
               <p className="mt-3 text-xs leading-relaxed text-white/75">Entradas até hoje menos todas as despesas do mês, inclusive as que ainda vão vencer. Este resultado não é o saldo da sua conta bancária.</p>
               {monthly.pendingIncome > 0 && <p className="mt-2 text-sm text-white/90">Ainda previsto para entrar: <strong>{formatCurrency(monthly.pendingIncome)}</strong></p>}
               <details className="mt-3 text-xs text-white/75"><summary className="cursor-pointer">Ver saldo acumulado</summary><p className="mt-2">{formatCurrency(balance.balance)} até hoje, incluindo meses anteriores. Não é uma consulta ao banco.</p></details>
@@ -987,6 +997,7 @@ export default function FinancesClient({
                   type="button"
                   onClick={() => setSortDesc((v) => !v)}
                   className="flex h-9 w-9 items-center justify-center rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 text-surface-600 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-700 transition-all duration-200"
+                  aria-label={sortDesc ? 'Ordem: mais recentes primeiro' : 'Ordem: mais antigos primeiro'}
                   title={sortDesc
                     ? ('Mais recentes primeiro')
                     : ('Mais antigos primeiro')
@@ -1118,8 +1129,19 @@ export default function FinancesClient({
             </div>
           ) : (
             <div className="space-y-3">
-              {displayedTransactions.map((txn) => (
-                <div key={txn.id} className="group relative flex flex-col md:flex-row md:items-start justify-between rounded-2xl px-3 py-4 md:px-2 md:py-3.5 transition-all duration-200 hover:bg-surface-50 dark:hover:bg-surface-800/50 border border-transparent hover:border-surface-200/50 dark:hover:border-surface-700/30 mb-2 md:mb-0">
+              <p className="text-xs leading-relaxed text-surface-500 dark:text-surface-400">Lançamentos avulsos por data. Recorrências e parcelas ficam separadas abaixo; compras de cartão aparecem no mês de vencimento da fatura.</p>
+              {historySections.map(section => (
+                <section key={section.title} aria-label={section.title} className="space-y-2 pt-3">
+                  <h4 className="flex items-center gap-2 text-sm font-semibold text-surface-700 dark:text-surface-200">
+                    {section.title}<span className="rounded-full bg-surface-100 px-2 py-0.5 text-xs dark:bg-surface-800">{section.entries.length}</span>
+                  </h4>
+                  {section.scheduled && <p className="text-xs text-surface-500 dark:text-surface-400">Datas previstas do mês selecionado. A data alcançada não confirma o pagamento.</p>}
+                  {section.entries.map(({ txn, date: entryDate }, index) => (
+                  <div key={txn.id}>
+                    {(index === 0 || entryDate !== section.entries[index - 1].date) && (
+                      <p className="border-b border-surface-200/60 pb-2 pt-3 text-xs font-medium text-surface-500 dark:border-surface-700/50 dark:text-surface-400">{formatDate(entryDate)}</p>
+                    )}
+                <div className="group relative flex flex-col md:flex-row md:items-start justify-between rounded-2xl px-3 py-4 md:px-2 md:py-3.5 transition-all duration-200 hover:bg-surface-50 dark:hover:bg-surface-800/50 border border-transparent hover:border-surface-200/50 dark:hover:border-surface-700/30 mb-2 md:mb-0">
                   <div className="flex flex-col md:flex-row items-start gap-3 min-w-0 flex-1">
                     <div className="hidden md:flex items-center gap-1.5 shrink-0">
                       <button
@@ -1203,7 +1225,7 @@ export default function FinancesClient({
                         <span className="text-surface-300 dark:text-surface-600">•</span>
                         <div className="flex items-center gap-1.5">
                            <Lucide.Calendar className="w-3 h-3" />
-                           <span>{formatDate(txn.date)}</span>
+                           <span>{section.scheduled ? 'Previsto: ' : ''}{formatDate(entryDate)}</span>
                         </div>
                       </div>
 
@@ -1340,6 +1362,9 @@ export default function FinancesClient({
                     </div>
                   </div>
                 </div>
+                  </div>
+                  ))}
+                </section>
               ))}
             </div>
           )}
